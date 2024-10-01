@@ -1,0 +1,3 @@
+# Arrays
+
+When scalars are just not enough

@@ -1,0 +1,146 @@
+# Getting started with odin
+
+```{r}
+#| include: false
+source("utils.R")
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+`odin` is a "[Domain Specific Language](https://en.wikipedia.org/wiki/Domain-specific_language)" (DSL), that is a mini-language that is specifically tailored to a domain.  By targeting a narrow domain we can have a language that expresively captures a problem and gives an efficient solution, as opposed to a general purpose language where you can write code that expresses *anything*, but your solution might either be quite verbose or have poor performance.  You might be familiar with other DSLs such as the dplyr or ggplot2 syntax, or SQL if you have used databases.
+
+## A simple example
+
+Here is a simple "SIR" (Susceptible-Infected-Recovered) model, implemented as a set of ordinary differential equations:
+
+```{r}
+#| results: "asis"
+#| echo: false
+r_output(readLines("models/sir.R"))
+```
+
+There are a few things to note here:
+
+* equations are defined out of order; we just will things into existance and trust `odin` to put them in the right order for us (much more on this later)
+* our system has "parameters"; these are things we'll be able to change easily in it after creation
+* every variable (as in, model variable --- those that make up the state) has a pair of equations'; an initial condition via `initial()` and an equation for the derivative with respect to time via `deriv()`
+
+## Compiling models
+
+Suppose we have this model stored in a file `models/sir.R`, we can compile this model with `odin()`:
+
+```r
+sir <- odin2::odin("models/sir.R", quiet = TRUE)
+```
+
+```{r}
+#| include: false
+sir <- dust2:::sirode
+```
+
+The result of this is a function which creates a `dust_system_generator` object, which we can use with functions from `dust2` to simulate from this model.
+
+```{r}
+sir()
+```
+
+## Running systems using `dust2`
+
+We create a system by using `dust_system_create` and passing in a list of parameters:
+
+```{r}
+pars <- list()
+sys <- dust2::dust_system_create(sir(), pars, n_particles = 1)
+sys
+```
+
+To interact with a system, you will use functions from dust2, which we'll show below.
+
+All systems start off with a state of all zeros:
+
+```{r}
+dust2::dust_system_state(sys)
+```
+
+There are two ways of setting state:
+
+1. Provide a new state vector and set it with `dust_system_set_state`
+2. Use the initial condition from the model itself (the expressions with `initial()` on the left hand side)
+
+Here, we'll use the latter
+
+```{r}
+dust2::dust_system_set_state_initial(sys)
+dust2::dust_system_state(sys)
+```
+
+In general, the order of the state is arbitrary (though in practice it is fairly stable).  To turn this state vector into something more interpretable you can use `dust_unpack_state`:
+
+```{r}
+s <- dust2::dust_system_state(sys)
+dust2::dust_unpack_state(sys, s)
+```
+
+This gives a named list of numbers, which means we can work with the output of the model in a more reasonable way.
+
+Next, we want to run the system.  There are two main functions for doing this:
+
+1. `dust_system_run_to_time` which runs the system up to some point in time, but returns nothing
+2. `dust_system_simulate` which runs the system over a series of points in time and returns the state at these points in time
+
+Here we'll do the latter as it will produce something we can look at!
+
+```{r}
+t <- seq(0, 150, by = 0.25)
+y <- dust2::dust_system_simulate(sys, t)
+dim(y)
+```
+
+This produces a `r nrow(y)` x `r ncol(y)` matrix.  This is typical of how time-series data are produced from odin2/dust2 and may be a surprise:
+
+* state will always be on the first dimension
+* time will always be on the last dimension
+
+This may take some getting used to at first, but practically some degree of manipulation will be required in any case if you want to plot things.
+
+We'll explore some other ways of plotting later, but here's the number of individuals in the infectious class over time, as the epidemic proceeds.
+
+```{r}
+plot(t, dust2::dust_unpack_state(sys, y)$I, type = "l",
+     xlab = "Time", ylab = "Total infectious")
+```
+
+Once a system has been run to a time, you'll need to reset it to run it again.  For example, this won't work
+
+```{r}
+#| error: true
+dust2::dust_system_simulate(sys, t)
+```
+
+The error here is trying to tell us that the first time in our vector `t`, which is 0, is smaller than the current time in the system, which is `r max(t)`.  We can query the system to get its current time, too:
+
+```{r}
+dust2::dust_system_time(sys)
+```
+
+You can reset the time back to zero (or any other time) using `dust_system_set_time`:
+
+```{r}
+dust2::dust_system_set_time(sys, 0)
+```
+
+this does not reset the state, however:
+
+```{r}
+dust2::dust_system_state(sys)
+```
+
+We can set new parameters, perhaps, and then update the state:
+
+```{r}
+dust2::dust_system_update_pars(sys, list(I0 = 5))
+dust2::dust_system_set_state_initial(sys)
+dust2::dust_system_state(sys)
+```

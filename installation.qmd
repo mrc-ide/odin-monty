@@ -1,0 +1,41 @@
+# Installation
+
+Package installation is hard, let's go shopping.
+
+## Packages
+
+The short version:
+
+```r
+install.packages(
+  c("monty", "dust2", "odin2"),
+  repos = c("https://mrc-ide.r-universe.dev", "https://cloud.r-project.org"))
+```
+
+We require a number of R packages, most of which are currently (as of late 2024) under very active development.  The canonical source for these packages is currently our [r-universe](https://mrc-ide.r-universe.dev/builds) and **not** CRAN, but we hope to get the stack onto CRAN as soon as they stabilise.  The version of `odin` on CRAN is now wildly out of date with the content in this guide.
+
+The required packages are:
+
+* [`odin2`](https://mrc-ide.github.io/odin2): the DSL itself
+* [`dust2`](https://mrc-ide.github.io/dust2): support for running odin models (odin "*transpiles*" R code into dust2)
+* [`monty`](https://mrc-ide.github.io/monty): statistical distributions and inference support
+
+These packages sit on a huge foundation of work, much of which has been written by staff at Posit (formerly RStudio)
+
+* [`cpp11`](https://cpp11.r-lib.org/) for painless bindings between  C++ and R
+* [`pkgbuild`](https://pkgbuild.r-lib.org/) for building packages
+* [`pkgload`](https://pkgload.r-lib.org/) for loading temporary packages
+* [`cli`](https://cli.r-lib.org/) for messages and console interfaces
+* [`rlang`](https://rlang.r-lib.org/) for control over metaprogramming and errors
+
+## System requirements
+
+You need a functioning C++ toolchain.  How you get one depends on your platform, and is unfortunately a bit of a moving target.  The source of truth for these matters is [Writing R extensions](https://cran.r-project.org/doc/manuals/r-release/R-exts.html) and [R installation and administration](https://cran.r-project.org/doc/manuals/r-release/R-admin.html).
+
+For windows users it is usually sufficient to install [Rtools](https://cran.r-project.org/bin/windows/Rtools/) for your version of R.  For Linux users there's a good chance you already have a functioning toolchain.  Mac users tend to have the biggest issues, particularly with OpenMP support.
+
+You can run this diagnostic function in `pkgbuild` (which we use to do compilation) to help diagnose your system
+
+```{r}
+pkgbuild::check_build_tools(debug = TRUE)
+```

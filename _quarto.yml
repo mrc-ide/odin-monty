@@ -1,0 +1,35 @@
+project:
+  type: book
+
+book:
+  title: "Odin and Monty"
+  author: "Rich FitzJohn"
+  search: true
+  repo-url: https://github.com/mrc-ide/odin-monty/
+  repo-actions: [edit, issue, source]
+  chapters:
+    - index.qmd
+    - intro.qmd
+    - part: "Odin"
+      chapters:
+      - odin.qmd
+      - time.qmd
+      - stochasticity.qmd
+      - arrays.qmd
+      - data.qmd
+    - part: "Monty"
+      chapters:
+      - monty.qmd
+    - part: "Odin & Monty"
+      chapters:
+      - inference.qmd
+      - differentiability.qmd
+    - references.qmd
+  appendices:
+    - installation.qmd
+
+bibliography: references.bib
+
+format:
+  html:
+    theme: cosmo
