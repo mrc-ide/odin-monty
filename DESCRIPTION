@@ -14,5 +14,7 @@ Imports:
     pkgbuild,
     pkgload
 Remotes:
+    mrc-ide/dust2,
+    mrc-ide/monty,
     mrc-ide/odin2
 Encoding: UTF-8
