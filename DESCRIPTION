@@ -1,0 +1,18 @@
+Package: odin.monty
+Title: Odin and Monty
+Version: 1.0
+Authors@R: c(person("Rich", "FitzJohn", role = c("aut", "cre"),
+                    email = "rich.fitzjohn@gmail.com"),
+             person("Imperial College of Science, Technology and Medicine",
+                    role = "cph"))
+Imports:
+    cpp11,
+    decor,
+    dust2,
+    monty,
+    odin2,
+    pkgbuild,
+    pkgload
+Remotes:
+    mrc-ide/odin2
+Encoding: UTF-8
