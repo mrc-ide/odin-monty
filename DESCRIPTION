@@ -9,10 +9,12 @@ Imports:
     cpp11,
     decor,
     dust2,
+    knitr,
     monty,
     odin2,
     pkgbuild,
-    pkgload
+    pkgload,
+    rmarkdown
 Remotes:
     mrc-ide/dust2,
     mrc-ide/monty,
