@@ -27,6 +27,7 @@ book:
     - references.qmd
   appendices:
     - installation.qmd
+    - colophon.qmd
 
 bibliography: references.bib
 

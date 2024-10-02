@@ -31,13 +31,8 @@ There are a few things to note here:
 
 Suppose we have this model stored in a file `models/sir.R`, we can compile this model with `odin()`:
 
-```r
-sir <- odin2::odin("models/sir.R", quiet = TRUE)
-```
-
 ```{r}
-#| include: false
-sir <- dust2:::sirode
+sir <- odin2::odin("models/sir.R")
 ```
 
 The result of this is a function which creates a `dust_system_generator` object, which we can use with functions from `dust2` to simulate from this model.
