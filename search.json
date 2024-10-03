@@ -1,0 +1,186 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Odin and Monty",
+    "section": "",
+    "text": "Preface\nThis is a Quarto book.\nTo learn more about Quarto books visit https://quarto.org/docs/books.",
+    "crumbs": [
+      "Preface"
+    ]
+  },
+  {
+    "objectID": "intro.html",
+    "href": "intro.html",
+    "title": "1  Introduction",
+    "section": "",
+    "text": "1.1 History\nOriginally, we designed odin around describing and solving systems of differential equations, with a small amount of support for working with disrete-time stochastic systems. Over time, and particularly during the COVID-19 response, we expanded the stochastic support and introduced the ability to fit these models using particle filters and other sequential Monte Carlo algorithms. You may have used odin.dust and mcstate through this period. As of 2024 we have rationalised our tools into a new set of packages which are currently called odin2, dust2 and monty2",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Introduction</span>"
+    ]
+  },
+  {
+    "objectID": "intro.html#about-this-book",
+    "href": "intro.html#about-this-book",
+    "title": "1  Introduction",
+    "section": "1.2 About this book",
+    "text": "1.2 About this book\nThis book exists to supplement the package documentation, and we will try to link extensively to it. It is designed as a fairly friendly walk-through of the tools, and to mirror courses that we run.",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Introduction</span>"
+    ]
+  },
+  {
+    "objectID": "odin.html",
+    "href": "odin.html",
+    "title": "2  Getting started with odin",
+    "section": "",
+    "text": "2.1 A simple example\nHere is a simple “SIR” (Susceptible-Infected-Recovered) model, implemented as a set of ordinary differential equations:\nThere are a few things to note here:",
+    "crumbs": [
+      "Odin",
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Getting started with odin</span>"
+    ]
+  },
+  {
+    "objectID": "odin.html#a-simple-example",
+    "href": "odin.html#a-simple-example",
+    "title": "2  Getting started with odin",
+    "section": "",
+    "text": "deriv(S) &lt;- -beta * S * I / N\nderiv(I) &lt;- beta * S * I / N - sigma * I\nderiv(R) &lt;- sigma * I\n\ninitial(S) &lt;- N - I0\ninitial(I) &lt;- I0\ninitial(R) &lt;- 0\n\nN &lt;- parameter(1e6)\nI0 &lt;- parameter(1)\nbeta &lt;- parameter(4)\nsigma &lt;- parameter(2)\n\n\nequations are defined out of order; we just will things into existance and trust odin to put them in the right order for us (much more on this later)\nour system has “parameters”; these are things we’ll be able to change easily in it after creation\nevery variable (as in, model variable — those that make up the state) has a pair of equations’; an initial condition via initial() and an equation for the derivative with respect to time via deriv()",
+    "crumbs": [
+      "Odin",
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Getting started with odin</span>"
+    ]
+  },
+  {
+    "objectID": "odin.html#compiling-models",
+    "href": "odin.html#compiling-models",
+    "title": "2  Getting started with odin",
+    "section": "2.2 Compiling models",
+    "text": "2.2 Compiling models\nSuppose we have this model stored in a file models/sir.R, we can compile this model with odin():\n\nsir &lt;- odin2::odin(\"models/sir.R\")\n#&gt; ✔ Wrote 'DESCRIPTION'\n#&gt; ✔ Wrote 'NAMESPACE'\n#&gt; ✔ Wrote 'R/dust.R'\n#&gt; ✔ Wrote 'src/dust.cpp'\n#&gt; ✔ Wrote 'src/Makevars'\n#&gt; ℹ 13 functions decorated with [[cpp11::register]]\n#&gt; ✔ generated file 'cpp11.R'\n#&gt; ✔ generated file 'cpp11.cpp'\n#&gt; ℹ Re-compiling odina3f6ff4b\n#&gt; ── R CMD INSTALL ───────────────────────────────────────────────────────────────\n#&gt; * installing *source* package ‘odina3f6ff4b’ ...\n#&gt; ** using staged installation\n#&gt; ** libs\n#&gt; using C++ compiler: ‘g++ (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0’\n#&gt; g++ -std=gnu++17 -I\"/opt/R/4.4.1/lib/R/include\" -DNDEBUG  -I'/home/runner/work/_temp/Library/cpp11/include' -I'/home/runner/work/_temp/Library/dust2/include' -I'/home/runner/work/_temp/Library/monty/include' -I/usr/local/include   -DHAVE_INLINE -fopenmp  -fpic  -g -O2  -Wall -pedantic  -c cpp11.cpp -o cpp11.o\n#&gt; g++ -std=gnu++17 -I\"/opt/R/4.4.1/lib/R/include\" -DNDEBUG  -I'/home/runner/work/_temp/Library/cpp11/include' -I'/home/runner/work/_temp/Library/dust2/include' -I'/home/runner/work/_temp/Library/monty/include' -I/usr/local/include   -DHAVE_INLINE -fopenmp  -fpic  -g -O2  -Wall -pedantic  -c dust.cpp -o dust.o\n#&gt; g++ -std=gnu++17 -shared -L/opt/R/4.4.1/lib/R/lib -L/usr/local/lib -o odina3f6ff4b.so cpp11.o dust.o -fopenmp -L/opt/R/4.4.1/lib/R/lib -lR\n#&gt; installing to /tmp/RtmpDpNQIR/devtools_install_18616fbaa42d/00LOCK-dust_cb2273f/00new/odina3f6ff4b/libs\n#&gt; ** checking absolute paths in shared objects and dynamic libraries\n#&gt; * DONE (odina3f6ff4b)\n#&gt; ℹ Loading odina3f6ff4b\n\nThe result of this is a function which creates a dust_system_generator object, which we can use with functions from dust2 to simulate from this model.\n\nsir()\n#&gt; \n#&gt; ── &lt;dust_system_generator: odin&gt; ───────────────────────────────────────────────\n#&gt; ℹ Use 'dust2::dust_system_create()' to create a system with this generator\n#&gt; ℹ This system runs in continuous time",
+    "crumbs": [
+      "Odin",
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Getting started with odin</span>"
+    ]
+  },
+  {
+    "objectID": "odin.html#running-systems-using-dust2",
+    "href": "odin.html#running-systems-using-dust2",
+    "title": "2  Getting started with odin",
+    "section": "2.3 Running systems using dust2",
+    "text": "2.3 Running systems using dust2\nWe create a system by using dust_system_create and passing in a list of parameters:\n\npars &lt;- list()\nsys &lt;- dust2::dust_system_create(sir(), pars, n_particles = 1)\nsys\n#&gt; \n#&gt; ── &lt;dust_system: odin&gt; ─────────────────────────────────────────────────────────\n#&gt; ℹ single particle with 3 states\n#&gt; ℹ This system runs in continuous time\n\nTo interact with a system, you will use functions from dust2, which we’ll show below.\nAll systems start off with a state of all zeros:\n\ndust2::dust_system_state(sys)\n#&gt; [1] 0 0 0\n\nThere are two ways of setting state:\n\nProvide a new state vector and set it with dust_system_set_state\nUse the initial condition from the model itself (the expressions with initial() on the left hand side)\n\nHere, we’ll use the latter\n\ndust2::dust_system_set_state_initial(sys)\ndust2::dust_system_state(sys)\n#&gt; [1] 999999      1      0\n\nIn general, the order of the state is arbitrary (though in practice it is fairly stable). To turn this state vector into something more interpretable you can use dust_unpack_state:\n\ns &lt;- dust2::dust_system_state(sys)\ndust2::dust_unpack_state(sys, s)\n#&gt; $S\n#&gt; [1] 999999\n#&gt; \n#&gt; $I\n#&gt; [1] 1\n#&gt; \n#&gt; $R\n#&gt; [1] 0\n\nThis gives a named list of numbers, which means we can work with the output of the model in a more reasonable way.\nNext, we want to run the system. There are two main functions for doing this:\n\ndust_system_run_to_time which runs the system up to some point in time, but returns nothing\ndust_system_simulate which runs the system over a series of points in time and returns the state at these points in time\n\nHere we’ll do the latter as it will produce something we can look at!\n\nt &lt;- seq(0, 150, by = 0.25)\ny &lt;- dust2::dust_system_simulate(sys, t)\ndim(y)\n#&gt; [1]   3 601\n\nThis produces a 3 x 601 matrix. This is typical of how time-series data are produced from odin2/dust2 and may be a surprise:\n\nstate will always be on the first dimension\ntime will always be on the last dimension\n\nThis may take some getting used to at first, but practically some degree of manipulation will be required in any case if you want to plot things.\nWe’ll explore some other ways of plotting later, but here’s the number of individuals in the infectious class over time, as the epidemic proceeds.\n\nplot(t, dust2::dust_unpack_state(sys, y)$I, type = \"l\",\n     xlab = \"Time\", ylab = \"Total infectious\")\n\n\n\n\n\n\n\n\nOnce a system has been run to a time, you’ll need to reset it to run it again. For example, this won’t work\n\ndust2::dust_system_simulate(sys, t)\n#&gt; Error: Expected 'time[1]' (0) to be larger than the previous value (150)\n\nThe error here is trying to tell us that the first time in our vector t, which is 0, is smaller than the current time in the system, which is 150. We can query the system to get its current time, too:\n\ndust2::dust_system_time(sys)\n#&gt; [1] 150\n\nYou can reset the time back to zero (or any other time) using dust_system_set_time:\n\ndust2::dust_system_set_time(sys, 0)\n\nthis does not reset the state, however:\n\ndust2::dust_system_state(sys)\n#&gt; [1] 2.031875e+05 6.508638e-69 7.968125e+05\n\nWe can set new parameters, perhaps, and then update the state:\n\ndust2::dust_system_update_pars(sys, list(I0 = 5))\ndust2::dust_system_set_state_initial(sys)\ndust2::dust_system_state(sys)\n#&gt; [1] 999995      5      0",
+    "crumbs": [
+      "Odin",
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Getting started with odin</span>"
+    ]
+  },
+  {
+    "objectID": "time.html",
+    "href": "time.html",
+    "title": "3  On the nature of time",
+    "section": "",
+    "text": "What is time, really?",
+    "crumbs": [
+      "Odin",
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>On the nature of time</span>"
+    ]
+  },
+  {
+    "objectID": "stochasticity.html",
+    "href": "stochasticity.html",
+    "title": "4  Stochasticity",
+    "section": "",
+    "text": "Everybody get random",
+    "crumbs": [
+      "Odin",
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Stochasticity</span>"
+    ]
+  },
+  {
+    "objectID": "arrays.html",
+    "href": "arrays.html",
+    "title": "5  Arrays",
+    "section": "",
+    "text": "When scalars are just not enough",
+    "crumbs": [
+      "Odin",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Arrays</span>"
+    ]
+  },
+  {
+    "objectID": "data.html",
+    "href": "data.html",
+    "title": "6  Data",
+    "section": "",
+    "text": "Before we start on inference, we need to start thinking about how our models fit to data, and how we can get data into the models.",
+    "crumbs": [
+      "Odin",
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>Data</span>"
+    ]
+  },
+  {
+    "objectID": "inference.html",
+    "href": "inference.html",
+    "title": "8  Inference",
+    "section": "",
+    "text": "Getting started with inference on odin models.",
+    "crumbs": [
+      "Odin & Monty",
+      "<span class='chapter-number'>8</span>  <span class='chapter-title'>Inference</span>"
+    ]
+  },
+  {
+    "objectID": "differentiability.html",
+    "href": "differentiability.html",
+    "title": "9  Differentiability",
+    "section": "",
+    "text": "Random walk suppression and other uses",
+    "crumbs": [
+      "Odin & Monty",
+      "<span class='chapter-number'>9</span>  <span class='chapter-title'>Differentiability</span>"
+    ]
+  },
+  {
+    "objectID": "installation.html",
+    "href": "installation.html",
+    "title": "Appendix A — Installation",
+    "section": "",
+    "text": "A.1 Packages\nThe short version:\nWe require a number of R packages, most of which are currently (as of late 2024) under very active development. The canonical source for these packages is currently our r-universe and not CRAN, but we hope to get the stack onto CRAN as soon as they stabilise. The version of odin on CRAN is now wildly out of date with the content in this guide.\nThe required packages are:\nThese packages sit on a huge foundation of work, much of which has been written by staff at Posit (formerly RStudio)",
+    "crumbs": [
+      "Appendices",
+      "<span class='chapter-number'>A</span>  <span class='chapter-title'>Installation</span>"
+    ]
+  },
+  {
+    "objectID": "installation.html#packages",
+    "href": "installation.html#packages",
+    "title": "Appendix A — Installation",
+    "section": "",
+    "text": "install.packages(\n  c(\"monty\", \"dust2\", \"odin2\"),\n  repos = c(\"https://mrc-ide.r-universe.dev\", \"https://cloud.r-project.org\"))\n\n\n\nodin2: the DSL itself\ndust2: support for running odin models (odin “transpiles” R code into dust2)\nmonty: statistical distributions and inference support\n\n\n\ncpp11 for painless bindings between C++ and R\npkgbuild for building packages\npkgload for loading temporary packages\ncli for messages and console interfaces\nrlang for control over metaprogramming and errors",
+    "crumbs": [
+      "Appendices",
+      "<span class='chapter-number'>A</span>  <span class='chapter-title'>Installation</span>"
+    ]
+  },
+  {
+    "objectID": "installation.html#system-requirements",
+    "href": "installation.html#system-requirements",
+    "title": "Appendix A — Installation",
+    "section": "A.2 System requirements",
+    "text": "A.2 System requirements\nYou need a functioning C++ toolchain. How you get one depends on your platform, and is unfortunately a bit of a moving target. The source of truth for these matters is Writing R extensions and R installation and administration.\nFor windows users it is usually sufficient to install Rtools for your version of R. For Linux users there’s a good chance you already have a functioning toolchain. Mac users tend to have the biggest issues, particularly with OpenMP support.\nYou can run this diagnostic function in pkgbuild (which we use to do compilation) to help diagnose your system\n\npkgbuild::check_build_tools(debug = TRUE)\n\nTrying to compile a simple C file\n\n\nRunning /opt/R/4.4.1/lib/R/bin/R CMD SHLIB foo.c\nusing C compiler: ‘gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0’\ngcc -I\"/opt/R/4.4.1/lib/R/include\" -DNDEBUG   -I/usr/local/include    -fpic  -g -O2  -c foo.c -o foo.o\ngcc -shared -L/opt/R/4.4.1/lib/R/lib -L/usr/local/lib -o foo.so foo.o -L/opt/R/4.4.1/lib/R/lib -lR\n\n\n\n\n\nYour system is ready to build packages!",
+    "crumbs": [
+      "Appendices",
+      "<span class='chapter-number'>A</span>  <span class='chapter-title'>Installation</span>"
+    ]
+  },
+  {
+    "objectID": "colophon.html",
+    "href": "colophon.html",
+    "title": "Appendix B — Colophon",
+    "section": "",
+    "text": "Key versions:\n\nodin2: 0.1.3\ndust2: 0.1.10\nmonty: 0.2.8\n\nRendered on 2024-10-03 16:10:19.531672\nFull system information:\n\nsessioninfo::session_info()\n\n─ Session info ───────────────────────────────────────────────────────────────\n setting  value\n version  R version 4.4.1 (2024-06-14)\n os       Ubuntu 22.04.5 LTS\n system   x86_64, linux-gnu\n ui       X11\n language (EN)\n collate  C.UTF-8\n ctype    C.UTF-8\n tz       UTC\n date     2024-10-03\n pandoc   2.9.2.1 @ /usr/bin/ (via rmarkdown)\n\n─ Packages ───────────────────────────────────────────────────────────────────\n package     * version date (UTC) lib source\n cli           3.6.3   2024-06-21 [1] RSPM\n digest        0.6.37  2024-08-19 [1] RSPM\n evaluate      1.0.0   2024-09-17 [1] RSPM\n fastmap       1.2.0   2024-05-15 [1] RSPM\n htmltools     0.5.8.1 2024-04-04 [1] RSPM\n jsonlite      1.8.9   2024-09-20 [1] RSPM\n knitr         1.48    2024-07-07 [1] RSPM\n rlang         1.1.4   2024-06-04 [1] RSPM\n rmarkdown     2.28    2024-08-17 [1] RSPM\n sessioninfo   1.2.2   2021-12-06 [1] any (@1.2.2)\n xfun          0.47    2024-08-17 [1] RSPM\n\n [1] /home/runner/work/_temp/Library\n [2] /opt/R/4.4.1/lib/R/site-library\n [3] /opt/R/4.4.1/lib/R/library\n\n──────────────────────────────────────────────────────────────────────────────",
+    "crumbs": [
+      "Appendices",
+      "<span class='chapter-number'>B</span>  <span class='chapter-title'>Colophon</span>"
+    ]
+  }
+]
