@@ -1,0 +1,15 @@
+# Colophon
+
+Key versions:
+
+* `odin2`: `r packageVersion("odin2")`
+* `dust2`: `r packageVersion("dust2")`
+* `monty`: `r packageVersion("monty")`
+
+Rendered on `r Sys.time()`
+
+Full system information:
+
+```{r}
+sessioninfo::session_info()
+```
