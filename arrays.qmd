@@ -6,6 +6,8 @@ These examples come from the 2023 teaching slides, and have not been turned into
 
 When scalars are just not enough
 
+The aim of this section is to show you how you use odin's array syntax, via some motivating examples.  We may need to break this up into several sections!  The examples here are necessarily a bit longer than in the previous sections because we will generally need a few more moving parts.
+
 * Need a good motivating example for an array - previously we used an age structured model
 * show example code
 

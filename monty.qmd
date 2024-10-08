@@ -1,1 +1,16 @@
 # Monty
+
+Before showing how to fit odin models to data, we'll focus for a bit on monty itself.  If you are anxious to get on and fit the model from @sec-data-filter, might skip ahead to @sec-inference, where we resume this.
+
+There are a bunch of things we want to cover in this chapter so likely it will be split into a few:
+
+* defining a model in monty, both easily with `monty_function` and less easily with `monty_model`
+* fitting models with mcmc
+* writing priors with the `monty_dsl`
+* using observers to follow along with the model (if we can come up with a good example)
+* working with nested models (once we write the code that would allow this)
+* running mcmc chains in parallel
+* exporting chains to work with other packages
+* different samplers
+
+Hmm, there really is quite a bit of ground to cover here!

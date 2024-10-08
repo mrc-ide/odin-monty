@@ -203,3 +203,9 @@ plot(t, y$I, type = "l", xlab = "Time", ylab = "Number of infected individuals")
 rect(schools_time[c(2, 4, 6)], par("usr")[3],
      schools_time[c(3, 5, 7)], par("usr")[4], col = "#00000033", border = NA)
 ```
+
+## Additional topics not yet covered
+
+* spline interpolation
+* order of events in interpolation with discrete time models
+* interpolation of arrays (especially for data inputs in piecewise constant interpolation)
