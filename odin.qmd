@@ -9,7 +9,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-`odin` is a "[Domain Specific Language](https://en.wikipedia.org/wiki/Domain-specific_language)" (DSL), that is a mini-language that is specifically tailored to a domain.  By targeting a narrow domain we can have a language that expresively captures a problem and gives an efficient solution, as opposed to a general purpose language where you can write code that expresses *anything*, but your solution might either be quite verbose or have poor performance.  You might be familiar with other DSLs such as the dplyr or ggplot2 syntax, or SQL if you have used databases.
+`odin` is a "[Domain Specific Language](https://en.wikipedia.org/wiki/Domain-specific_language)" (DSL), that is a mini-language that is specifically tailored to a domain.  By targeting a narrow domain we can have a language that expressively captures a problem and gives an efficient solution, as opposed to a general purpose language where you can write code that expresses *anything*, but your solution might either be quite verbose or have poor performance.  You might be familiar with other DSLs such as the `dplyr` or `ggplot2` syntax, or SQL if you have used databases.
 
 ```{r}
 library(odin2)
@@ -39,7 +39,7 @@ sir <- odin({
 
 There are a few things to note here:
 
-* equations are defined out of order; we just will things into existance and trust `odin` to put them in the right order for us (much more on this later)
+* equations are defined out of order; we just will things into existence and trust `odin` to put them in the right order for us (much more on this later)
 * our system has "parameters"; these are things we'll be able to change easily in it after creation
 * every variable (as in, model variable --- those that make up the state) has a pair of equations'; an initial condition via `initial()` and an equation for the derivative with respect to time via `deriv()`
 

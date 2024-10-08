@@ -1,0 +1,8 @@
+#!/usr/bin/env Rscript
+wordlist <- readLines("WORDLIST")
+files <- dir(pattern = ".qmd")
+res <- spelling::spell_check_files(files, wordlist, "en-GB")
+print(res)
+if (nrow(res) > 0) {
+  stop("Spelling errors found")
+}

@@ -216,7 +216,7 @@ var(ll2)
 
 The log-likelihoods from different numbers of particles are not directly comparable, though.
 
-You can extract trajectories from the filter after running it: this gives a *tree* showing the ancestory of the particles remaining in the sample.  To enable this, you must run with `save_history = TRUE`, as this incurs a runtime cost.
+You can extract trajectories from the filter after running it: this gives a *tree* showing the ancestry of the particles remaining in the sample.  To enable this, you must run with `save_history = TRUE`, as this incurs a runtime cost.
 
 ```{r}
 ll <- dust_likelihood_run(filter, list(), save_history = TRUE)

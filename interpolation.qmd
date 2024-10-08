@@ -30,7 +30,7 @@ y <- dust_system_simulate(sys, t)
 plot(t, y, type = "l", xlab = "Time", ylab = "n")
 ```
 
-We might think that growth rate `r` is seasonal, e.g., it's higher in the spring and summer than in autumn and winter.  Time in this model is fairly abitrary, so let's assume that each year is 1 time unit long and let growth rate `r` be a function of `t`.  Supposing a mean growth rate `r0` of 0.1, and assuming a `p` fraction of the growth rate being seasonal (so that if `p` is 1 growth is entirely seasonal and if `p` is 0 we recover our aseasonal model) we might model this as:
+We might think that growth rate `r` is seasonal, e.g., it's higher in the spring and summer than in autumn and winter.  Time in this model is fairly arbitrary, so let's assume that each year is 1 time unit long and let growth rate `r` be a function of `t`.  Supposing a mean growth rate `r0` of 0.1, and assuming a `p` fraction of the growth rate being seasonal (so that if `p` is 1 growth is entirely seasonal and if `p` is 0 we recover our aseasonal model) we might model this as:
 
 ```{r}
 r0 <- 2
@@ -80,7 +80,7 @@ lines(t, yt_2, col = "red")
 ## Nondifferentiable functions
 
 ::: {.callout-note}
-This section may not be very interesting on the first reading, however this is a situation that comes up fairly often and has some subtlties to consider in continuous time systems especially.
+This section may not be very interesting on the first reading, however this is a situation that comes up fairly often and has some subtleties to consider in continuous time systems especially.
 :::
 
 So far, so good.  One trick to watch out for is where you want to use a non-differentiable function of time, or one with abrupt changes in magnitude.  For example, suppose we have a model where there's a period where some effect happens (e.g., a period where vaccination or infection is possible).  We might model this as a [square wave](https://en.wikipedia.org/wiki/Square_wave):
@@ -98,9 +98,9 @@ signal <- if (time > 4 && time < 5) 1 else 0
 
 or we could use a piecewise-constant interpolation function (see below).  If we use this within a discrete time model this will behave fine.  However, if we use this within a differential equation model then we need to consider how the ODE solver works.
 
-An ode solver works by looking at the slope with respect to time and working out how big a step it can take based on how this slope itself changes as a function of time.  Where functions are very smooth (often where they are very *flat*) an ODE solver can take quite large steps, and it is possible that they can jump right over a spike like this.  So if this spike is doing something like introducing infections into your model it's possible that noone becomes infected because we never evaluate your right-hand-side function within this window.
+An ode solver works by looking at the slope with respect to time and working out how big a step it can take based on how this slope itself changes as a function of time.  Where functions are very smooth (often where they are very *flat*) an ODE solver can take quite large steps, and it is possible that they can jump right over a spike like this.  So if this spike is doing something like introducing infections into your model it's possible that no-one becomes infected because we never evaluate your right-hand-side function within this window.
 
-If you *do* land in the window, then the solver will have a dificult job as it tries to work out where this discontinuity started from.  Typically, it will reject steps until it "finds" the starting time (here, 4).
+If you *do* land in the window, then the solver will have a difficult job as it tries to work out where this discontinuity started from.  Typically, it will reject steps until it "finds" the starting time (here, 4).
 
 What we need to do is pass in a vector of **critical times** representing times that the solver must stop at.
 
@@ -114,7 +114,7 @@ Sometimes, you will want the time-varying functions of your model to be driven b
 
 ## A base model
 
-Let's consider changes to a simple SIS (Susceptible-Infected-Susceptible) model.  In the basic model, which is a variation on our familar SIR model that will allow the infection to become endemic, which will suit the demonstration here.  We'll work at first in continuous time, and then consider discrete time later.
+Let's consider changes to a simple SIS (Susceptible-Infected-Susceptible) model.  In the basic model, which is a variation on our familiar SIR model that will allow the infection to become endemic, which will suit the demonstration here.  We'll work at first in continuous time, and then consider discrete time later.
 
 ```{r}
 sis <- odin({
@@ -192,7 +192,7 @@ pars <- list(schools_time = schools_time, schools_open = schools_open)
 sys <- dust_system_create(sis(), pars)
 ```
 
-Run the system over the times as above, and plot the number of infected indiviuals over time, with the school closures in grey shading:
+Run the system over the times as above, and plot the number of infected individuals over time, with the school closures in grey shading:
 
 ```{r}
 dust_system_set_state_initial(sys)

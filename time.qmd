@@ -15,7 +15,7 @@ This seems like a small difference but it is quite profound.
 * ODEs must be **deterministic**; a unique smooth solution exists.  Discrete time models are free to be stochastic, as it does not really matter what happens between `t` and `t + dt`
 
 ::: {.callout-note}
-If you have used odin version 1, then discrete time models had a diferent (though fundamentally equivalent) formulation of time.  See the [odin2 migration vignette](https://mrc-ide.github.io/odin2/articles/migrating.html) for more details.
+If you have used odin version 1, then discrete time models had a different (though fundamentally equivalent) formulation of time.  See the [odin2 migration vignette](https://mrc-ide.github.io/odin2/articles/migrating.html) for more details.
 :::
 
 ## A simple example where time matters {#sec-time-logistic}
