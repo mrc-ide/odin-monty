@@ -16,7 +16,9 @@ Imports:
     odin2,
     pkgbuild,
     pkgload,
+    quarto,
     rmarkdown,
+    sessioninfo,
     usethis
 Remotes:
     mrc-ide/dust2,

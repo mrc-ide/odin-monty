@@ -1,11 +1,18 @@
 # Colophon
 
 ```{r}
+#| include: false
 pkgs <- c("odin2", "dust2", "monty",
-          "pkgload", "pkgbuild", "cpp11", "cli", "rlang")
+          "pkgload", "pkgbuild", "cpp11", "cli", "rlang",
+          "brio", "decor", "fs", "knitr", "rmarkdown", "usethis")
 for (p in pkgs) {
-  loadNamespace(pkgs)
+  loadNamespace(p)
 }
+source("utils.R")
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
 ```
 
 Key versions:
@@ -14,14 +21,10 @@ Key versions:
 * `dust2`: `r packageVersion("dust2")`
 * `monty`: `r packageVersion("monty")`
 
-Rendered on `r Sys.time()`
+Rendered on `r Sys.time()` using quarto `r quarto::quarto_version()`
 
 Full system information:
 
 ```{r}
 sessioninfo::session_info()
-```
-
-```{r}
-sessionInfo()
 ```
