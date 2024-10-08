@@ -1,3 +1,102 @@
 # Arrays
 
+::: {.callout-warning}
+These examples come from the 2023 teaching slides, and have not been turned into actual content yet.
+:::
+
 When scalars are just not enough
+
+* Need a good motivating example for an array - previously we used an age structured model
+* show example code
+
+```
+update(S) <- S - n_SI
+update(I) <- I + n_SI - n_IR
+update(R) <- R + n_IR
+```
+
+```
+update(S[]) <- S[i] - n_SI[i]
+update(I[]) <- I[i] + n_SI[i] - n_IR[i]
+update(R[]) <- R[i] + n_IR[i]
+```
+
+The odin code
+
+```
+update(S[]) <- S[i] - n_SI[i]
+```
+
+becomes (approximately)
+
+```
+for (int i = 0; i < S_length; ++i) {
+  update_S[i] = S[i] + n_SI[i];
+}
+```
+
+* Don't use index variables (`i`, `j`, `k`, etc) on the left hand side
+* Use multiple lines to account for boundary conditions
+* Can crash the program if out of bounds (we have plans for this)
+
+## An age structured SIR model
+
+```r
+# Equations for transitions between compartments by age group
+update(S[]) <- S[i] - n_SI[i]
+update(I[]) <- I[i] + n_SI[i] - n_IR[i]
+update(R[]) <- R[i] + n_IR[i]
+
+# Individual probabilities of transition:
+p_SI[] <- 1 - exp(-lambda[i] * dt) # S to I
+p_IR <- 1 - exp(-gamma * dt) # I to R
+
+# Force of infection
+m <- parameter() # age-structured contact matrix
+s_ij[, ] <- m[i, j] * I[j]
+lambda[] <- beta * sum(s_ij[i, ])
+
+# Draws from binomial distributions for numbers changing between
+# compartments:
+n_SI[] <- Binomial(S[i], p_SI[i])
+n_IR[] <- Binomial(I[i], p_IR)
+
+initial(S[]) <- S_ini[i]
+initial(I[]) <- I_ini[i]
+initial(R[]) <- 0
+
+# User defined parameters - default in parentheses:
+S_ini <- parameter()
+I_ini <- parameter()
+beta <- parameter(0.0165)
+gamma <- parameter(0.1)
+
+# Dimensions of arrays
+N_age <- parameter()
+dim(S_ini) <- N_age
+dim(I_ini) <- N_age
+dim(S) <- N_age
+dim(I) <- N_age
+dim(R) <- N_age
+dim(n_SI) <- N_age
+dim(n_IR) <- N_age
+dim(p_SI) <- N_age
+dim(m) <- c(N_age, N_age)
+dim(s_ij) <- c(N_age, N_age)
+dim(lambda) <- N_age
+```
+
+Relevant changes from the above:
+
+```
+m <- parameter() # age-structured contact matrix
+s_ij[, ] <- m[i, j] * I[j]
+lambda[] <- beta * sum(s_ij[i, ])
+p_SI[] <- 1 - exp(-lambda[i] * dt)
+update(S[]) <- S[i] - n_SI[i]
+N_age <- user()
+dim(S) <- N_age
+dim(m) <- c(N_age, N_age)
+```
+
+## Vaccination

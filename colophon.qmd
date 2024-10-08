@@ -1,5 +1,13 @@
 # Colophon
 
+```{r}
+pkgs <- c("odin2", "dust2", "monty",
+          "pkgload", "pkgbuild", "cpp11", "cli", "rlang")
+for (p in pkgs) {
+  loadNamespace(pkgs)
+}
+```
+
 Key versions:
 
 * `odin2`: `r packageVersion("odin2")`
@@ -12,4 +20,8 @@ Full system information:
 
 ```{r}
 sessioninfo::session_info()
+```
+
+```{r}
+sessionInfo()
 ```

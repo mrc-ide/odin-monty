@@ -1,3 +1,95 @@
-# On the nature of time
+# On the nature of time {#sec-time}
 
 What is time, really?
+
+There are two main sorts of treatment of time within odin models:
+
+**Continuous time models**, as seen in the previous chapter, are described in terms of a set of [ordinary differential equations](https://en.wikipedia.org/wiki/Ordinary_differential_equation) (ODEs).  At any point in time we can compute the rates of change of our quantity of interest, and using that and some initial condition, we can generate a time-series of the quantity or quantities involved.
+
+**Discrete time models**, which will be the focus of the next section, are both more basic and more complicated depending on how you approach them.  We assume that the system takes steps of some size `dt` and our equations will describe how each variable is updated -- how it changes from a value at time `t` to time `t + dt`.  Sometimes this formulation is called a set of "recurrence equations".
+
+This seems like a small difference but it is quite profound.
+
+* Often the same system can be expressed as either a set of ODEs or as a set of recurrence equations but will behave differently (see below)
+* It is not knowable which formulation will be "faster"; ODE solutions must take more steps where the solution is complex in order to smooth it out, but at the same time can take very large steps where the solution is simple
+* ODEs must be **deterministic**; a unique smooth solution exists.  Discrete time models are free to be stochastic, as it does not really matter what happens between `t` and `t + dt`
+
+::: {.callout-note}
+If you have used odin version 1, then discrete time models had a diferent (though fundamentally equivalent) formulation of time.  See the [odin2 migration vignette](https://mrc-ide.github.io/odin2/articles/migrating.html) for more details.
+:::
+
+## A simple example where time matters {#sec-time-logistic}
+
+```{r}
+library(odin2)
+library(dust2)
+```
+
+Consider just about the simplest interesting "system" of ODEs, the logistic equation:
+
+```{r}
+logistic_ode <- odin({
+  deriv(x) <- r * x * (1 - x)
+  initial(x) <- x0
+  x0 <- parameter(0.01)
+  r <- parameter(0.1)
+}, debug = TRUE)
+```
+
+```{r}
+sys <- dust_system_create(logistic_ode(), list(), n_particles = 1)
+dust_system_set_state_initial(sys)
+t <- seq(0, 100, by = 1)
+y <- dust_system_simulate(sys, t)
+plot(t, y[1, ], type = "l", xlab = "Time", ylab = "Population")
+```
+
+Now, we write out the same system in discrete time:
+
+```{r}
+logistic_map <- odin({
+  update(x) <- r * x * (1 - x)
+  initial(x) <- x0
+  x0 <- parameter(0.01)
+  r <- parameter(1.1)
+}, debug = TRUE)
+```
+
+```{r}
+sys2 <- dust_system_create(logistic_map(), list(), n_particles = 1)
+dust_system_set_state_initial(sys2)
+y2 <- dust_system_simulate(sys2, t)
+plot(t, y[1, ], type = "l", xlab = "Time", ylab = "Population")
+lines(t, y2[1, ], col = "red")
+```
+
+Let's write a function for this:
+
+```{r}
+run <- function(r, sys, t) {
+  dust_system_update_pars(sys, list(r = r))
+  dust_system_set_time(sys, 0)
+  dust_system_set_state_initial(sys)
+  dust_system_simulate(sys, t)[1, ]
+}
+```
+
+```{r}
+plot(t, run(0.5, sys2, t), col = "black", ylim = 0:1, type = "l")
+lines(t, run(1.5, sys2, t), col = "red")
+lines(t, run(1.8, sys2, t), col = "red")
+lines(t, run(2, sys2, t), col = "red")
+```
+
+```{r}
+plot(t, run(2.1, sys2, t), col = "blue", ylim = 0:1, type = "l")
+lines(t, run(2.5, sys2, t), col = "blue")
+lines(t, run(2.9, sys2, t), col = "blue")
+lines(t, run(3.3, sys2, t), col = "green")
+```
+
+Higher values bounce around chaotically:
+
+```{r}
+plot(t, run(3.8, sys2, t), ylim = 0:1, type = "l")
+```

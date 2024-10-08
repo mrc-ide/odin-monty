@@ -1,3 +1,136 @@
 # Data
 
-Before we start on inference, we need to start thinking about how our models fit to data, and how we can get data into the models.
+```{r}
+#| include: false
+source("utils.R")
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+Before we start on inference, we need to start thinking about how our models fit to data, and how we can get data into the models.  This gets very close to the interface that we need to work with [monty](https://mrc-ide.github.io/monty), which is the focus of the next section of the book.
+
+```{r}
+#| include: false
+set.seed(42)
+```
+
+```{r}
+library(odin2)
+library(dust2)
+```
+
+## The SIR model revisited
+
+In a couple of chapters we'll explore fitting a stochastic SIR model to data, so we''ll start by expressions to the model in @sec-stochastic-sir
+
+### Incidence calculations
+
+Previously, our SIR model had just three compartments; `S`, `I` and `R`.  It might feel natural to fit to `I` - the number of infected people. However, we rarely have information on that directly.  Instead, we might have information on the number of *new* individuals that are infected over some time period (i.e., incidence).
+
+Suppose that each time unit represents one day.  We can declare `incidence` as a variable that resets every day by using the `zero_every` argument.
+
+```{r}
+sir <- odin({
+  update(S) <- S - n_SI
+  update(I) <- I + n_SI - n_IR
+  update(R) <- R + n_IR
+  update(incidence) <- incidence + n_SI
+
+  p_SI <- 1 - exp(-beta * I / N * dt)
+  p_IR <- 1 - exp(-gamma * dt)
+  n_SI <- Binomial(S, p_SI)
+  n_IR <- Binomial(I, p_IR)
+
+  initial(S) <- N - I0
+  initial(I) <- I0
+  initial(R) <- 0
+  initial(incidence, zero_every = 1) <- 0
+
+  N <- parameter(1000)
+  I0 <- parameter(10)
+  beta <- parameter(0.2)
+  gamma <- parameter(0.1)
+})
+```
+
+If we had data on weekly incidence we might choose to write
+
+```r
+initial(incidence, zero_every = 7) <- 0
+```
+
+or to work with time so that one unit represents a *week* rather than a day and scaling our rates and `dt` accordingly.
+
+When running this model we'll see incidence produced:
+
+```{r}
+pars <- list(beta = 1, gamma = 0.6)
+sys <- dust_system_create(sir(), pars, dt = 0.25)
+dust_system_set_state_initial(sys)
+t <- seq(0, 20, by = 0.25)
+y <- dust_system_simulate(sys, t)
+y <- dust_unpack_state(sys, y)
+plot(t, y$incidence, type = "s", xlab = "Time", ylab = "Incidence")
+```
+
+The reported values are here are at the *end* of each step, so rarely see an incidence of 0 except at the very start and end of the simulation. What we really care about are the values at the end of each day though where it reaches a peak:
+
+```{r}
+sys <- dust_system_create(sir(), pars, dt = 0.25)
+dust_system_set_state_initial(sys)
+t <- seq(0, 20)
+y <- dust_system_simulate(sys, t)
+y <- dust_unpack_state(sys, y)
+plot(t, y$incidence, type = "p", xlab = "Time", ylab = "Incidence")
+```
+
+## The data cometh
+
+We need a data set to fit to; we'll use the data set [`data/incidence.csv`](data/incidence.csv), which you can download.
+
+```{r}
+d <- read.csv("data/incidence.csv")
+head(d)
+tail(d)
+```
+
+We have a column for time `time` and one for observed cases `cases` spanning the time range 0 to 20.
+
+## Comparison to data
+
+The next step is to tell our model about this data:
+
+```{r}
+sir <- odin({
+  update(S) <- S - n_SI
+  update(I) <- I + n_SI - n_IR
+  update(R) <- R + n_IR
+  update(incidence) <- incidence + n_SI
+
+  p_SI <- 1 - exp(-beta * I / N * dt)
+  p_IR <- 1 - exp(-gamma * dt)
+  n_SI <- Binomial(S, p_SI)
+  n_IR <- Binomial(I, p_IR)
+
+  initial(S) <- N - I0
+  initial(I) <- I0
+  initial(R) <- 0
+  initial(incidence, zero_every = 1) <- 0
+
+  N <- parameter(1000)
+  I0 <- parameter(10)
+  beta <- parameter(0.2)
+  gamma <- parameter(0.1)
+
+  cases <- data()
+  cases ~ Poisson(incidence)
+})
+```
+
+The last two lines here are doing the work for us:
+
+First, `cases <- data()` says that `cases` is a special **data** variable.  It will vary over time (there are different observations of `cases` at different times) and it will come from the data rather than from the model dynamics.
+
+Second, `cases ~ Poisson(incidence)` describes the per-data-point [likelihood calculation](https://en.wikipedia.org/wiki/Likelihood_function); the syntax may be familiar to you if you have read [Richard McElreath's *Statistical Rethinking*](https://xcelab.net/rm/) or used any number of Bayesian statistical frameworks.

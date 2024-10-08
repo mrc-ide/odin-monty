@@ -1,0 +1,52 @@
+# Packaging odin models
+
+So far, we have compiled odin code as we have needed it, using the `odin()` function.  This works well for many uses, but has its limitations:
+
+* It requires that anyone who uses your code has a working C++ compiler; they will need to compile your model and load it into R to run things
+* Compilation of the model is quite slow; large models can take more than 10s to compile.  We generally will only compile a system once per R session, but this is still quite a large fixed cost to pay
+* If you need to work with HPC systems, then your tasks all need to compile your code.  This slows down tasks, but also means you need to take care that everyone writes to different places
+* We try to paper over this, but the models that we compile on-the-fly may not always play nicely with parallel frameworks (e.g., `future`)
+* As your model grows, you will accumlate a number of coupled support functions that go along with it, and a package is the easiest mechanism for supporting this
+* Packages are much easier for other people to use than standalone R scripts
+* There is nice tooling available to packages for configuring dependencies, tests and other automatic checks (see below).
+
+## A basic package skeleton
+
+Many tools exist to create packages; here we will use [`usethis`](https://usethis.r-lib.org/), but there's nothing magic here - you could create these files by hand if you prefer (see [Writing R Extensions](https://cran.r-project.org/doc/manuals/r-release/R-exts.html) for the official guide on R packages if this is the approach you prefer).
+
+```{r}
+#| include: false
+options(
+  usethis.description = list(
+    "Authors@R" = utils::person(
+      "An", "Author", email = "a.author@example.com", role = c("aut", "cre")),
+    "License" = "CC0",
+    "Language" = "en-GB",
+    "Version" = "0.1.0"))
+
+```
+
+
+```{r}
+path <- tempfile()
+usethis::create_package(
+  path,
+  fields = list(Package = "pkg",
+                Title = "My Odin Model",
+                Description = ""))
+
+```
+
+## Next steps
+
+Once you have a model in a package, then you are within the realms of normal R package development, and nothing here is specific to odin.  However, if you are not familiar with package development we hope these tips will be useful.
+
+A good place to look for information on package development is Hadley Wickham and Jenny Byan's ["R packages" book](https://r-pkgs.org/), and to avoid repeating their material we'll just link to it:
+
+* Create an [Rstudio project](https://r-pkgs.org/workflow101.html#sec-workflow101-rstudio-projects) for your new package
+* Write some [tests](https://r-pkgs.org/testing-basics.html) for your model and its support code.  We'll document some basic ideas for this later.
+* Create a [git repository](https://git-scm.com/) for your package and put it on [GitHub](https://github.com/).  For more discussion see [this chapter in "R packages"](https://r-pkgs.org/software-development-practices.html#sec-sw-dev-practices-git-github), and [this guide on configuring R, Rstudio and git to work well together](https://happygitwithr.com/).
+* Set up [continuous integration](https://r-pkgs.org/software-development-practices.html#sec-sw-dev-practices-ci) so that your tests are run automatically when you make changes to your package
+* Put your package into an [R universe](https://ropensci.org/r-universe/) to make it easy for others to install.  Your organisation may already have one (for DIDE users, please see [this repo](https://github.com/mrc-ide/mrc-ide.r-universe.dev)), or you can [start your own](https://docs.r-universe.dev/publish/set-up.html)
+
+This looks like a lot of work, but most of the setup here can be configured in a few lines.  Writing tests is the only part that requires more than configuration, and that is something that you will tend to get better at over time.
