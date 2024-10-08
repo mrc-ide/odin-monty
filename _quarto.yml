@@ -16,6 +16,7 @@ book:
       - time.qmd
       - stochasticity.qmd
       - arrays.qmd
+      - interpolation.qmd
       - data.qmd
     - part: "Monty"
       chapters:
@@ -34,3 +35,6 @@ bibliography: references.bib
 format:
   html:
     theme: cosmo
+
+resources:
+  - data/*.csv
