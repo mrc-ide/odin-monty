@@ -1,0 +1,340 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Odin and Monty",
+    "section": "",
+    "text": "Preface\nThis is a Quarto book.\nTo learn more about Quarto books visit https://quarto.org/docs/books.",
+    "crumbs": [
+      "Preface"
+    ]
+  },
+  {
+    "objectID": "intro.html",
+    "href": "intro.html",
+    "title": "1  Introduction",
+    "section": "",
+    "text": "1.1 History\nOriginally, we designed odin around describing and solving systems of differential equations, with a small amount of support for working with discrete-time stochastic systems. Over time, and particularly during the COVID-19 response, we expanded the stochastic support and introduced the ability to fit these models using particle filters and other sequential Monte Carlo algorithms. You may have used odin.dust and mcstate through this period. As of 2024 we have rationalised our tools into a new set of packages which are currently called odin2, dust2 and monty2",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Introduction</span>"
+    ]
+  },
+  {
+    "objectID": "intro.html#about-this-book",
+    "href": "intro.html#about-this-book",
+    "title": "1  Introduction",
+    "section": "1.2 About this book",
+    "text": "1.2 About this book\nThis book exists to supplement the package documentation, and we will try to link extensively to it. It is designed as a fairly friendly walk-through of the tools, and to mirror courses that we run.",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Introduction</span>"
+    ]
+  },
+  {
+    "objectID": "odin.html",
+    "href": "odin.html",
+    "title": "2  Getting started with odin",
+    "section": "",
+    "text": "2.1 A simple example\nHere is a small system of equations for an “SIR” (Susceptible-Infected-Recovered) model, implemented as a set of ordinary differential equations:\nsir &lt;- odin({\n  deriv(S) &lt;- -beta * S * I / N\n  deriv(I) &lt;- beta * S * I / N - gamma * I\n  deriv(R) &lt;- gamma * I\n\n  initial(S) &lt;- N - I0\n  initial(I) &lt;- I0\n  initial(R) &lt;- 0\n\n  N &lt;- parameter(1000)\n  I0 &lt;- parameter(10)\n  beta &lt;- parameter(0.2)\n  gamma &lt;- parameter(0.1)\n})\nThere are a few things to note here:\nThe odin() function will compile (more strictly, transpile) the odin code to C++ and then compile this into machine code and load it into your session.\nsir()\n#&gt; \n#&gt; ── &lt;dust_system_generator: odin&gt; ───────────────────────────────────────────────\n#&gt; ℹ Use 'dust2::dust_system_create()' to create a system with this generator\n#&gt; ℹ This system runs in continuous time\nThis sir() function creates a dust_system_generator object. As its name suggests, we can use this object to generate different versions of our system with different configurations. We pass this object to other functions from dust2 to create, run and examine our simulations.",
+    "crumbs": [
+      "Odin",
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Getting started with odin</span>"
+    ]
+  },
+  {
+    "objectID": "odin.html#sec-odin-sir",
+    "href": "odin.html#sec-odin-sir",
+    "title": "2  Getting started with odin",
+    "section": "",
+    "text": "equations are defined out of order; we just will things into existence and trust odin to put them in the right order for us (much more on this later)\nour system has “parameters”; these are things we’ll be able to change easily in it after creation\nevery variable (as in, model variable — those that make up the state) has a pair of equations; an initial condition via initial() and an equation for the derivative with respect to time via deriv()\n\n\n\n\n\n\n\nNote\n\n\n\nAbove you will see us struggle a bit with terminology, particularly between “system” and “model”. There are going to be two places where “model” can be usefully used - a model could be the generative model (here an SIR model) or it could be the statistical model, more the focus on the second half of the book. In order to make things slightly less ambiguous we will often refer to the generative model as a “system”, and this is reflected in the calls to functions in dust.",
+    "crumbs": [
+      "Odin",
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Getting started with odin</span>"
+    ]
+  },
+  {
+    "objectID": "odin.html#running-systems-using-dust2",
+    "href": "odin.html#running-systems-using-dust2",
+    "title": "2  Getting started with odin",
+    "section": "2.2 Running systems using dust2",
+    "text": "2.2 Running systems using dust2\nWe create a system by using dust_system_create and passing in a list of parameters:\n\npars &lt;- list()\nsys &lt;- dust2::dust_system_create(sir(), pars, n_particles = 1)\nsys\n#&gt; \n#&gt; ── &lt;dust_system: odin&gt; ─────────────────────────────────────────────────────────\n#&gt; ℹ single particle with 3 states\n#&gt; ℹ This system runs in continuous time\n\nTo interact with a system, you will use functions from dust2, which we’ll show below.\nAll systems start off with a state of all zeros:\n\ndust2::dust_system_state(sys)\n#&gt; [1] 0 0 0\n\nThere are two ways of setting state:\n\nProvide a new state vector and set it with dust_system_set_state\nUse the initial condition from the model itself (the expressions with initial() on the left hand side)\n\nHere, we’ll use the latter\n\ndust2::dust_system_set_state_initial(sys)\ndust2::dust_system_state(sys)\n#&gt; [1] 990  10   0\n\nIn general, the order of the state is arbitrary (though in practice it is fairly stable). To turn this state vector into something more interpretable you can use dust_unpack_state:\n\ns &lt;- dust2::dust_system_state(sys)\ndust2::dust_unpack_state(sys, s)\n#&gt; $S\n#&gt; [1] 990\n#&gt; \n#&gt; $I\n#&gt; [1] 10\n#&gt; \n#&gt; $R\n#&gt; [1] 0\n\nThis gives a named list of numbers, which means we can work with the output of the model in a more reasonable way.\nNext, we want to run the system. There are two main functions for doing this:\n\ndust_system_run_to_time which runs the system up to some point in time, but returns nothing\ndust_system_simulate which runs the system over a series of points in time and returns the state at these points in time\n\nHere we’ll do the latter as it will produce something we can look at!\n\nt &lt;- seq(0, 150, by = 0.25)\ny &lt;- dust2::dust_system_simulate(sys, t)\ndim(y)\n#&gt; [1]   3 601\n\nThis produces a 3 x 601 matrix. This is typical of how time-series data are produced from odin2/dust2 and may be a surprise:\n\nstate will always be on the first dimension\ntime will always be on the last dimension\n\nThis may take some getting used to at first, but practically some degree of manipulation will be required in any case if you want to plot things.\nWe’ll explore some other ways of plotting later, but here’s the number of individuals in the infectious class over time, as the epidemic proceeds.\n\nplot(t, dust2::dust_unpack_state(sys, y)$I, type = \"l\",\n     xlab = \"Time\", ylab = \"Total infectious\")\n\n\n\n\n\n\n\n\nOnce a system has been run to a time, you’ll need to reset it to run it again. For example, this won’t work\n\ndust2::dust_system_simulate(sys, t)\n#&gt; Error: Expected 'time[1]' (0) to be larger than the previous value (150)\n\nThe error here is trying to tell us that the first time in our vector t, which is 0, is smaller than the current time in the system, which is 150. We can query the system to get its current time, too:\n\ndust2::dust_system_time(sys)\n#&gt; [1] 150\n\nYou can reset the time back to zero (or any other time) using dust_system_set_time:\n\ndust2::dust_system_set_time(sys, 0)\n\nthis does not reset the state, however:\n\ndust2::dust_system_state(sys)\n#&gt; [1] 200.2910254   0.7422209 798.9667537\n\nWe can set new parameters, perhaps, and then update the state:\n\ndust2::dust_system_update_pars(sys, list(I0 = 5))\ndust2::dust_system_set_state_initial(sys)\ndust2::dust_system_state(sys)\n#&gt; [1] 995   5   0",
+    "crumbs": [
+      "Odin",
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Getting started with odin</span>"
+    ]
+  },
+  {
+    "objectID": "time.html",
+    "href": "time.html",
+    "title": "3  On the nature of time",
+    "section": "",
+    "text": "3.1 A simple example where time matters\nlibrary(odin2)\nlibrary(dust2)\nConsider just about the simplest interesting “system” of ODEs, the logistic equation:\nlogistic_ode &lt;- odin({\n  deriv(x) &lt;- r * x * (1 - x)\n  initial(x) &lt;- x0\n  x0 &lt;- parameter(0.01)\n  r &lt;- parameter(0.1)\n}, debug = TRUE)\nsys &lt;- dust_system_create(logistic_ode(), list(), n_particles = 1)\ndust_system_set_state_initial(sys)\nt &lt;- seq(0, 100, by = 1)\ny &lt;- dust_system_simulate(sys, t)\nplot(t, y[1, ], type = \"l\", xlab = \"Time\", ylab = \"Population\")\nNow, we write out the same system in discrete time:\nlogistic_map &lt;- odin({\n  update(x) &lt;- r * x * (1 - x)\n  initial(x) &lt;- x0\n  x0 &lt;- parameter(0.01)\n  r &lt;- parameter(1.1)\n}, debug = TRUE)\nsys2 &lt;- dust_system_create(logistic_map(), list(), n_particles = 1)\ndust_system_set_state_initial(sys2)\ny2 &lt;- dust_system_simulate(sys2, t)\nplot(t, y[1, ], type = \"l\", xlab = \"Time\", ylab = \"Population\")\nlines(t, y2[1, ], col = \"red\")\nLet’s write a function for this:\nrun &lt;- function(r, sys, t) {\n  dust_system_update_pars(sys, list(r = r))\n  dust_system_set_time(sys, 0)\n  dust_system_set_state_initial(sys)\n  dust_system_simulate(sys, t)[1, ]\n}\nWe can run this function for some small values of r and see the population go extinct (black line) or grow to some stable value (red lines)\nplot(t, run(0.5, sys2, t), col = \"black\", ylim = 0:1, type = \"l\",\n     xlab = \"Time\", ylab = \"Population\")\nlines(t, run(1.5, sys2, t), col = \"red\")\nlines(t, run(1.8, sys2, t), col = \"red\")\nlines(t, run(2, sys2, t), col = \"red\")\nFor larger values of r we start getting oscillations around the maximum, either decaying (blue lines) or stable (green line):\nplot(t, run(2.1, sys2, t), col = \"blue\", ylim = 0:1, type = \"l\",\n     xlab = \"Time\", ylab = \"Population\")\nlines(t, run(2.5, sys2, t), col = \"blue\")\nlines(t, run(2.9, sys2, t), col = \"blue\")\nlines(t, run(3.3, sys2, t), col = \"green\")\nHigher values bounce around chaotically:\nplot(t, run(3.8, sys2, t), ylim = 0:1, type = \"l\",\n     xlab = \"Time\", ylab = \"Population\")\nNone of these dynamics appeared in the continuous time version!",
+    "crumbs": [
+      "Odin",
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>On the nature of time</span>"
+    ]
+  },
+  {
+    "objectID": "stochasticity.html",
+    "href": "stochasticity.html",
+    "title": "4  Stochasticity",
+    "section": "",
+    "text": "4.1 A simple stochastic model\nHere’s a simple SIR model, based on the one in Section 2.1, which is stochastic:\nsir &lt;- odin({\n  update(S) &lt;- S - n_SI\n  update(I) &lt;- I + n_SI - n_IR\n  update(R) &lt;- R + n_IR\n\n  p_SI &lt;- 1 - exp(-beta * I / N * dt)\n  p_IR &lt;- 1 - exp(-gamma * dt)\n  n_SI &lt;- Binomial(S, p_SI)\n  n_IR &lt;- Binomial(I, p_IR)\n\n  initial(S) &lt;- N - I0\n  initial(I) &lt;- I0\n  initial(R) &lt;- 0\n\n  N &lt;- parameter(1000)\n  I0 &lt;- parameter(10)\n  beta &lt;- parameter(0.2)\n  gamma &lt;- parameter(0.1)\n})\nThis is a discrete-time model (using update() and not deriv()) as stochastic models must run in discrete time. We use dt to scale the rates, and adjusting dt will change the way that stochasticity affects the dynamics of the system.\nThe movement from S to I and from I to R are now drawn from a binomial distribution with probabilities that are computed from the rates (beta and gamma) multiplied by the change in time (dt).\nWe can run this model just like before:\nsys &lt;- dust_system_create(sir(), list())\ndust_system_set_state_initial(sys)\nt &lt;- seq(0, 100)\ny &lt;- dust_system_simulate(sys, t)\ny &lt;- dust_unpack_state(sys, y)\nHere is the number of infected individuals over time:\nplot(t, y$I, type = \"l\", xlab = \"Time\", ylab = \"Infected population\")\nAs in Section 2.1, we see an epidemic start, increase and then decay. Unlike the deterministic version though, the trajectory is not smooth, and it will be different each time we run it.\nYou can pass an argument n_particles when creating a system (the default is 1) to simulate multiple independent realisations at once:\nsys &lt;- dust_system_create(sir(), list(), n_particles = 50)\ndust_system_set_state_initial(sys)\ny &lt;- dust_system_simulate(sys, t)\ny &lt;- dust_unpack_state(sys, y)\nmatplot(t, t(y$I), type = \"l\", lty = 1, col = \"#00000044\",\n        xlab = \"Time\", ylab = \"Infected population\")\nHere, we simulate 50 particles at once, all from the same point (10 individuals infected at time 0) and we see the similarities and differences in the trajectories: all follow approximately the same shape, and all rise and fall at approximately the same rate, but there is quite a bit of difference in the individual trajectories and the timings of when the epidemic peaks.\nThe stochastic effects will be stronger around the critical parameter values where the behaviour of the model diverges, or with smaller initial population sizes:\nsys &lt;- dust_system_create(sir(), list(I0 = 5, gamma = 0.15), n_particles = 50)\ndust_system_set_state_initial(sys)\ny &lt;- dust_system_simulate(sys, t)\ny &lt;- dust_unpack_state(sys, y)\nmatplot(t, t(y$I), type = \"l\", lty = 1, col = \"#00000044\",\n        xlab = \"Time\", ylab = \"Infected population\")\nHere, we see some epidemics fail to take off, and a huge variation in where the peak is, with some trajectories only starting to take off at time 100 where in the previous example all were in decline.",
+    "crumbs": [
+      "Odin",
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Stochasticity</span>"
+    ]
+  },
+  {
+    "objectID": "stochasticity.html#more-sections-to-add",
+    "href": "stochasticity.html#more-sections-to-add",
+    "title": "4  Stochasticity",
+    "section": "4.2 More sections to add:",
+    "text": "4.2 More sections to add:\n\nSupported random number functions\nSeeding\nSomething on threads and parallelism\nStochastic quantities vary over time",
+    "crumbs": [
+      "Odin",
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Stochasticity</span>"
+    ]
+  },
+  {
+    "objectID": "arrays.html",
+    "href": "arrays.html",
+    "title": "5  Arrays",
+    "section": "",
+    "text": "5.1 An age structured SIR model\nRelevant changes from the above:",
+    "crumbs": [
+      "Odin",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Arrays</span>"
+    ]
+  },
+  {
+    "objectID": "arrays.html#an-age-structured-sir-model",
+    "href": "arrays.html#an-age-structured-sir-model",
+    "title": "5  Arrays",
+    "section": "",
+    "text": "# Equations for transitions between compartments by age group\nupdate(S[]) &lt;- S[i] - n_SI[i]\nupdate(I[]) &lt;- I[i] + n_SI[i] - n_IR[i]\nupdate(R[]) &lt;- R[i] + n_IR[i]\n\n# Individual probabilities of transition:\np_SI[] &lt;- 1 - exp(-lambda[i] * dt) # S to I\np_IR &lt;- 1 - exp(-gamma * dt) # I to R\n\n# Force of infection\nm &lt;- parameter() # age-structured contact matrix\ns_ij[, ] &lt;- m[i, j] * I[j]\nlambda[] &lt;- beta * sum(s_ij[i, ])\n\n# Draws from binomial distributions for numbers changing between\n# compartments:\nn_SI[] &lt;- Binomial(S[i], p_SI[i])\nn_IR[] &lt;- Binomial(I[i], p_IR)\n\ninitial(S[]) &lt;- S_ini[i]\ninitial(I[]) &lt;- I_ini[i]\ninitial(R[]) &lt;- 0\n\n# User defined parameters - default in parentheses:\nS_ini &lt;- parameter()\nI_ini &lt;- parameter()\nbeta &lt;- parameter(0.0165)\ngamma &lt;- parameter(0.1)\n\n# Dimensions of arrays\nN_age &lt;- parameter()\ndim(S_ini) &lt;- N_age\ndim(I_ini) &lt;- N_age\ndim(S) &lt;- N_age\ndim(I) &lt;- N_age\ndim(R) &lt;- N_age\ndim(n_SI) &lt;- N_age\ndim(n_IR) &lt;- N_age\ndim(p_SI) &lt;- N_age\ndim(m) &lt;- c(N_age, N_age)\ndim(s_ij) &lt;- c(N_age, N_age)\ndim(lambda) &lt;- N_age\n\nm &lt;- parameter() # age-structured contact matrix\ns_ij[, ] &lt;- m[i, j] * I[j]\nlambda[] &lt;- beta * sum(s_ij[i, ])\np_SI[] &lt;- 1 - exp(-lambda[i] * dt)\nupdate(S[]) &lt;- S[i] - n_SI[i]\nN_age &lt;- user()\ndim(S) &lt;- N_age\ndim(m) &lt;- c(N_age, N_age)",
+    "crumbs": [
+      "Odin",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Arrays</span>"
+    ]
+  },
+  {
+    "objectID": "arrays.html#vaccination",
+    "href": "arrays.html#vaccination",
+    "title": "5  Arrays",
+    "section": "5.2 Vaccination",
+    "text": "5.2 Vaccination",
+    "crumbs": [
+      "Odin",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Arrays</span>"
+    ]
+  },
+  {
+    "objectID": "interpolation.html",
+    "href": "interpolation.html",
+    "title": "6  Inputs that vary over time",
+    "section": "",
+    "text": "6.1 Using time within equations\nThe simplest way to make a model time-dependent is simply to refer to time as a variable. For example, suppose we have a continuous-time logistic growth model (see Section 3.1)\nlogistic &lt;- odin({\n  deriv(n) &lt;- r * n * (1 - n / K)\n  initial(n) &lt;- 1\n  K &lt;- parameter()\n  r &lt;- parameter()\n})\nHere we create the system with r of 2 and K of 100, then run it from 0 to 6 time units:\nsys &lt;- dust_system_create(logistic(), list(r = 2, K = 100))\ndust_system_set_state_initial(sys)\nt &lt;- seq(0, 6, length.out = 101)\ny &lt;- dust_system_simulate(sys, t)\nplot(t, y, type = \"l\", xlab = \"Time\", ylab = \"n\")\nWe might think that growth rate r is seasonal, e.g., it’s higher in the spring and summer than in autumn and winter. Time in this model is fairly arbitrary, so let’s assume that each year is 1 time unit long and let growth rate r be a function of t. Supposing a mean growth rate r0 of 0.1, and assuming a p fraction of the growth rate being seasonal (so that if p is 1 growth is entirely seasonal and if p is 0 we recover our aseasonal model) we might model this as:\nr0 &lt;- 2\np &lt;- 0.2\ncurve(r0 * (1 - p) + r0 * p * (1 + sin(time * 2 * pi)), 0, 6,\n      n = 1001, xname = \"time\", xlab = \"Time\", ylab = \"Growth rate\")\nabline(h = r0, lty = 3)\nWe can use this directly within an odin model with no further modification:\nlogistic_t &lt;- odin({\n  deriv(n) &lt;- r * n * (1 - n / K)\n  initial(n) &lt;- 1\n  K &lt;- parameter()\n  r0 &lt;- parameter()\n  p &lt;- parameter(0.2)\n  r &lt;- r0 * (1 - p) + r0 * p * (1 + sin(time * 2 * 3.141))\n})\nHere, we have written r as an expression involving time, which means that at each time step we calculate a new value. Our parameters are now r0 and p as described above.\nHere’s the solution plotted against our original one - not terribly different; you can just make out the departure between the blue and the grey lines:\nsys &lt;- dust_system_create(logistic_t(), list(r0 = 2, K = 100))\ndust_system_set_state_initial(sys)\nyt_1 &lt;- dust_system_simulate(sys, t)\nplot(t, yt_1, type = \"l\", xlab = \"Time\", ylab = \"n\", col = \"blue\")\nlines(t, y, col = \"grey\")\nHere’s a more extreme set of parameters, where the seasonal effect is 80%, plotted against both solutions where the effect is more obvious:\ndust_system_update_pars(sys, list(p = 0.8))\ndust_system_set_time(sys, 0)\ndust_system_set_state_initial(sys)\nyt_2 &lt;- dust_system_simulate(sys, t)\nplot(t, yt_1, type = \"l\", xlab = \"Time\", ylab = \"n\", col = \"blue\")\nlines(t, y, col = \"grey\")\nlines(t, yt_2, col = \"red\")",
+    "crumbs": [
+      "Odin",
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>Inputs that vary over time</span>"
+    ]
+  },
+  {
+    "objectID": "interpolation.html#nondifferentiable-functions",
+    "href": "interpolation.html#nondifferentiable-functions",
+    "title": "6  Inputs that vary over time",
+    "section": "6.2 Nondifferentiable functions",
+    "text": "6.2 Nondifferentiable functions\n\n\n\n\n\n\nNote\n\n\n\nThis section may not be very interesting on the first reading, however this is a situation that comes up fairly often and has some subtleties to consider in continuous time systems especially.\n\n\nSo far, so good. One trick to watch out for is where you want to use a non-differentiable function of time, or one with abrupt changes in magnitude. For example, suppose we have a model where there’s a period where some effect happens (e.g., a period where vaccination or infection is possible). We might model this as a square wave:\n\n\n\n\n\n\n\n\n\nWe might define this within odin code as something like:\nsignal &lt;- if (time &gt; 4 && time &lt; 5) 1 else 0\nor we could use a piecewise-constant interpolation function (see below). If we use this within a discrete time model this will behave fine. However, if we use this within a differential equation model then we need to consider how the ODE solver works.\nAn ode solver works by looking at the slope with respect to time and working out how big a step it can take based on how this slope itself changes as a function of time. Where functions are very smooth (often where they are very flat) an ODE solver can take quite large steps, and it is possible that they can jump right over a spike like this. So if this spike is doing something like introducing infections into your model it’s possible that no-one becomes infected because we never evaluate your right-hand-side function within this window.\nIf you do land in the window, then the solver will have a difficult job as it tries to work out where this discontinuity started from. Typically, it will reject steps until it “finds” the starting time (here, 4).\nWhat we need to do is pass in a vector of critical times representing times that the solver must stop at.\n\n\n\n\n\n\nImportant\n\n\n\nUnfortunately, critical times are not yet implemented in dust2 (mrc-5847), so this section stops here.",
+    "crumbs": [
+      "Odin",
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>Inputs that vary over time</span>"
+    ]
+  },
+  {
+    "objectID": "interpolation.html#a-base-model",
+    "href": "interpolation.html#a-base-model",
+    "title": "6  Inputs that vary over time",
+    "section": "7.1 A base model",
+    "text": "7.1 A base model\nLet’s consider changes to a simple SIS (Susceptible-Infected-Susceptible) model. The basic model is a variation on our familiar SIR model that will allow the infection to become endemic, which will suit the demonstration here. We’ll work at first in continuous time, and then consider discrete time later.\n\nsis &lt;- odin({\n  deriv(S) &lt;- -beta * I * S / N + gamma * I\n  deriv(I) &lt;-  beta * I * S / N - gamma * I\n  initial(S) &lt;- N - I0\n  initial(I) &lt;- I0\n  I0 &lt;- parameter(10)\n  N &lt;- parameter(1000)\n  beta &lt;- 0.2\n  gamma &lt;- 0.1\n})\n\nHere’s the system plotted over time:\n\nsys &lt;- dust_system_create(sis(), list())\ndust_system_set_state_initial(sys)\nt &lt;- seq(0, 200, length.out = 501)\ny &lt;- dust_system_simulate(sys, t)\ny &lt;- dust_unpack_state(sys, y)\nplot(t, y$I, type = \"l\", xlab = \"Time\", ylab = \"Number of infected individuals\")",
+    "crumbs": [
+      "Odin",
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>Inputs that vary over time</span>"
+    ]
+  },
+  {
+    "objectID": "interpolation.html#step-wise-changes",
+    "href": "interpolation.html#step-wise-changes",
+    "title": "6  Inputs that vary over time",
+    "section": "7.2 Step-wise changes",
+    "text": "7.2 Step-wise changes\nSuppose we want to model something that is on or off; perhaps beta changes in periods where schools are open or closed for holidays and the dates that this happen vary year-by-year, and we expect that beta is 60% lower when schools are closed due to fewer contacts among individuals. We might describe this in data as:\n\nschools_time &lt;- c(0, 50, 60, 120, 130, 170, 180)\nschools_open &lt;- c(1,  0,  1,   0,   1,   0,   1)\nschools_modifier &lt;- 0.6\n\nAnd, ignoring odin for a minute, we might demonstrate the effect by writing:\n\nbeta0 &lt;- 0.2\nbeta &lt;- approx(\n  schools_time,\n  ((1 - schools_open) * (1 - schools_modifier) + schools_open) * beta0,\n  xout = t,\n  method = \"constant\",\n  rule = 2)\nplot(beta, xlab = \"Time\", ylab = \"beta\", type = \"l\", ylim = c(0, 0.25))\n\n\n\n\n\n\n\n\nWe can take the same approach in odin, using its constant interpolation method:\n\nsis &lt;- odin({\n  deriv(S) &lt;- -beta * I * S / N + gamma * I\n  deriv(I) &lt;-  beta * I * S / N - gamma * I\n  initial(S) &lt;- N - I0\n  initial(I) &lt;- I0\n  I0 &lt;- parameter(10)\n  N &lt;- parameter(1000)\n  beta0 &lt;- parameter(0.2)\n  schools &lt;- interpolate(schools_time, schools_open, \"constant\")\n  schools_time &lt;- parameter(constant = TRUE)\n  schools_open &lt;- parameter(constant = TRUE)\n  dim(schools_time) &lt;- parameter(rank = 1)\n  dim(schools_open) &lt;- parameter(rank = 1)\n  schools_modifier &lt;- parameter(0.6)\n  beta &lt;- ((1 - schools) * (1 - schools_modifier) + schools) * beta0\n  gamma &lt;- 0.1\n})\n\nWhen we create the system, we must pass in values for the components of school; there are no defaults for vector parameters.\n\npars &lt;- list(schools_time = schools_time, schools_open = schools_open)\nsys &lt;- dust_system_create(sis(), pars)\n\nRun the system over the times as above, and plot the number of infected individuals over time, with the school closures in grey shading:\n\ndust_system_set_state_initial(sys)\nt &lt;- seq(0, 200, length.out = 501)\ny &lt;- dust_system_simulate(sys, t)\ny &lt;- dust_unpack_state(sys, y)\nplot(t, y$I, type = \"l\", xlab = \"Time\", ylab = \"Number of infected individuals\")\nrect(schools_time[c(2, 4, 6)], par(\"usr\")[3],\n     schools_time[c(3, 5, 7)], par(\"usr\")[4], col = \"#00000033\", border = NA)",
+    "crumbs": [
+      "Odin",
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>Inputs that vary over time</span>"
+    ]
+  },
+  {
+    "objectID": "interpolation.html#additional-topics-not-yet-covered",
+    "href": "interpolation.html#additional-topics-not-yet-covered",
+    "title": "6  Inputs that vary over time",
+    "section": "7.3 Additional topics not yet covered",
+    "text": "7.3 Additional topics not yet covered\n\nspline interpolation\norder of events in interpolation with discrete time models\ninterpolation of arrays (especially for data inputs in piecewise constant interpolation)",
+    "crumbs": [
+      "Odin",
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>Inputs that vary over time</span>"
+    ]
+  },
+  {
+    "objectID": "data.html",
+    "href": "data.html",
+    "title": "7  Data",
+    "section": "",
+    "text": "7.1 The SIR model revisited\nIn a couple of chapters we’ll explore fitting a stochastic SIR model to data, so we’ll start with expressions from the model in Section 4.1",
+    "crumbs": [
+      "Odin",
+      "<span class='chapter-number'>7</span>  <span class='chapter-title'>Data</span>"
+    ]
+  },
+  {
+    "objectID": "data.html#the-sir-model-revisited",
+    "href": "data.html#the-sir-model-revisited",
+    "title": "7  Data",
+    "section": "",
+    "text": "7.1.1 Incidence calculations\nPreviously, our SIR model had just three compartments; S, I and R. It might feel natural to fit to I - the number of infected people. However, we rarely have information on that directly. Instead, we might have information on the number of new individuals that are infected over some time period (i.e., incidence).\nSuppose that each time unit represents one day. We can declare incidence as a variable that resets every day by using the zero_every argument.\n\nsir &lt;- odin({\n  update(S) &lt;- S - n_SI\n  update(I) &lt;- I + n_SI - n_IR\n  update(R) &lt;- R + n_IR\n  update(incidence) &lt;- incidence + n_SI\n\n  p_SI &lt;- 1 - exp(-beta * I / N * dt)\n  p_IR &lt;- 1 - exp(-gamma * dt)\n  n_SI &lt;- Binomial(S, p_SI)\n  n_IR &lt;- Binomial(I, p_IR)\n\n  initial(S) &lt;- N - I0\n  initial(I) &lt;- I0\n  initial(R) &lt;- 0\n  initial(incidence, zero_every = 1) &lt;- 0\n\n  N &lt;- parameter(1000)\n  I0 &lt;- parameter(10)\n  beta &lt;- parameter(0.2)\n  gamma &lt;- parameter(0.1)\n})\n\nIf we had data on weekly incidence we might choose to write\ninitial(incidence, zero_every = 7) &lt;- 0\nor to work with time so that one unit represents a week rather than a day and scaling our rates and dt accordingly.\nWhen running this model we’ll see incidence produced:\n\npars &lt;- list(beta = 1, gamma = 0.6)\nsys &lt;- dust_system_create(sir(), pars, dt = 0.25)\ndust_system_set_state_initial(sys)\nt &lt;- seq(0, 20, by = 0.25)\ny &lt;- dust_system_simulate(sys, t)\ny &lt;- dust_unpack_state(sys, y)\nplot(t, y$incidence, type = \"s\", xlab = \"Time\", ylab = \"Incidence\")\n\n\n\n\n\n\n\n\nOur step is a quarter of a day, so we see four levels of incidence per day, with the last being the daily peak. Let’s run again with a timestep of 1 day, we see:\n\nsys &lt;- dust_system_create(sir(), pars, dt = 0.25)\ndust_system_set_state_initial(sys)\nt &lt;- seq(0, 20)\ny &lt;- dust_system_simulate(sys, t)\ny &lt;- dust_unpack_state(sys, y)\nplot(t, y$incidence, type = \"p\", xlab = \"Time\", ylab = \"Incidence\")",
+    "crumbs": [
+      "Odin",
+      "<span class='chapter-number'>7</span>  <span class='chapter-title'>Data</span>"
+    ]
+  },
+  {
+    "objectID": "data.html#the-data-cometh",
+    "href": "data.html#the-data-cometh",
+    "title": "7  Data",
+    "section": "7.2 The data cometh",
+    "text": "7.2 The data cometh\nWe need a data set to fit to; we’ll use the data set data/incidence.csv, which you can download.\n\nd &lt;- read.csv(\"data/incidence.csv\")\nhead(d)\n#&gt;   time cases\n#&gt; 1    1    12\n#&gt; 2    2    23\n#&gt; 3    3    25\n#&gt; 4    4    36\n#&gt; 5    5    30\n#&gt; 6    6    57\ntail(d)\n#&gt;    time cases\n#&gt; 15   15    27\n#&gt; 16   16    25\n#&gt; 17   17    15\n#&gt; 18   18    20\n#&gt; 19   19    11\n#&gt; 20   20     7\n\nWe have a column for time time and one for observed cases cases spanning the time range 0 to 20.",
+    "crumbs": [
+      "Odin",
+      "<span class='chapter-number'>7</span>  <span class='chapter-title'>Data</span>"
+    ]
+  },
+  {
+    "objectID": "data.html#comparison-to-data",
+    "href": "data.html#comparison-to-data",
+    "title": "7  Data",
+    "section": "7.3 Comparison to data",
+    "text": "7.3 Comparison to data\nThe next step is to tell our model about this data:\n\nsir &lt;- odin({\n  update(S) &lt;- S - n_SI\n  update(I) &lt;- I + n_SI - n_IR\n  update(R) &lt;- R + n_IR\n  update(incidence) &lt;- incidence + n_SI\n\n  p_SI &lt;- 1 - exp(-beta * I / N * dt)\n  p_IR &lt;- 1 - exp(-gamma * dt)\n  n_SI &lt;- Binomial(S, p_SI)\n  n_IR &lt;- Binomial(I, p_IR)\n\n  initial(S) &lt;- N - I0\n  initial(I) &lt;- I0\n  initial(R) &lt;- 0\n  initial(incidence, zero_every = 1) &lt;- 0\n\n  N &lt;- parameter(1000)\n  I0 &lt;- parameter(10)\n  beta &lt;- parameter(0.2)\n  gamma &lt;- parameter(0.1)\n\n  cases &lt;- data()\n  cases ~ Poisson(incidence)\n})\n\nThe last two lines here are doing the work for us:\nFirst, cases &lt;- data() says that cases is a special data variable. It will vary over time (there are different observations of cases at different times) and it will come from the data rather than from the model dynamics.\nSecond, cases ~ Poisson(incidence) describes the per-data-point likelihood calculation; the syntax may be familiar to you if you have read Richard McElreath’s Statistical Rethinking or used any number of Bayesian statistical frameworks.\nOnce we have our new model, we can see how the data comparison works.\n\nsys &lt;- dust_system_create(sir(), list(), n_particles = 10)\ndust_system_set_state_initial(sys)\ndust_system_run_to_time(sys, d$time[[1]])\ndust_system_compare_data(sys, d[1, ])\n#&gt;  [1]       -Inf  -9.803867 -13.669448 -13.669448 -20.987214  -7.351682\n#&gt;  [7]  -5.673960  -9.803867 -13.669448 -20.987214\n\nThis has run the model to the point where we have the first observed data (time 1), this time without returning any data to R, then we have used dust_system_compare_data with the first row of data. This returns a vector of 10 likelihoods – one per particle.\n\n\n\n\n\n\nNote\n\n\n\nThis is probably the first mention of a “particle”, and it is from this that the name dust is derived. As a nod to the particle filter, which will be the focus of the next section, we refer to each realisation of the dynamical system as a “particle”.\n\n\nTo demystify this a little we can perform this calculation manually. First we extract the state from the system, unpacking it to make it easier to work with:\n\ns &lt;- dust_unpack_state(sys, dust_system_state(sys))\ns\n#&gt; $S\n#&gt;  [1] 990 987 988 988 989 986 985 987 988 989\n#&gt; \n#&gt; $I\n#&gt;  [1] 10 13 10 12  9 13 15 13 10  9\n#&gt; \n#&gt; $R\n#&gt;  [1] 0 0 2 0 2 1 0 0 2 2\n#&gt; \n#&gt; $incidence\n#&gt;  [1] 0 3 2 2 1 4 5 3 2 1\n\nWe can then manually compute the likelihood, and bind this together with the calculation from dust to compare:\n\ncbind(dpois(d$cases[[1]], s$incidence, log = TRUE),\n      dust_system_compare_data(sys, d[1, ]))\n#&gt;             [,1]       [,2]\n#&gt;  [1,]       -Inf       -Inf\n#&gt;  [2,]  -9.803867  -9.803867\n#&gt;  [3,] -13.669448 -13.669448\n#&gt;  [4,] -13.669448 -13.669448\n#&gt;  [5,] -20.987214 -20.987214\n#&gt;  [6,]  -7.351682  -7.351682\n#&gt;  [7,]  -5.673960  -5.673960\n#&gt;  [8,]  -9.803867  -9.803867\n#&gt;  [9,] -13.669448 -13.669448\n#&gt; [10,] -20.987214 -20.987214\n\nAs you can see, these are the same; the expression\ncases ~ Poisson(incidence)\nhas done the same sort of thing as we can do ourselves by asking “what is the (log) probability of observing cases cases if the underlying rate of incidence is incidence”.",
+    "crumbs": [
+      "Odin",
+      "<span class='chapter-number'>7</span>  <span class='chapter-title'>Data</span>"
+    ]
+  },
+  {
+    "objectID": "data.html#sec-data-filter",
+    "href": "data.html#sec-data-filter",
+    "title": "7  Data",
+    "section": "7.4 The likelihood filter",
+    "text": "7.4 The likelihood filter\nWe include a simple bootstrap particle filter in dust for estimating the marginal likelihood in this case; the probability of the entire data series conditional on our model, marginalised (averaged) over all stochastic realisations. Because our model is stochastic, this is an estimate of the likelihood but the estimate will get less noisy as the number of particles increases.\n\nfilter &lt;- dust_filter_create(sir(), time_start = 0, data = d, n_particles = 200)\n\nHere, we’ve created a filter where the time series starts at 0, using our data set d and we’ve picked 200 particles to start with. We run the filter with dust_likelihood_run, and this returns a likelihood:\n\ndust_likelihood_run(filter, list())\n#&gt; [1] -228.2728\n\nEach time we run the filter, we’ll get a different answer though.\n\ndust_likelihood_run(filter, list())\n#&gt; [1] -222.1323\n\nFor example, running for 100 times:\n\nll &lt;- replicate(100, dust_likelihood_run(filter, list()))\nmean(ll)\n#&gt; [1] -225.0839\nvar(ll)\n#&gt; [1] 269.5543\n\nIf we increase the number of particles, this variance will decrease, at the cost of taking longer to run:\n\nfilter2 &lt;- dust_filter_create(sir(), time_start = 0, data = d,\n                              n_particles = 2000)\nll2 &lt;- replicate(100, dust_likelihood_run(filter2, list()))\nmean(ll2)\n#&gt; [1] -187.7038\nvar(ll2)\n#&gt; [1] 41.5313\n\nThe log-likelihoods from different numbers of particles are not directly comparable, though.\nYou can extract trajectories from the filter after running it: this gives a tree showing the ancestry of the particles remaining in the sample. To enable this, you must run with save_history = TRUE, as this incurs a runtime cost.\n\nll &lt;- dust_likelihood_run(filter, list(), save_history = TRUE)\nh &lt;- dust_likelihood_last_history(filter)\n\nThe history will be an array with 3 dimensions representing (in turn) state, particle and time:\n\ndim(h)\n#&gt; [1]   4 200  20\n\nWe can plot the history of our incidence here:\n\nmatplot(d$time, t(dust_unpack_state(filter, h)$incidence), type = \"l\",\n        lty = 1, col = \"#00000044\", xlab = \"Time\", ylab = \"Incidence\")\npoints(cases ~ time, d, pch = 19, col = \"red\")\n\n\n\n\n\n\n\n\nThis model does not fit the data very well! The points don’t lie close to the modelled trajectories. We also see everything before time ~10 reduced to a single particle’s history, which will have the effect of increasing the variance.\nIf we found better parameters things would look much better. We just so happen to know that if beta is 1 and gamma 0.6 then the model will fit better:\n\npars &lt;- list(beta = 1, gamma = 0.6)\nll &lt;- dust_likelihood_run(filter, pars, save_history = TRUE)\nh &lt;- dust_likelihood_last_history(filter)\nmatplot(d$time, t(dust_unpack_state(filter, h)$incidence), type = \"l\",\n        lty = 1, col = \"#00000044\", xlab = \"Time\", ylab = \"Incidence\")\npoints(cases ~ time, d, pch = 19, col = \"red\")\n\n\n\n\n\n\n\n\nAs the model fit improves and the log-likelihood increases, the variance in that estimator will also decrease as the model struggles less to describe the data:\n\nll &lt;- replicate(100, dust_likelihood_run(filter, pars))\nmean(ll)\n#&gt; [1] -80.78547\nvar(ll)\n#&gt; [1] 1.849654\n\nMoving from the poor-fitting parameters to the better fitting ones is the process of inference, which will be the focus of most of the rest of this book.",
+    "crumbs": [
+      "Odin",
+      "<span class='chapter-number'>7</span>  <span class='chapter-title'>Data</span>"
+    ]
+  },
+  {
+    "objectID": "packaging.html",
+    "href": "packaging.html",
+    "title": "8  Packaging odin models",
+    "section": "",
+    "text": "8.1 A basic package skeleton\nMany tools exist to create packages; here we will use usethis, but there’s nothing magic here - you could create these files by hand if you prefer (see Writing R Extensions for the official guide on R packages if this is the approach you prefer).\npath &lt;- tempfile()\nusethis::create_package(\n  path,\n  fields = list(Package = \"pkg\",\n                Title = \"My Odin Model\",\n                Description = \"\"))\n#&gt; ✔ Creating '/tmp/RtmpQ5ByPO/file202f2b658fe3/'.\n#&gt; ✔ Setting active project to \"/tmp/RtmpQ5ByPO/file202f2b658fe3\".\n#&gt; ✔ Creating 'R/'.\n#&gt; ✔ Writing 'DESCRIPTION'.\n#&gt; Package: pkg\n#&gt; Title: My Odin Model\n#&gt; Version: 0.1.0\n#&gt; Authors@R (parsed):\n#&gt;     * An Author &lt;a.author@example.com&gt; [aut, cre]\n#&gt; Description:\n#&gt; License: CC0\n#&gt; Encoding: UTF-8\n#&gt; Language: en-GB\n#&gt; Roxygen: list(markdown = TRUE)\n#&gt; RoxygenNote: 7.0.0\n#&gt; ✔ Writing 'NAMESPACE'.\n#&gt; ✔ Setting active project to \"&lt;no active project&gt;\".",
+    "crumbs": [
+      "Odin",
+      "<span class='chapter-number'>8</span>  <span class='chapter-title'>Packaging odin models</span>"
+    ]
+  },
+  {
+    "objectID": "packaging.html#next-steps",
+    "href": "packaging.html#next-steps",
+    "title": "8  Packaging odin models",
+    "section": "8.2 Next steps",
+    "text": "8.2 Next steps\nOnce you have a model in a package, then you are within the realms of normal R package development, and nothing here is specific to odin. However, if you are not familiar with package development we hope these tips will be useful.\nA good place to look for information on package development is Hadley Wickham and Jenny Bryan’s “R packages” book, and to avoid repeating their material we’ll just link to it:\n\nCreate an RStudio project for your new package\nWrite some tests for your model and its support code. We’ll document some basic ideas for this later.\nCreate a git repository for your package and put it on GitHub. For more discussion see this chapter in “R packages”, and this guide on configuring R, RStudio and git to work well together.\nSet up continuous integration so that your tests are run automatically when you make changes to your package\nPut your package into an R universe to make it easy for others to install. Your organisation may already have one (for DIDE users, please see this repo), or you can start your own\n\nThis looks like a lot of work, but most of the setup here can be configured in a few lines. Writing tests is the only part that requires more than configuration, and that is something that you will tend to get better at over time.",
+    "crumbs": [
+      "Odin",
+      "<span class='chapter-number'>8</span>  <span class='chapter-title'>Packaging odin models</span>"
+    ]
+  },
+  {
+    "objectID": "monty.html",
+    "href": "monty.html",
+    "title": "9  Monty",
+    "section": "",
+    "text": "Before showing how to fit odin models to data, we’ll focus for a bit on monty itself. If you are anxious to get on and fit the model from Section 7.4, you might skip ahead to Chapter 10, where we resume this.\nThere are a bunch of things we want to cover in this chapter so likely it will be split into a few:\n\ndefining a model in monty, both easily with monty_function and less easily with monty_model\nfitting models with MCMC\nwriting priors with the monty_dsl\nusing observers to follow along with the model (if we can come up with a good example)\nworking with nested models (once we write the code that would allow this)\nrunning MCMC chains in parallel\nexporting chains to work with other packages\ndifferent samplers\n\nHmm, there really is quite a bit of ground to cover here!",
+    "crumbs": [
+      "Monty",
+      "<span class='chapter-number'>9</span>  <span class='chapter-title'>Monty</span>"
+    ]
+  },
+  {
+    "objectID": "inference.html",
+    "href": "inference.html",
+    "title": "10  Inference",
+    "section": "",
+    "text": "Getting started with inference on odin models.\nWe’ll cover similar ground to the odin fitting vignette I think in this first chapter of this part. The later chapters will cover:\n\nobserving the process\nmultiple parameter sets and parameter packing\nrestarts (once enabled)\nmultistage fits (once enabled)",
+    "crumbs": [
+      "Odin & Monty",
+      "<span class='chapter-number'>10</span>  <span class='chapter-title'>Inference</span>"
+    ]
+  },
+  {
+    "objectID": "differentiability.html",
+    "href": "differentiability.html",
+    "title": "11  Differentiability",
+    "section": "",
+    "text": "Random walk suppression and other uses",
+    "crumbs": [
+      "Odin & Monty",
+      "<span class='chapter-number'>11</span>  <span class='chapter-title'>Differentiability</span>"
+    ]
+  },
+  {
+    "objectID": "installation.html",
+    "href": "installation.html",
+    "title": "Appendix A — Installation",
+    "section": "",
+    "text": "A.1 Packages\nThe short version:\nWe require a number of R packages, most of which are currently (as of late 2024) under very active development. The canonical source for these packages is currently our r-universe and not CRAN, but we hope to get the stack onto CRAN as soon as they stabilise. The version of odin on CRAN is now wildly out of date with the content in this guide.\nThe required packages are:\nThese packages sit on a huge foundation of work, much of which has been written by staff at Posit (formerly RStudio)",
+    "crumbs": [
+      "Appendices",
+      "<span class='chapter-number'>A</span>  <span class='chapter-title'>Installation</span>"
+    ]
+  },
+  {
+    "objectID": "installation.html#packages",
+    "href": "installation.html#packages",
+    "title": "Appendix A — Installation",
+    "section": "",
+    "text": "install.packages(\n  c(\"monty\", \"dust2\", \"odin2\"),\n  repos = c(\"https://mrc-ide.r-universe.dev\", \"https://cloud.r-project.org\"))\n\n\n\nodin2: the DSL itself\ndust2: support for running odin models (odin “transpiles” R code into dust2)\nmonty: statistical distributions and inference support\n\n\n\ncpp11 for painless bindings between C++ and R\npkgbuild for building packages\npkgload for loading temporary packages\ncli for messages and console interfaces\nrlang for control over metaprogramming and errors",
+    "crumbs": [
+      "Appendices",
+      "<span class='chapter-number'>A</span>  <span class='chapter-title'>Installation</span>"
+    ]
+  },
+  {
+    "objectID": "installation.html#system-requirements",
+    "href": "installation.html#system-requirements",
+    "title": "Appendix A — Installation",
+    "section": "A.2 System requirements",
+    "text": "A.2 System requirements\nYou need a functioning C++ toolchain. How you get one depends on your platform, and is unfortunately a bit of a moving target. The source of truth for these matters is Writing R extensions and R installation and administration.\nFor windows users it is usually sufficient to install Rtools for your version of R. For Linux users there’s a good chance you already have a functioning toolchain. Mac users tend to have the biggest issues, particularly with OpenMP support.\nYou can run this diagnostic function in pkgbuild (which we use to do compilation) to help diagnose your system\n\npkgbuild::check_build_tools(debug = TRUE)\n\nTrying to compile a simple C file\n\n\nRunning /opt/R/4.4.1/lib/R/bin/R CMD SHLIB foo.c\nusing C compiler: ‘gcc (Ubuntu 13.2.0-23ubuntu4) 13.2.0’\ngcc -I\"/opt/R/4.4.1/lib/R/include\" -DNDEBUG   -I/usr/local/include    -fpic  -g -O2  -c foo.c -o foo.o\ngcc -shared -L/opt/R/4.4.1/lib/R/lib -L/usr/local/lib -o foo.so foo.o -L/opt/R/4.4.1/lib/R/lib -lR\n\n\n\n\n\nYour system is ready to build packages!",
+    "crumbs": [
+      "Appendices",
+      "<span class='chapter-number'>A</span>  <span class='chapter-title'>Installation</span>"
+    ]
+  },
+  {
+    "objectID": "colophon.html",
+    "href": "colophon.html",
+    "title": "Appendix B — Colophon",
+    "section": "",
+    "text": "Key versions:\n\nodin2: 0.1.7\ndust2: 0.1.13\nmonty: 0.2.14\n\nRendered on 2024-10-11 15:28:03.236116 using quarto 1.5.57\nFull system information:\n\nsessioninfo::session_info()\n#&gt; ─ Session info ───────────────────────────────────────────────────────────────\n#&gt;  setting  value\n#&gt;  version  R version 4.4.1 (2024-06-14)\n#&gt;  os       Ubuntu 24.04.1 LTS\n#&gt;  system   x86_64, linux-gnu\n#&gt;  ui       X11\n#&gt;  language (EN)\n#&gt;  collate  C.UTF-8\n#&gt;  ctype    C.UTF-8\n#&gt;  tz       UTC\n#&gt;  date     2024-10-11\n#&gt;  pandoc   3.1.3 @ /usr/bin/ (via rmarkdown)\n#&gt; \n#&gt; ─ Packages ───────────────────────────────────────────────────────────────────\n#&gt;  package     * version date (UTC) lib source\n#&gt;  brio          1.1.5   2024-04-24 [1] RSPM\n#&gt;  cli           3.6.3   2024-06-21 [1] RSPM\n#&gt;  cpp11         0.5.0   2024-08-27 [1] RSPM\n#&gt;  decor         1.0.2   2023-07-01 [1] RSPM\n#&gt;  digest        0.6.37  2024-08-19 [1] RSPM\n#&gt;  dust2         0.1.13  2024-10-11 [1] Github (mrc-ide/dust2@ced4f73)\n#&gt;  evaluate      1.0.1   2024-10-10 [1] RSPM\n#&gt;  fansi         1.0.6   2023-12-08 [1] RSPM\n#&gt;  fastmap       1.2.0   2024-05-15 [1] RSPM\n#&gt;  fs            1.6.4   2024-04-25 [1] RSPM\n#&gt;  glue          1.8.0   2024-09-30 [1] RSPM\n#&gt;  htmltools     0.5.8.1 2024-04-04 [1] RSPM\n#&gt;  jsonlite      1.8.9   2024-09-20 [1] RSPM\n#&gt;  knitr         1.48    2024-07-07 [1] RSPM\n#&gt;  later         1.3.2   2023-12-06 [1] RSPM\n#&gt;  lifecycle     1.0.4   2023-11-07 [1] RSPM\n#&gt;  magrittr      2.0.3   2022-03-30 [1] RSPM\n#&gt;  monty         0.2.14  2024-10-11 [1] Github (mrc-ide/monty@db71f46)\n#&gt;  odin2         0.1.7   2024-10-11 [1] Github (mrc-ide/odin2@c482e98)\n#&gt;  pillar        1.9.0   2023-03-22 [1] RSPM\n#&gt;  pkgbuild      1.4.4   2024-03-17 [1] RSPM\n#&gt;  pkgconfig     2.0.3   2019-09-22 [1] RSPM\n#&gt;  pkgload       1.4.0   2024-06-28 [1] RSPM\n#&gt;  processx      3.8.4   2024-03-16 [1] RSPM\n#&gt;  ps            1.8.0   2024-09-12 [1] RSPM\n#&gt;  purrr         1.0.2   2023-08-10 [1] RSPM\n#&gt;  quarto        1.4.4   2024-07-20 [1] RSPM\n#&gt;  R6            2.5.1   2021-08-19 [1] RSPM\n#&gt;  Rcpp          1.0.13  2024-07-17 [1] RSPM\n#&gt;  rlang         1.1.4   2024-06-04 [1] RSPM\n#&gt;  rmarkdown     2.28    2024-08-17 [1] RSPM\n#&gt;  rstudioapi    0.16.0  2024-03-24 [1] RSPM\n#&gt;  sessioninfo   1.2.2   2021-12-06 [1] RSPM\n#&gt;  tibble        3.2.1   2023-03-20 [1] RSPM\n#&gt;  usethis       3.0.0   2024-07-29 [1] RSPM\n#&gt;  utf8          1.2.4   2023-10-22 [1] RSPM\n#&gt;  vctrs         0.6.5   2023-12-01 [1] RSPM\n#&gt;  xfun          0.48    2024-10-03 [1] RSPM\n#&gt;  yaml          2.3.10  2024-07-26 [1] RSPM\n#&gt; \n#&gt;  [1] /home/runner/work/_temp/Library\n#&gt;  [2] /opt/R/4.4.1/lib/R/site-library\n#&gt;  [3] /opt/R/4.4.1/lib/R/library\n#&gt; \n#&gt; ──────────────────────────────────────────────────────────────────────────────",
+    "crumbs": [
+      "Appendices",
+      "<span class='chapter-number'>B</span>  <span class='chapter-title'>Colophon</span>"
+    ]
+  }
+]
