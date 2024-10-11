@@ -1,5 +1,14 @@
 # Arrays
 
+```{r}
+#| include: false
+source("utils.R")
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
 ::: {.callout-warning}
 These examples come from the 2023 teaching slides, and have not been turned into actual content yet.
 :::

@@ -18,7 +18,7 @@ library(dust2)
 
 ## A simple example {#sec-odin-sir}
 
-Here is a simple "SIR" (Susceptible-Infected-Recovered) model, implemented as a set of ordinary differential equations:
+Here is a small system of equations for an "SIR" (Susceptible-Infected-Recovered) model, implemented as a set of ordinary differential equations:
 
 ```{r}
 sir <- odin({
@@ -41,7 +41,11 @@ There are a few things to note here:
 
 * equations are defined out of order; we just will things into existence and trust `odin` to put them in the right order for us (much more on this later)
 * our system has "parameters"; these are things we'll be able to change easily in it after creation
-* every variable (as in, model variable --- those that make up the state) has a pair of equations'; an initial condition via `initial()` and an equation for the derivative with respect to time via `deriv()`
+* every variable (as in, model variable --- those that make up the state) has a pair of equations; an initial condition via `initial()` and an equation for the derivative with respect to time via `deriv()`
+
+::: {.callout-note}
+Above you will see us struggle a bit with terminology, particularly between "system" and "model".  There are going to be two places where "model" can be usefully used - a model could be the **generative model** (here an SIR model) or it could be the **statistical model**, more the focus on the second half of the book.  In order to make things slightly less ambiguous we will often refer to the generative model as a "system", and this is reflected in the calls to functions in dust.
+:::
 
 The `odin()` function will compile (more strictly, [transpile](https://en.wikipedia.org/wiki/Source-to-source_compiler)) the odin code to C++ and then compile this into machine code and load it into your session.
 

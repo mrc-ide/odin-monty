@@ -1,5 +1,14 @@
 # Packaging odin models
 
+```{r}
+#| include: false
+source("utils.R")
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
 So far, we have compiled odin code as we have needed it, using the `odin()` function.  This works well for many uses, but has its limitations:
 
 * It requires that anyone who uses your code has a working C++ compiler; they will need to compile your model and load it into R to run things

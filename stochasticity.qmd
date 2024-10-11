@@ -19,6 +19,7 @@ library(dust2)
 ```
 
 ## A simple stochastic model {#sec-stochastic-sir}
+
 Here's a simple SIR model, based on the one in @sec-odin-sir, which is stochastic:
 
 ```{r}
@@ -42,6 +43,8 @@ sir <- odin({
   gamma <- parameter(0.1)
 })
 ```
+
+This is a discrete-time model (using `update()` and not `deriv()`) as stochastic models must run in discrete time.  We use `dt` to scale the rates, and adjusting `dt` will change the way that stochasticity affects the dynamics of the system.
 
 The movement from S to I and from I to R are now drawn from a [binomial distribution](https://en.wikipedia.org/wiki/Binomial_distribution) with probabilities that are computed from the rates (`beta` and `gamma`) multiplied by the change in time (`dt`).
 

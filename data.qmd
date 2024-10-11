@@ -75,7 +75,7 @@ y <- dust_unpack_state(sys, y)
 plot(t, y$incidence, type = "s", xlab = "Time", ylab = "Incidence")
 ```
 
-The reported values are here are at the *end* of each step, so we rarely see an incidence of 0 except at the very start and end of the simulation. What we really care about are the values at the end of each day though where it reaches a peak:
+Our step is a quarter of a day, so we see four levels of incidence per day, with the last being the daily peak.  Let's run again with a timestep of 1 day, we see:
 
 ```{r}
 sys <- dust_system_create(sir(), pars, dt = 0.25)
@@ -145,6 +145,10 @@ dust_system_compare_data(sys, d[1, ])
 ```
 
 This has run the model to the point where we have the first observed data (time `r d$time[[1]]`), this time without returning any data to R, then we have used `dust_system_compare_data` with the first row of data.  This returns a vector of 10 likelihoods -- one per particle.
+
+::: {.callout-note}
+This is probably the first mention of a "particle", and it is from this that the name `dust` is derived.  As a nod to the particle filter, which will be the focus of the next section, we refer to each realisation of the dynamical system as a "particle".
+:::
 
 To demystify this a little we can perform this calculation manually.  First we extract the state from the system, unpacking it to make it easier to work with:
 
