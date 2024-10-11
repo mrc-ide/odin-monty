@@ -1,6 +1,6 @@
 # Monty
 
-Before showing how to fit odin models to data, we'll focus for a bit on monty itself.  If you are anxious to get on and fit the model from @sec-data-filter, might skip ahead to @sec-inference, where we resume this.
+Before showing how to fit odin models to data, we'll focus for a bit on monty itself.  If you are anxious to get on and fit the model from @sec-data-filter, you might skip ahead to @sec-inference, where we resume this.
 
 There are a bunch of things we want to cover in this chapter so likely it will be split into a few:
 

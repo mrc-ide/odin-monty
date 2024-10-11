@@ -10,7 +10,7 @@ There are two main sorts of treatment of time within odin models:
 
 This seems like a small difference but it is quite profound.
 
-* Often the same system can be expressed as either a set of ODEs or as a set of recurrence equations but will behave differently (see below)
+* Often the same system can be expressed as either a set of ODEs or as a set of recurrence equations but the two methods will behave differently (see below)
 * It is not knowable which formulation will be "faster"; ODE solutions must take more steps where the solution is complex in order to smooth it out, but at the same time can take very large steps where the solution is simple
 * ODEs must be **deterministic**; a unique smooth solution exists.  Discrete time models are free to be stochastic, as it does not really matter what happens between `t` and `t + dt`
 

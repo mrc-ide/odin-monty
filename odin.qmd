@@ -49,7 +49,7 @@ The `odin()` function will compile (more strictly, [transpile](https://en.wikipe
 sir()
 ```
 
-This `sir` function creates a `dust_system_generator` object, with which we can use with functions from `dust2` to simulate from this model.
+This `sir()` function creates a `dust_system_generator` object. As its name suggests, we can use this object to generate different versions of our system with different configurations. We pass this object to other functions from `dust2` to create, run and examine our simulations.
 
 ## Running systems using `dust2`
 

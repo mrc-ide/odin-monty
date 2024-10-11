@@ -23,7 +23,7 @@ library(dust2)
 
 ## The SIR model revisited
 
-In a couple of chapters we'll explore fitting a stochastic SIR model to data, so we''ll start by expressions to the model in @sec-stochastic-sir
+In a couple of chapters we'll explore fitting a stochastic SIR model to data, so we'll start with expressions from the model in @sec-stochastic-sir
 
 ### Incidence calculations
 
@@ -75,7 +75,7 @@ y <- dust_unpack_state(sys, y)
 plot(t, y$incidence, type = "s", xlab = "Time", ylab = "Incidence")
 ```
 
-The reported values are here are at the *end* of each step, so rarely see an incidence of 0 except at the very start and end of the simulation. What we really care about are the values at the end of each day though where it reaches a peak:
+The reported values are here are at the *end* of each step, so we rarely see an incidence of 0 except at the very start and end of the simulation. What we really care about are the values at the end of each day though where it reaches a peak:
 
 ```{r}
 sys <- dust_system_create(sir(), pars, dt = 0.25)
