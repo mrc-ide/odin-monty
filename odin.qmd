@@ -9,37 +9,51 @@ knitr::opts_chunk$set(
 )
 ```
 
-`odin` is a "[Domain Specific Language](https://en.wikipedia.org/wiki/Domain-specific_language)" (DSL), that is a mini-language that is specifically tailored to a domain.  By targeting a narrow domain we can have a language that expresively captures a problem and gives an efficient solution, as opposed to a general purpose language where you can write code that expresses *anything*, but your solution might either be quite verbose or have poor performance.  You might be familiar with other DSLs such as the dplyr or ggplot2 syntax, or SQL if you have used databases.
-
-## A simple example
-
-Here is a simple "SIR" (Susceptible-Infected-Recovered) model, implemented as a set of ordinary differential equations:
+`odin` is a "[Domain Specific Language](https://en.wikipedia.org/wiki/Domain-specific_language)" (DSL), that is a mini-language that is specifically tailored to a domain.  By targeting a narrow domain we can have a language that expressively captures a problem and gives an efficient solution, as opposed to a general purpose language where you can write code that expresses *anything*, but your solution might either be quite verbose or have poor performance.  You might be familiar with other DSLs such as the `dplyr` or `ggplot2` syntax, or SQL if you have used databases.
 
 ```{r}
-#| results: "asis"
-#| echo: false
-r_output(readLines("models/sir.R"))
+library(odin2)
+library(dust2)
+```
+
+## A simple example {#sec-odin-sir}
+
+Here is a small system of equations for an "SIR" (Susceptible-Infected-Recovered) model, implemented as a set of ordinary differential equations:
+
+```{r}
+sir <- odin({
+  deriv(S) <- -beta * S * I / N
+  deriv(I) <- beta * S * I / N - gamma * I
+  deriv(R) <- gamma * I
+
+  initial(S) <- N - I0
+  initial(I) <- I0
+  initial(R) <- 0
+
+  N <- parameter(1000)
+  I0 <- parameter(10)
+  beta <- parameter(0.2)
+  gamma <- parameter(0.1)
+})
 ```
 
 There are a few things to note here:
 
-* equations are defined out of order; we just will things into existance and trust `odin` to put them in the right order for us (much more on this later)
+* equations are defined out of order; we just will things into existence and trust `odin` to put them in the right order for us (much more on this later)
 * our system has "parameters"; these are things we'll be able to change easily in it after creation
-* every variable (as in, model variable --- those that make up the state) has a pair of equations'; an initial condition via `initial()` and an equation for the derivative with respect to time via `deriv()`
+* every variable (as in, model variable --- those that make up the state) has a pair of equations; an initial condition via `initial()` and an equation for the derivative with respect to time via `deriv()`
 
-## Compiling models
+::: {.callout-note}
+Above you will see us struggle a bit with terminology, particularly between "system" and "model".  There are going to be two places where "model" can be usefully used - a model could be the **generative model** (here an SIR model) or it could be the **statistical model**, more the focus on the second half of the book.  In order to make things slightly less ambiguous we will often refer to the generative model as a "system", and this is reflected in the calls to functions in dust.
+:::
 
-Suppose we have this model stored in a file `models/sir.R`, we can compile this model with `odin()`:
-
-```{r}
-sir <- odin2::odin("models/sir.R")
-```
-
-The result of this is a function which creates a `dust_system_generator` object, which we can use with functions from `dust2` to simulate from this model.
+The `odin()` function will compile (more strictly, [transpile](https://en.wikipedia.org/wiki/Source-to-source_compiler)) the odin code to C++ and then compile this into machine code and load it into your session.
 
 ```{r}
 sir()
 ```
+
+This `sir()` function creates a `dust_system_generator` object. As its name suggests, we can use this object to generate different versions of our system with different configurations. We pass this object to other functions from `dust2` to create, run and examine our simulations.
 
 ## Running systems using `dust2`
 

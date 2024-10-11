@@ -1,3 +1,10 @@
-# Inference
+# Inference {#sec-inference}
 
 Getting started with inference on odin models.
+
+We'll cover similar ground to the odin fitting vignette I think in this first chapter of this part.  The later chapters will cover:
+
+* observing the process
+* multiple parameter sets and parameter packing
+* restarts (once enabled)
+* multistage fits (once enabled)

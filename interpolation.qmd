@@ -1,0 +1,211 @@
+# Inputs that vary over time
+
+Odin models propagate variables over time, either in discrete time or continuous (see @sec-time).  However, sometimes it is useful to have these models respond to quantities that themselves vary over time.  This chapter explores a few different options, and highlights issues to be aware of when using them.
+
+```{r}
+library(odin2)
+library(dust2)
+```
+
+## Using `time` within equations
+
+The simplest way to make a model time-dependent is simply to refer to `time` as a variable.  For example, suppose we have a continuous-time logistic growth model (see @sec-time-logistic)
+
+```{r}
+logistic <- odin({
+  deriv(n) <- r * n * (1 - n / K)
+  initial(n) <- 1
+  K <- parameter()
+  r <- parameter()
+})
+```
+
+Here we create the system with `r` of 2 and `K` of 100, then run it from 0 to 6 time units:
+
+```{r}
+sys <- dust_system_create(logistic(), list(r = 2, K = 100))
+dust_system_set_state_initial(sys)
+t <- seq(0, 6, length.out = 101)
+y <- dust_system_simulate(sys, t)
+plot(t, y, type = "l", xlab = "Time", ylab = "n")
+```
+
+We might think that growth rate `r` is seasonal, e.g., it's higher in the spring and summer than in autumn and winter.  Time in this model is fairly arbitrary, so let's assume that each year is 1 time unit long and let growth rate `r` be a function of `t`.  Supposing a mean growth rate `r0` of 0.1, and assuming a `p` fraction of the growth rate being seasonal (so that if `p` is 1 growth is entirely seasonal and if `p` is 0 we recover our aseasonal model) we might model this as:
+
+```{r}
+r0 <- 2
+p <- 0.2
+curve(r0 * (1 - p) + r0 * p * (1 + sin(time * 2 * pi)), 0, 6,
+      n = 1001, xname = "time", xlab = "Time", ylab = "Growth rate")
+abline(h = r0, lty = 3)
+```
+
+We can use this directly within an odin model with no further modification:
+
+```{r}
+logistic_t <- odin({
+  deriv(n) <- r * n * (1 - n / K)
+  initial(n) <- 1
+  K <- parameter()
+  r0 <- parameter()
+  p <- parameter(0.2)
+  r <- r0 * (1 - p) + r0 * p * (1 + sin(time * 2 * 3.141))
+})
+```
+
+Here, we have written `r` as an expression involving `time`, which means that at each time step we calculate a new value.  Our parameters are now `r0` and `p` as described above.
+
+Here's the solution plotted against our original one - not terribly different; you can just make out the departure between the blue and the grey lines:
+
+```{r}
+sys <- dust_system_create(logistic_t(), list(r0 = 2, K = 100))
+dust_system_set_state_initial(sys)
+yt_1 <- dust_system_simulate(sys, t)
+plot(t, yt_1, type = "l", xlab = "Time", ylab = "n", col = "blue")
+lines(t, y, col = "grey")
+```
+
+Here's a more extreme set of parameters, where the seasonal effect is 80%, plotted against both solutions where the effect is more obvious:
+
+```{r}
+dust_system_update_pars(sys, list(p = 0.8))
+dust_system_set_time(sys, 0)
+dust_system_set_state_initial(sys)
+yt_2 <- dust_system_simulate(sys, t)
+plot(t, yt_1, type = "l", xlab = "Time", ylab = "n", col = "blue")
+lines(t, y, col = "grey")
+lines(t, yt_2, col = "red")
+```
+
+## Nondifferentiable functions
+
+::: {.callout-note}
+This section may not be very interesting on the first reading, however this is a situation that comes up fairly often and has some subtleties to consider in continuous time systems especially.
+:::
+
+So far, so good.  One trick to watch out for is where you want to use a non-differentiable function of time, or one with abrupt changes in magnitude.  For example, suppose we have a model where there's a period where some effect happens (e.g., a period where vaccination or infection is possible).  We might model this as a [square wave](https://en.wikipedia.org/wiki/Square_wave):
+
+```{r}
+#| echo: false
+plot(c(0, 4, 5, 10), c(0, 1, 0, 0), type = "s", xlab = "Time", ylab = "Signal")
+```
+
+We might define this within odin code as something like:
+
+```r
+signal <- if (time > 4 && time < 5) 1 else 0
+```
+
+or we could use a piecewise-constant interpolation function (see below).  If we use this within a discrete time model this will behave fine.  However, if we use this within a differential equation model then we need to consider how the ODE solver works.
+
+An ode solver works by looking at the slope with respect to time and working out how big a step it can take based on how this slope itself changes as a function of time.  Where functions are very smooth (often where they are very *flat*) an ODE solver can take quite large steps, and it is possible that they can jump right over a spike like this.  So if this spike is doing something like introducing infections into your model it's possible that no-one becomes infected because we never evaluate your right-hand-side function within this window.
+
+If you *do* land in the window, then the solver will have a difficult job as it tries to work out where this discontinuity started from.  Typically, it will reject steps until it "finds" the starting time (here, 4).
+
+What we need to do is pass in a vector of **critical times** representing times that the solver must stop at.
+
+::: {.callout-important}
+Unfortunately, critical times are not yet implemented in dust2 (`mrc-5847`), so this section stops here.
+:::
+
+# Using interpolation functions
+
+Sometimes, you will want the time-varying functions of your model to be driven by data.  So rather than having the model driven by seasonal change use some approximation of dynamics as we did with a `sin` wave above, you might want to use actual temperature or rainfall data.  To do this, you can use odin's "interpolation" functions, which take some series of time points and data and create a continuous function with respect to time.  There are several different modes of interpolation available, which you can use to model different sorts of processes.
+
+## A base model
+
+Let's consider changes to a simple SIS (Susceptible-Infected-Susceptible) model.  The basic model is a variation on our familiar SIR model that will allow the infection to become endemic, which will suit the demonstration here.  We'll work at first in continuous time, and then consider discrete time later.
+
+```{r}
+sis <- odin({
+  deriv(S) <- -beta * I * S / N + gamma * I
+  deriv(I) <-  beta * I * S / N - gamma * I
+  initial(S) <- N - I0
+  initial(I) <- I0
+  I0 <- parameter(10)
+  N <- parameter(1000)
+  beta <- 0.2
+  gamma <- 0.1
+})
+```
+
+Here's the system plotted over time:
+
+```{r}
+sys <- dust_system_create(sis(), list())
+dust_system_set_state_initial(sys)
+t <- seq(0, 200, length.out = 501)
+y <- dust_system_simulate(sys, t)
+y <- dust_unpack_state(sys, y)
+plot(t, y$I, type = "l", xlab = "Time", ylab = "Number of infected individuals")
+```
+
+## Step-wise changes
+
+Suppose we want to model something that is on or off; perhaps `beta` changes in periods where schools are open or closed for holidays and the dates that this happen vary year-by-year, and we expect that beta is 60% lower when schools are closed due to fewer contacts among individuals.  We might describe this in data as:
+
+```{r}
+schools_time <- c(0, 50, 60, 120, 130, 170, 180)
+schools_open <- c(1,  0,  1,   0,   1,   0,   1)
+schools_modifier <- 0.6
+```
+
+And, ignoring odin for a minute, we might demonstrate the effect by writing:
+
+```{r}
+beta0 <- 0.2
+beta <- approx(
+  schools_time,
+  ((1 - schools_open) * (1 - schools_modifier) + schools_open) * beta0,
+  xout = t,
+  method = "constant",
+  rule = 2)
+plot(beta, xlab = "Time", ylab = "beta", type = "l", ylim = c(0, 0.25))
+```
+
+We can take the same approach in odin, using its constant interpolation method:
+
+```{r}
+sis <- odin({
+  deriv(S) <- -beta * I * S / N + gamma * I
+  deriv(I) <-  beta * I * S / N - gamma * I
+  initial(S) <- N - I0
+  initial(I) <- I0
+  I0 <- parameter(10)
+  N <- parameter(1000)
+  beta0 <- parameter(0.2)
+  schools <- interpolate(schools_time, schools_open, "constant")
+  schools_time <- parameter(constant = TRUE)
+  schools_open <- parameter(constant = TRUE)
+  dim(schools_time) <- parameter(rank = 1)
+  dim(schools_open) <- parameter(rank = 1)
+  schools_modifier <- parameter(0.6)
+  beta <- ((1 - schools) * (1 - schools_modifier) + schools) * beta0
+  gamma <- 0.1
+})
+```
+
+When we create the system, we must pass in values for the components of `school`; there are no defaults for vector parameters.
+
+```{r}
+pars <- list(schools_time = schools_time, schools_open = schools_open)
+sys <- dust_system_create(sis(), pars)
+```
+
+Run the system over the times as above, and plot the number of infected individuals over time, with the school closures in grey shading:
+
+```{r}
+dust_system_set_state_initial(sys)
+t <- seq(0, 200, length.out = 501)
+y <- dust_system_simulate(sys, t)
+y <- dust_unpack_state(sys, y)
+plot(t, y$I, type = "l", xlab = "Time", ylab = "Number of infected individuals")
+rect(schools_time[c(2, 4, 6)], par("usr")[3],
+     schools_time[c(3, 5, 7)], par("usr")[4], col = "#00000033", border = NA)
+```
+
+## Additional topics not yet covered
+
+* spline interpolation
+* order of events in interpolation with discrete time models
+* interpolation of arrays (especially for data inputs in piecewise constant interpolation)

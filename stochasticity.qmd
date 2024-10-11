@@ -1,3 +1,100 @@
-# Stochasticity
+# Stochasticity {#sec-stochasticity}
 
 [Everybody get random](https://www.youtube.com/watch?v=8MvMRdX2k5g)
+
+One of the key motivations for discrete time models is that they allow a natural mechanism for using stochasticity.  By including stochasticity in our models we can better capture things like demographic effects where random fluctuations when population sizes are small have profound consequences for the longer term dynamics.  In a deterministic system, things always happen the same way when you run them multiple times, but in a stochastic system -- especially nonlinear ones -- small changes in how the system arranges itself in its early steps can result in large changes in the dynamics later on, and this can help describe observed dynamics better.
+
+::: {.callout-note}
+If you have used odin version 1, you will see that the interface for stochastic models has changed, and we no longer use functions named after R's random functions.  For example we now use `Normal()` rather than `rnorm` to refer to the normal distribution.  See the [odin2 migration vignette](https://mrc-ide.github.io/odin2/articles/migrating.html) for more details.
+:::
+
+```{r}
+#| include: false
+set.seed(42)
+```
+
+```{r}
+library(odin2)
+library(dust2)
+```
+
+## A simple stochastic model {#sec-stochastic-sir}
+
+Here's a simple SIR model, based on the one in @sec-odin-sir, which is stochastic:
+
+```{r}
+sir <- odin({
+  update(S) <- S - n_SI
+  update(I) <- I + n_SI - n_IR
+  update(R) <- R + n_IR
+
+  p_SI <- 1 - exp(-beta * I / N * dt)
+  p_IR <- 1 - exp(-gamma * dt)
+  n_SI <- Binomial(S, p_SI)
+  n_IR <- Binomial(I, p_IR)
+
+  initial(S) <- N - I0
+  initial(I) <- I0
+  initial(R) <- 0
+
+  N <- parameter(1000)
+  I0 <- parameter(10)
+  beta <- parameter(0.2)
+  gamma <- parameter(0.1)
+})
+```
+
+This is a discrete-time model (using `update()` and not `deriv()`) as stochastic models must run in discrete time.  We use `dt` to scale the rates, and adjusting `dt` will change the way that stochasticity affects the dynamics of the system.
+
+The movement from S to I and from I to R are now drawn from a [binomial distribution](https://en.wikipedia.org/wiki/Binomial_distribution) with probabilities that are computed from the rates (`beta` and `gamma`) multiplied by the change in time (`dt`).
+
+We can run this model just like before:
+
+```{r}
+sys <- dust_system_create(sir(), list())
+dust_system_set_state_initial(sys)
+t <- seq(0, 100)
+y <- dust_system_simulate(sys, t)
+y <- dust_unpack_state(sys, y)
+```
+
+Here is the number of infected individuals over time:
+
+```{r}
+plot(t, y$I, type = "l", xlab = "Time", ylab = "Infected population")
+```
+
+As in @sec-odin-sir, we see an epidemic start, increase and then decay.  Unlike the deterministic version though, the trajectory is not smooth, and it will be different each time we run it.
+
+You can pass an argument `n_particles` when creating a system (the default is 1) to simulate multiple independent realisations at once:
+
+```{r}
+sys <- dust_system_create(sir(), list(), n_particles = 50)
+dust_system_set_state_initial(sys)
+y <- dust_system_simulate(sys, t)
+y <- dust_unpack_state(sys, y)
+matplot(t, t(y$I), type = "l", lty = 1, col = "#00000044",
+        xlab = "Time", ylab = "Infected population")
+```
+
+Here, we simulate 50 particles at once, all from the same point (10 individuals infected at time 0) and we see the similarities and differences in the trajectories: all follow *approximately* the same shape, and all rise and fall at *approximately* the same rate, but there is quite a bit of difference in the individual trajectories and the timings of when the epidemic peaks.
+
+The stochastic effects will be stronger around the critical parameter values where the behaviour of the model diverges, or with smaller initial population sizes:
+
+```{r}
+sys <- dust_system_create(sir(), list(I0 = 5, gamma = 0.15), n_particles = 50)
+dust_system_set_state_initial(sys)
+y <- dust_system_simulate(sys, t)
+y <- dust_unpack_state(sys, y)
+matplot(t, t(y$I), type = "l", lty = 1, col = "#00000044",
+        xlab = "Time", ylab = "Infected population")
+```
+
+Here, we see some epidemics fail to take off, and a huge variation in where the peak is, with some trajectories only starting to take off at time 100 where in the previous example all were in decline.
+
+## More sections to add:
+
+* Supported random number functions
+* Seeding
+* Something on threads and parallelism
+* Stochastic quantities vary over time

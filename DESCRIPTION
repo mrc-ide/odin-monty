@@ -10,14 +10,19 @@ Imports:
     cpp11,
     decor,
     dust2,
+    fs,
     knitr,
     monty,
     odin2,
     pkgbuild,
     pkgload,
-    rmarkdown
+    quarto,
+    rmarkdown,
+    sessioninfo,
+    usethis
 Remotes:
     mrc-ide/dust2,
     mrc-ide/monty,
     mrc-ide/odin2
 Encoding: UTF-8
+Language: en-GB
