@@ -1,6 +1,9 @@
 # On the nature of time {#sec-time}
 
-What is time, really?
+```{r}
+#| include: false
+source("common.R")
+```
 
 There are two main sorts of treatment of time within odin models:
 
@@ -34,17 +37,20 @@ logistic_ode <- odin({
   x0 <- parameter(0.01)
   r <- parameter(0.1)
 }, debug = TRUE)
+logistic_ode
 ```
 
+As in @sec-odin-sir, we can run this through time from its initial conditions:
+
 ```{r}
-sys <- dust_system_create(logistic_ode(), list(), n_particles = 1)
+sys <- dust_system_create(logistic_ode, list())
 dust_system_set_state_initial(sys)
 t <- seq(0, 100, by = 1)
 y <- dust_system_simulate(sys, t)
 plot(t, y[1, ], type = "l", xlab = "Time", ylab = "Population")
 ```
 
-Now, we write out the same system in discrete time:
+Now, we write out a closely related system which uses discrete time; the "[logistic map](https://en.wikipedia.org/wiki/Logistic_map)"
 
 ```{r}
 logistic_map <- odin({
@@ -55,8 +61,10 @@ logistic_map <- odin({
 }, debug = TRUE)
 ```
 
+and run it:
+
 ```{r}
-sys2 <- dust_system_create(logistic_map(), list(), n_particles = 1)
+sys2 <- dust_system_create(logistic_map, list())
 dust_system_set_state_initial(sys2)
 y2 <- dust_system_simulate(sys2, t)
 plot(t, y[1, ], type = "l", xlab = "Time", ylab = "Population")
@@ -83,6 +91,8 @@ lines(t, run(1.5, sys2, t), col = "red")
 lines(t, run(1.8, sys2, t), col = "red")
 lines(t, run(2, sys2, t), col = "red")
 ```
+
+The equilibrium level of the discrete time system is not 0 or 1 (as in the continuous time version) but `(r - 1) / r`.
 
 For larger values of `r` we start getting oscillations around the maximum, either decaying (blue lines) or stable (green line):
 

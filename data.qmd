@@ -2,17 +2,14 @@
 
 ```{r}
 #| include: false
-source("utils.R")
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>"
-)
+source("common.R")
 ```
 
 Before we start on inference, we need to start thinking about how our models fit to data, and how we can get data into the models.  This gets very close to the interface that we need to work with [monty](https://mrc-ide.github.io/monty), which is the focus of the next section of the book.
 
 ```{r}
 #| include: false
+source("common.R")
 set.seed(42)
 ```
 
@@ -67,7 +64,7 @@ When running this model we'll see incidence produced:
 
 ```{r}
 pars <- list(beta = 1, gamma = 0.6)
-sys <- dust_system_create(sir(), pars, dt = 0.25)
+sys <- dust_system_create(sir, pars, dt = 0.25)
 dust_system_set_state_initial(sys)
 t <- seq(0, 20, by = 0.25)
 y <- dust_system_simulate(sys, t)
@@ -78,7 +75,7 @@ plot(t, y$incidence, type = "s", xlab = "Time", ylab = "Incidence")
 Our step is a quarter of a day, so we see four levels of incidence per day, with the last being the daily peak.  Let's run again with a timestep of 1 day, we see:
 
 ```{r}
-sys <- dust_system_create(sir(), pars, dt = 0.25)
+sys <- dust_system_create(sir, pars, dt = 0.25)
 dust_system_set_state_initial(sys)
 t <- seq(0, 20)
 y <- dust_system_simulate(sys, t)
@@ -98,7 +95,7 @@ tail(d)
 
 We have a column for time `time` and one for observed cases `cases` spanning the time range 0 to 20.
 
-## Comparison to data
+## Comparison to data {#sec-simple-sir-data}
 
 The next step is to tell our model about this data:
 
@@ -135,10 +132,16 @@ First, `cases <- data()` says that `cases` is a special **data** variable.  It w
 
 Second, `cases ~ Poisson(incidence)` describes the per-data-point [likelihood calculation](https://en.wikipedia.org/wiki/Likelihood_function); the syntax may be familiar to you if you have read [Richard McElreath's *Statistical Rethinking*](https://xcelab.net/rm/) or used any number of Bayesian statistical frameworks.
 
+The generator will advertise that this system can be compared to data:
+
+```{r}
+sir
+```
+
 Once we have our new model, we can see how the data comparison works.
 
 ```{r}
-sys <- dust_system_create(sir(), list(), n_particles = 10)
+sys <- dust_system_create(sir, list(), n_particles = 10)
 dust_system_set_state_initial(sys)
 dust_system_run_to_time(sys, d$time[[1]])
 dust_system_compare_data(sys, d[1, ])
@@ -178,14 +181,20 @@ As you can see, these are the same; the expression
 cases ~ Poisson(incidence)
 ```
 
-has done the same sort of thing as we can do ourselves by asking "what is the (log) probability of observing `cases` cases if the underlying rate of incidence is `incidence`".
+has done the same sort of thing as we can do ourselves by asking "what is the (log) probability of observing `cases` cases if the underlying rate of incidence is `incidence`".  Note that this can be `-Inf` (a probability of 0) in the case where the modelled incidence is zero.
+
+```{r}
+dpois(10, 0, log = TRUE)
+```
+
+This is fine, so long as not all particles are impossible.
 
 ## The likelihood filter {#sec-data-filter}
 
 We include a simple bootstrap particle filter in `dust` for estimating the marginal likelihood in this case; the probability of the entire data series conditional on our model, marginalised (averaged) over all stochastic realisations.  Because our model is stochastic, this is an **estimate** of the likelihood but the estimate will get less noisy as the number of particles increases.
 
 ```{r}
-filter <- dust_filter_create(sir(), time_start = 0, data = d, n_particles = 200)
+filter <- dust_filter_create(sir, time_start = 0, data = d, n_particles = 200)
 ```
 
 Here, we've created a filter where the time series starts at 0, using our data set `d` and we've picked 200 particles to start with.  We run the filter with `dust_likelihood_run`, and this returns a likelihood:
@@ -211,7 +220,7 @@ var(ll)
 If we increase the number of particles, this variance will decrease, at the cost of taking longer to run:
 
 ```{r}
-filter2 <- dust_filter_create(sir(), time_start = 0, data = d,
+filter2 <- dust_filter_create(sir, time_start = 0, data = d,
                               n_particles = 2000)
 ll2 <- replicate(100, dust_likelihood_run(filter2, list()))
 mean(ll2)
@@ -220,37 +229,39 @@ var(ll2)
 
 The log-likelihoods from different numbers of particles are not directly comparable, though.
 
-You can extract trajectories from the filter after running it: this gives a *tree* showing the ancestry of the particles remaining in the sample.  To enable this, you must run with `save_history = TRUE`, as this incurs a runtime cost.
+You can extract trajectories from the filter after running it: this gives a *tree* showing the ancestry of the particles remaining in the sample.  To enable this, you must run with `save_trajectories = TRUE`, as this incurs a runtime cost.
 
 ```{r}
-ll <- dust_likelihood_run(filter, list(), save_history = TRUE)
-h <- dust_likelihood_last_history(filter)
+ll <- dust_likelihood_run(filter, list(), save_trajectories = TRUE)
+h <- dust_likelihood_last_trajectories(filter)
 ```
 
-The history will be an array with 3 dimensions representing (in turn) state, particle and time:
+The trajectories will be an array with 3 dimensions representing (in turn) state, particle and time:
 
 ```{r}
 dim(h)
 ```
 
-We can plot the history of our incidence here:
+We can plot the trajectories of our incidence here:
 
 ```{r}
 matplot(d$time, t(dust_unpack_state(filter, h)$incidence), type = "l",
-        lty = 1, col = "#00000044", xlab = "Time", ylab = "Incidence")
+        lty = 1, col = "#00000044", ylim = c(0, 75),
+        xlab = "Time", ylab = "Incidence")
 points(cases ~ time, d, pch = 19, col = "red")
 ```
 
-This model does not fit the data very well!  The points don't lie close to the modelled trajectories.  We also see everything before time ~10 reduced to a single particle's history, which will have the effect of increasing the variance.
+This model does not fit the data very well!  The points don't lie close to the modelled trajectories.  We also see everything before time ~10 reduced to a single particle's trajectories, which will have the effect of increasing the variance.
 
 If we found better parameters things would look much better.  We just so happen to know that if `beta` is 1 and `gamma` 0.6 then the model will fit better:
 
 ```{r}
 pars <- list(beta = 1, gamma = 0.6)
-ll <- dust_likelihood_run(filter, pars, save_history = TRUE)
-h <- dust_likelihood_last_history(filter)
+ll <- dust_likelihood_run(filter, pars, save_trajectories = TRUE)
+h <- dust_likelihood_last_trajectories(filter)
 matplot(d$time, t(dust_unpack_state(filter, h)$incidence), type = "l",
-        lty = 1, col = "#00000044", xlab = "Time", ylab = "Incidence")
+        lty = 1, col = "#00000044", ylim = c(0, 75),
+        xlab = "Time", ylab = "Incidence")
 points(cases ~ time, d, pch = 19, col = "red")
 ```
 

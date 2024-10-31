@@ -25,3 +25,5 @@ which will open the site in a browser.  Then edit the `.qmd` pages; changes will
 The site will build when pushed to GitHub, so failures will show on a PR.  It will push to `gh-pages` automatically when merged.
 
 Documentation for quarto is [here](https://quarto.org/docs/guide/) and for books specifically [here](https://quarto.org/docs/books/)
+
+We cache models in `_dust` so that it's not painful to edit things.  You should remove this directory after substantial changes to any of the packages (you may want to delete `_book` too so that quarto rebuilds everything as expected).

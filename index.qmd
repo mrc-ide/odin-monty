@@ -1,5 +1,32 @@
 # Preface {.unnumbered}
 
-This is a Quarto book.
+```{r}
+#| include: false
+source("common.R")
+```
 
-To learn more about Quarto books visit <https://quarto.org/docs/books>.
+This is a book about writing models in the [`odin`](https://mrc-ide.github.io/odin2) "domain specific language" (DSL) and fitting these models to data using [`monty`](https://mrc-ide.github.io/monty).  These tools can be used entirely separately; you can create a dynamical model (or "system") in `odin` and never fit it to data, or you can use `monty` to fit models that are written in plain R code.  We'll structure the book to cover the tools fairly separately at first, then describe their intersection.  Along the way, you'll also use [`dust`](https://mrc-ide.github.io/dust2), which powers `odin`, so we'll spend some time describing how to use that, and also how to write models directly in `dust` if you need more control than `odin` provides.
+
+## History
+
+Originally, we designed odin around describing and solving systems of differential equations, with a small amount of support for working with discrete-time stochastic systems.  Over time, and particularly during the COVID-19 response, we expanded the stochastic support and introduced the ability to fit these models using particle filters and other sequential Monte Carlo algorithms.  You may have used `odin.dust` and `mcstate` through this period.  As of 2024 we have rationalised our tools into a new set of packages which are currently called `odin2`, `dust2` and `monty2`
+
+## Installation
+
+You can install these packages in one go from our R-universe:
+
+```r
+install.packages(
+  c("monty", "dust2", "odin2"),
+  repos = c("https://mrc-ide.r-universe.dev", "https://cloud.r-project.org"))
+```
+
+You will also need a functioning C++ toolchain; you can test this by running
+
+```{r}
+pkgbuild::has_build_tools(debug = TRUE)
+```
+
+## About this book
+
+This book exists to supplement the package documentation, and we will try to link extensively to it.  It is designed as a fairly friendly walk-through of the tools, and to mirror courses that we run.

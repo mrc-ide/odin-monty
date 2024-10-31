@@ -1,10 +1,145 @@
 # Inference {#sec-inference}
 
-Getting started with inference on odin models.
+```{r}
+#| include: false
+source("common.R")
+set.seed(1)
+Sys.setenv(DUST_DEBUG = FALSE)
+```
 
-We'll cover similar ground to the odin fitting vignette I think in this first chapter of this part.  The later chapters will cover:
+Getting started with inference on odin models.  In this chapter, we will fit the simple SIR model from @sec-simple-sir-data; this combines all three packages together and tries to demonstrate some of the flexibility we are aiming for.
 
-* observing the process
-* multiple parameter sets and parameter packing
+```{r}
+library(odin2)
+library(dust2)
+library(monty)
+```
+
+## Recap
+
+Our basic odin code describes an SIR system.  We compute daily incidence using `zero_every` in the initial conditions and compare this to case data using a Poison likelihood:
+
+```{r}
+sir <- odin({
+  update(S) <- S - n_SI
+  update(I) <- I + n_SI - n_IR
+  update(R) <- R + n_IR
+  update(incidence) <- incidence + n_SI
+
+  p_SI <- 1 - exp(-beta * I / N * dt)
+  p_IR <- 1 - exp(-gamma * dt)
+  n_SI <- Binomial(S, p_SI)
+  n_IR <- Binomial(I, p_IR)
+
+  initial(S) <- N - I0
+  initial(I) <- I0
+  initial(R) <- 0
+  initial(incidence, zero_every = 1) <- 0
+
+  N <- parameter(1000)
+  I0 <- parameter(10)
+  beta <- parameter(0.2)
+  gamma <- parameter(0.1)
+
+  cases <- data()
+  cases ~ Poisson(incidence)
+})
+sir
+```
+
+We are looking to fit this to a small (synthetic) data set [`data/incidence.csv`](data/incidence.csv).
+
+```{r}
+d <- read.csv("data/incidence.csv")
+head(d)
+```
+
+We have constructed a particle filter with this system and data, with which we can compute likelihoods:
+
+```{r}
+filter <- dust_filter_create(sir, time_start = 0, data = d, n_particles = 200)
+dust_likelihood_run(filter, list(beta = 0.3, gamma = 0.15, I0 = 50))
+```
+
+## Running an MCMC
+
+Our aim is to fit the parameters `beta`, `gamma` and `I0` using MCMC (because this is an MCMC using a particle filter we might call this pMCMC).
+
+The first challenge is that our filter takes a **named list** of inputs, but any MCMC we run will work in terms of a vector of parameter space.  In this case it seems trivial, we should be able to take a vector of numbers `c(0.3, 0.15, 50)`, stick some names on them and convert to a list with `as.list()`.  However, as seen in the more complex models (e.g., in @sec-arrays) this won't be generally possible.
+
+Our solution is to use `monty_packer` objects to smooth this transition:
+
+```{r}
+packer <- monty_packer(c("beta", "gamma", "I0"))
+packer
+```
+
+You can use a packer object to fix other inputs to your system.  For example, we might write:
+
+```{r}
+packer <- monty_packer(c("beta", "gamma", "I0"), fixed = list(N = 1000))
+```
+
+which fixes `N` to 1000.  This is an input to our system, but *not* an input to the statistical process.
+
+We can combine our `filter` and `packer` together to make a `monty_model` object:
+
+```{r}
+likelihood <- dust_likelihood_monty(filter, packer)
+likelihood
+```
+
+At this point, we can "forget" that our likelihood is an SIR model, and instead just not that it is a stochastic estimate of a likelihood.
+
+The other ingredient we need is a **prior**.  This we can construct with `monty_dsl` as before:
+
+```{r}
+prior <- monty_dsl({
+  beta ~ Exponential(mean = 0.3)
+  gamma ~ Exponential(mean = 0.1)
+  I0 ~ Uniform(1, 50)
+})
+```
+
+We use broad exponential priors on `beta` and `gamma` but with a higher mean for `beta` (reflecting our prior belief that an epidemic did happen) and a uniform prior for the initial number of infected individuals.
+
+Our posterior is the product of the likelihood and prior, or the sum of their logs:
+
+```{r}
+posterior <- likelihood + prior
+```
+
+Next, we define a sampler; we'll start with a random walk with a fairly arbitrary diagonal proposal matrix:
+
+```{r}
+vcv <- diag(3) * 0.0004
+sampler <- monty_sampler_random_walk(vcv)
+```
+
+We start this off, using explicit initial conditions
+
+```{r}
+#| cache: true
+samples <- monty_sample(posterior, sampler, 1000, initial = c(0.3, 0.1, 5))
+```
+
+Here is our chain over time, showing a rapid improvement in the posterior probability density followed by what might be reasonable mixing:
+
+```{r}
+plot(samples$density, type = "l",
+     xlab = "Sample", ylab = "Log posterior probability density")
+```
+
+## Next steps
+
+The next steps here:
+
+* continue that chain without the burn-in (needs a monty tweak)
+* add an observer so we can see what is going on
+* run multiple chains and get started with diagnostics
+
+In other chapters eventually
+
+* run multiple groups
 * restarts (once enabled)
 * multistage fits (once enabled)

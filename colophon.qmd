@@ -2,17 +2,13 @@
 
 ```{r}
 #| include: false
+source("common.R")
 pkgs <- c("odin2", "dust2", "monty",
           "pkgload", "pkgbuild", "cpp11", "cli", "rlang",
           "brio", "decor", "fs", "knitr", "rmarkdown", "usethis")
 for (p in pkgs) {
   loadNamespace(p)
 }
-source("utils.R")
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>"
-)
 ```
 
 Key versions:

@@ -1,12 +1,8 @@
-# Arrays
+# Arrays {#sec-arrays}
 
 ```{r}
 #| include: false
-source("utils.R")
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>"
-)
+source("common.R")
 ```
 
 ::: {.callout-warning}
