@@ -9,7 +9,6 @@ book:
   repo-actions: [edit, issue, source]
   chapters:
     - index.qmd
-    - intro.qmd
     - part: "Odin"
       chapters:
       - odin.qmd

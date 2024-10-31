@@ -2,11 +2,7 @@
 
 ```{r}
 #| include: false
-source("utils.R")
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>"
-)
+source("common.R")
 ```
 
 So far, we have compiled odin code as we have needed it, using the `odin()` function.  This works well for many uses, but has its limitations:

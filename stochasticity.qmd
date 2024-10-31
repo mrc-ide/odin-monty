@@ -1,5 +1,10 @@
 # Stochasticity {#sec-stochasticity}
 
+```{r}
+#| include: false
+source("common.R")
+```
+
 [Everybody get random](https://www.youtube.com/watch?v=8MvMRdX2k5g)
 
 One of the key motivations for discrete time models is that they allow a natural mechanism for using stochasticity.  By including stochasticity in our models we can better capture things like demographic effects where random fluctuations when population sizes are small have profound consequences for the longer term dynamics.  In a deterministic system, things always happen the same way when you run them multiple times, but in a stochastic system -- especially nonlinear ones -- small changes in how the system arranges itself in its early steps can result in large changes in the dynamics later on, and this can help describe observed dynamics better.
@@ -20,7 +25,7 @@ library(dust2)
 
 ## A simple stochastic model {#sec-stochastic-sir}
 
-Here's a simple SIR model, based on the one in @sec-odin-sir, which is stochastic:
+Here's a simple SIR model, based on the one in @sec-odin-sir, but which is stochastic:
 
 ```{r}
 sir <- odin({
@@ -46,12 +51,16 @@ sir <- odin({
 
 This is a discrete-time model (using `update()` and not `deriv()`) as stochastic models must run in discrete time.  We use `dt` to scale the rates, and adjusting `dt` will change the way that stochasticity affects the dynamics of the system.
 
-The movement from S to I and from I to R are now drawn from a [binomial distribution](https://en.wikipedia.org/wiki/Binomial_distribution) with probabilities that are computed from the rates (`beta` and `gamma`) multiplied by the change in time (`dt`).
+```{r}
+sir
+```
+
+The movement from S to I and from I to R are now drawn from a [binomial distribution](https://en.wikipedia.org/wiki/Binomial_distribution) with probabilities that are computed from the rates (`beta` and `gamma`) multiplied by the change in time (`dt`).  Some care is required to make sure that we subtract the same number of individuals from `S` as we add to `I` so we save this number as `n_SI`.
 
 We can run this model just like before:
 
 ```{r}
-sys <- dust_system_create(sir(), list())
+sys <- dust_system_create(sir, list())
 dust_system_set_state_initial(sys)
 t <- seq(0, 100)
 y <- dust_system_simulate(sys, t)
@@ -69,7 +78,7 @@ As in @sec-odin-sir, we see an epidemic start, increase and then decay.  Unlike 
 You can pass an argument `n_particles` when creating a system (the default is 1) to simulate multiple independent realisations at once:
 
 ```{r}
-sys <- dust_system_create(sir(), list(), n_particles = 50)
+sys <- dust_system_create(sir, list(), n_particles = 50)
 dust_system_set_state_initial(sys)
 y <- dust_system_simulate(sys, t)
 y <- dust_unpack_state(sys, y)
@@ -79,10 +88,14 @@ matplot(t, t(y$I), type = "l", lty = 1, col = "#00000044",
 
 Here, we simulate 50 particles at once, all from the same point (10 individuals infected at time 0) and we see the similarities and differences in the trajectories: all follow *approximately* the same shape, and all rise and fall at *approximately* the same rate, but there is quite a bit of difference in the individual trajectories and the timings of when the epidemic peaks.
 
+::: {.callout-note}
+The `t()` in plotting here moves time from the last dimension to the first, as is expected by `matplot`. We may write functions to help prepare output for plotting.
+:::
+
 The stochastic effects will be stronger around the critical parameter values where the behaviour of the model diverges, or with smaller initial population sizes:
 
 ```{r}
-sys <- dust_system_create(sir(), list(I0 = 5, gamma = 0.15), n_particles = 50)
+sys <- dust_system_create(sir, list(I0 = 5, gamma = 0.15), n_particles = 50)
 dust_system_set_state_initial(sys)
 y <- dust_system_simulate(sys, t)
 y <- dust_unpack_state(sys, y)
