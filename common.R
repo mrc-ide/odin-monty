@@ -2,6 +2,7 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
+set.seed(42)
 
 lang_output <- function(x, lang) {
   cat(c(sprintf("```%s", lang), x, "```"), sep = "\n")

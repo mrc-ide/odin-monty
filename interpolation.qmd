@@ -1,5 +1,10 @@
 # Inputs that vary over time
 
+```{r}
+#| include: false
+source("common.R")
+```
+
 Odin models propagate variables over time, either in discrete time or continuous (see @sec-time).  However, sometimes it is useful to have these models respond to quantities that themselves vary over time.  This chapter explores a few different options, and highlights issues to be aware of when using them.
 
 ```{r}
@@ -104,15 +109,85 @@ If you *do* land in the window, then the solver will have a difficult job as it 
 
 What we need to do is pass in a vector of **critical times** representing times that the solver must stop at.
 
-::: {.callout-important}
-Unfortunately, critical times are not yet implemented in dust2 (`mrc-5847`), so this section stops here.
-:::
+To make this more concrete, here's an ODE model which implements a square wave in an input (`r`) which has 1 between `r0` and `r1` and affects a variable `y`.  We scale this input so that `y` will increase by one total unit over time:
 
-# Using interpolation functions
+```{r}
+wave <- odin({
+  deriv(y) <- r / (r1 - r0)
+  initial(y) <- 0
+  r0 <- parameter(10)
+  r1 <- parameter(15)
+  r <- if (time > r0 && time < r1) 1 else 0
+})
+```
+
+We can run this and plot the output:
+
+```{r}
+sys <- dust_system_create(wave, list())
+t <- seq(0, 25)
+y <- drop(dust_system_simulate(sys, t))
+plot(y ~ t, type = "l", xlab = "Time", ylab = "Variable")
+```
+
+Here, from time 10 the variable increases, reaching a value of 1 at time 15.
+
+We can shrink the time that transition happens, and this will happen more quickly, but always approach 1:
+
+```{r}
+pars <- list(list(r1 = 11), list(r1 = 12), list(r1 = 13), list(r1 = 14))
+sys <- dust_system_create(wave, pars, n_groups = 4)
+t <- seq(0, 25)
+y <- drop(dust_system_simulate(sys, t))
+matplot(t, t(y), type = "l", lty = 1, col = "black",
+        xlab = "Time", ylab = "Variable")
+```
+
+With `dust_system_simulate()` the solver will stop at every time, so we'll never jump over the solution.  But if you were running this where you were just advancing the solution through time you might do so.  We get our expected value of (approximately) 1 time 25 whenere `r1` is 15:
+
+```{r}
+sys <- dust_system_create(wave, list(r1 = 15))
+dust_system_run_to_time(sys, 25)
+dust_system_state(sys)
+```
+
+but with an earlier `r1`, and therefore a shorter window, we jump over this region:
+
+```{r}
+sys <- dust_system_create(wave, list(r1 = 11))
+dust_system_run_to_time(sys, 25)
+dust_system_state(sys)
+```
+
+We can see what is going on here by saving out the steps that the solution takes:
+
+```{r}
+control <- dust_ode_control(debug_record_step_times = TRUE)
+sys <- dust_system_create(wave, list(r1 = 11), ode_control = control)
+dust_system_run_to_time(sys, 25)
+times <- dust_system_internals(sys)$step_times[[1]]
+plot(t, t > 10, type = "l", xlab = "Time", ylab = "Variable")
+points(times, rep(0, length(times)), pch = 19, col = "red")
+```
+
+Here, the solver has started off slowly until working out that our solution is really very smooth (it has a derivative of zero!) and then started taking very large steps.  One of these has landed just after our transition point has finished so it looks like it is simply not there.
+
+We can use the `ode_control` to set a vector of critical times, ensuring that the solver will stop at times 10 and 11:
+
+```{r}
+control <- dust_ode_control(critical_times = c(10, 11))
+sys <- dust_system_create(wave, list(r1 = 11), ode_control = control)
+dust_system_run_to_time(sys, 25)
+dust_system_state(sys)
+```
+
+With this approach we can ensure that even very small periods of discontinuity are found by the solver.
+
+## Using interpolation functions
 
 Sometimes, you will want the time-varying functions of your model to be driven by data.  So rather than having the model driven by seasonal change use some approximation of dynamics as we did with a `sin` wave above, you might want to use actual temperature or rainfall data.  To do this, you can use odin's "interpolation" functions, which take some series of time points and data and create a continuous function with respect to time.  There are several different modes of interpolation available, which you can use to model different sorts of processes.
 
-## A base model
+### A base model
 
 Let's consider changes to a simple SIS (Susceptible-Infected-Susceptible) model.  The basic model is a variation on our familiar SIR model that will allow the infection to become endemic, which will suit the demonstration here.  We'll work at first in continuous time, and then consider discrete time later.
 
@@ -140,7 +215,7 @@ y <- dust_unpack_state(sys, y)
 plot(t, y$I, type = "l", xlab = "Time", ylab = "Number of infected individuals")
 ```
 
-## Step-wise changes
+### Step-wise changes
 
 Suppose we want to model something that is on or off; perhaps `beta` changes in periods where schools are open or closed for holidays and the dates that this happen vary year-by-year, and we expect that beta is 60% lower when schools are closed due to fewer contacts among individuals.  We might describe this in data as:
 
@@ -204,8 +279,72 @@ rect(schools_time[c(2, 4, 6)], par("usr")[3],
      schools_time[c(3, 5, 7)], par("usr")[4], col = "#00000033", border = NA)
 ```
 
+Instead of piecewise constant functions, you can use piecewise linear functions or cubic spline interpolation.  These allow for smoother changes in values than the piecewise constant functions above but with different properties.
+
+Here we have piecewise constant (dotted) and cubic spline (solid) interpolation functions through 11 evenly spaced data points:
+
+```{r}
+#| echo: false
+t <- seq(0, 10)
+tt <- seq(0, 10, length.out = 301)
+y1 <- c(0.27, 0.37, 0.57, 0.91, 0.20, 0.90, 0.94, 0.66, 0.63, 0.06, 0.21)
+y2 <- c(1.00, 0.99, 0.99, 0.98, 0.98, 0.02, 0.02, 0.02, 0.01, 0.01, 0.00)
+plot(t, y1, pch = 19, col = "blue",
+     xlab = "Time", ylab = "Variable", ylim = c(-0.1, 1.1))
+points(t, y2, pch = 19, col = "red")
+abline(h = 0:1, lty = 3, col = "grey")
+lines(approx(t, y1, xout = tt, method = "linear"), col = "blue", lty = 2)
+lines(spline(t, y1, xout = tt), col = "blue", lty = 1)
+lines(approx(t, y2, xout = tt, method = "linear"), col = "red", lty = 2)
+lines(spline(t, y2, xout = tt), col = "red", lty = 1)
+```
+
+The blue points might represent the strength of some signal over time, and we might prefer the smoothing effect of the spline to the rapid changes in the piecewise line function (e.g., around time 4).  Notice that it does show some surprising oscillations (e.g., between time 9-10).
+
+The red points might represent some variable moving through a phase transition, slowly decreasing then rapidly decaying to zero.  The spline has "smoothed" this out by making it very wiggly, and pushing it outside of the range [0, 1].
+
+Here's an example with a time varying rate of contact between susceptible individuals and infected individuals (or a varying rate of infection given contact), using spline interpolation:
+
+```{r}
+sis <- odin({
+  deriv(S) <- -beta * I * S / N + gamma * I
+  deriv(I) <-  beta * I * S / N - gamma * I
+  initial(S) <- N - I0
+  initial(I) <- I0
+  I0 <- parameter(10)
+  N <- parameter(1000)
+  beta <- interpolate(beta_time, beta_value, "spline")
+  beta_time <- parameter(constant = TRUE)
+  beta_value <- parameter(constant = TRUE)
+  dim(beta_time) <- parameter(rank = 1)
+  dim(beta_value) <- parameter(rank = 1)
+  gamma <- 0.1
+})
+```
+
+Suppose we have some `beta` values that vary over time:
+
+```{r}
+beta_time <- seq(0, 200, by = 20)
+beta_value <- runif(length(beta_time), 0.1, 0.2)
+plot(spline(beta_time, beta_value, n = 201), type = "l",
+     xlab = "Time", ylab = "Beta")
+points(beta_time, beta_value, pch = 19)
+```
+
+We initialise this system with our values for `beta_time` and `beta_value`, and when we run the system we will see the number of infected individuals rise and fall with `beta`:
+
+```{r}
+pars <- list(beta_time = beta_time, beta_value = beta_value)
+sys <- dust_system_create(sis, pars)
+dust_system_set_state_initial(sys)
+t <- seq(0, 200, length.out = 501)
+y <- dust_system_simulate(sys, t)
+y <- dust_unpack_state(sys, y)
+plot(t, y$I, type = "l", xlab = "Time", ylab = "Number of infected individuals")
+```
+
 ## Additional topics not yet covered
 
-* spline interpolation
 * order of events in interpolation with discrete time models
 * interpolation of arrays (especially for data inputs in piecewise constant interpolation)
