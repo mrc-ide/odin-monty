@@ -1,4 +1,40 @@
-# Monty
+# Getting started with monty
+
+* the philosophie
+* three options
+
+`monty` is a R package design to work with statistical models in a *modular* way. It uses Monte Carlo methods to facilitate drawing from these statistical models and is currently built to create complex models through four different routes:
+
+* simple R code
+* a dedicated DSL
+* odin models
+* composing two monty models.
+
+The simple example in this chapter is built from a simple R function and is the most basic way of defining a monty model. We will cover more complex examples in the model section. Section ** deals with the monty DSL, while section ** explains how to obtain new monty models through composition of two monty models. monty models obtains from odin models are dealt in the odin & monty chapter.
+
+## A simple example
+
+```{r}
+library(monty)
+```
+
+We can define a simple Gaussian mixture model of two sub-population using the `monty_model_function()` from the package
+
+For this we start by defining 
+
+```{r}
+fn <- function(l, p, m1, m2) {
+  p*dnorm(l,mean = m1) + (1-p)*dnorm(l, mean = m2)
+}
+```
+
+```{r}
+l_distribution <- monty_model_function(fn, fixed = list(p = 0.75, m1 = 5, m2=7))
+```
+
+## Sampling from our example distribution
+
+## Further work
 
 Before showing how to fit odin models to data, we'll focus for a bit on monty itself.  If you are anxious to get on and fit the model from @sec-data-filter, you might skip ahead to @sec-inference, where we resume this.
 
