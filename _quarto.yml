@@ -21,6 +21,10 @@ book:
     - part: "Monty"
       chapters:
       - monty.qmd
+      - model.qmd
+      - montyDSL.qmd
+      - composability.qmd
+      - samplers.qmd
     - part: "Odin & Monty"
       chapters:
       - inference.qmd

@@ -1,0 +1,7 @@
+# About (monty) models
+
+We often refers to using models.
+
+## SimCity vs Statistical models
+
+## Normalised vs unormalised densities
