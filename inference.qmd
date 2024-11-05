@@ -121,7 +121,7 @@ We start this off, using explicit initial conditions
 ```{r}
 #| cache: true
 samples <- monty_sample(posterior, sampler, 1000, initial = c(0.3, 0.1, 5),
-                        n_chains = 3, restartable = TRUE)
+                        n_chains = 3)
 ```
 
 ::: {.callout-note}
@@ -164,9 +164,46 @@ This section needs expanding to help us see how much work this set of samples ne
 
 A complication of running these dynamical models is that we are interested in more than just the sampled parameters; we're interested in how the system evolved over time given these parameters.  However, because the model is stochastic we can't simply simulate over time given the parameters because that may not be representative of the inferred time-series when the particle filter ran (see @sec-data). We need some way of sampling trajectories while the sampler runs, and storing these alongside the samples, which will give us a paired set of parameters and their histories.
 
+The simplest way of doing this is to specify `save_trajectories = TRUE` when constructing the monty model from the filter:
+
 ```{r}
-likelihood <- dust_likelihood_monty(filter, packer)
+likelihood <- dust_likelihood_monty(filter, packer, save_trajectories = TRUE)
 ```
+
+This adds a monty observer to the model:
+
+```{r}
+likelihood
+```
+
+We then proceed as before:
+
+```{r}
+posterior <- likelihood + prior
+samples <- monty_sample(posterior, sampler, 1000, initial = c(0.3, 0.1, 5),
+                        n_chains = 3)
+samples
+```
+
+As before we have a 3-dimensional array of parameters (3 parameters x 1000 steps x 3 chains)
+
+```{r}
+dim(samples$pars)
+```
+
+But we also have a new set of "observations" in the `$observations` element.  The `trajectories` element of this contains our trajectories:
+
+```{r}
+dim(samples$observations$trajectories)
+```
+
+The trajectories are a 4-dimensional array (4 states x 20 time points x 1000 samples x 3 chains).  Trajectories will get very large very quickly; this small example generates around 2MB of data so we only need do increase by a factor of 1000 to start running into the limits of RAM on small machines, and this is surprisingly easy to do in practice.
+
+```{r}
+object.size(samples$observations$trajectories)
+```
+
+The trajectories that we return here are in the same order as the parameters (the 1000 x 3 dimensions at the end of each object), so you have a pairing of parameters with trajectories.
 
 ## Next steps
 
@@ -181,6 +218,7 @@ In other chapters eventually
 * deterministic fits
 * run multiple groups
 * working with larger models
+* thinning while running
 * onward simulation
 * restarts (once enabled)
 * multistage fits (once enabled)

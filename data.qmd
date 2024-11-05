@@ -189,7 +189,7 @@ dpois(10, 0, log = TRUE)
 
 This is fine, so long as not all particles are impossible.
 
-## The likelihood filter {#sec-data-filter}
+## The particle filter {#sec-data-filter}
 
 We include a simple bootstrap particle filter in `dust` for estimating the marginal likelihood in this case; the probability of the entire data series conditional on our model, marginalised (averaged) over all stochastic realisations.  Because our model is stochastic, this is an **estimate** of the likelihood but the estimate will get less noisy as the number of particles increases.
 
