@@ -7,6 +7,7 @@ Authors@R: c(person("Rich", "FitzJohn", role = c("aut", "cre"),
                     role = "cph"))
 Imports:
     brio,
+    coda,
     cpp11,
     decor,
     dust2,
@@ -16,6 +17,7 @@ Imports:
     odin2,
     pkgbuild,
     pkgload,
+    posterior,
     quarto,
     rmarkdown,
     sessioninfo,

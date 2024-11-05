@@ -120,14 +120,52 @@ We start this off, using explicit initial conditions
 
 ```{r}
 #| cache: true
-samples <- monty_sample(posterior, sampler, 1000, initial = c(0.3, 0.1, 5))
+samples <- monty_sample(posterior, sampler, 1000, initial = c(0.3, 0.1, 5),
+                        n_chains = 3, restartable = TRUE)
 ```
 
-Here is our chain over time, showing a rapid improvement in the posterior probability density followed by what might be reasonable mixing:
+::: {.callout-note}
+We have used explicit initial conditions here, which might not be what you want in all situations.  Better might be to sample from the prior, but we have not yet implemented support to try a few points from the sample before getting a point with finite density, which is really needed here.
+:::
+
+Here the log posterior density of our three chains over time, showing a rapid improvement in the posterior probability density followed by what might be reasonable (but not great) mixing:
 
 ```{r}
-plot(samples$density, type = "l",
-     xlab = "Sample", ylab = "Log posterior probability density")
+matplot(samples$density, type = "l", lty = 1,
+        xlab = "Sample", ylab = "Log posterior probability density")
+```
+
+### Working with samples
+
+The samples that we get back contain sampled densities and parameters; they are described more in [`vignette("samples", package = "monty")`](https://mrc-ide.github.io/monty/articles/samples.html)
+
+```{r}
+samples
+```
+
+You can convert them into other formats, for example the `posterior` package:
+
+```{r}
+samples_df <- posterior::as_draws_df(samples)
+samples_df
+```
+
+We don't implement any diagnostics in `monty` itself, and suggest that you use the diagnostics available in these other packages, for example:
+
+```{r}
+posterior::summarise_draws(samples_df)
+```
+
+::: {.callout-warning}
+This section needs expanding to help us see how much work this set of samples needs before moving into the next section, though some of that will better go in the previous monty section most likely?
+:::
+
+## Extracting trajectories while we sample
+
+A complication of running these dynamical models is that we are interested in more than just the sampled parameters; we're interested in how the system evolved over time given these parameters.  However, because the model is stochastic we can't simply simulate over time given the parameters because that may not be representative of the inferred time-series when the particle filter ran (see @sec-data). We need some way of sampling trajectories while the sampler runs, and storing these alongside the samples, which will give us a paired set of parameters and their histories.
+
+```{r}
+likelihood <- dust_likelihood_monty(filter, packer)
 ```
 
 ## Next steps
@@ -140,6 +178,9 @@ The next steps here:
 
 In other chapters eventually
 
+* deterministic fits
 * run multiple groups
+* working with larger models
+* onward simulation
 * restarts (once enabled)
 * multistage fits (once enabled)
