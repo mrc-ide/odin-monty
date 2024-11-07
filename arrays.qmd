@@ -9,12 +9,17 @@ source("common.R")
 
 The aim of this section is to show you how you use odin's array syntax, via some motivating examples. The examples here are necessarily a bit longer than in the previous sections because we will generally need a few more moving parts.
 
+```{r}
+library(odin2)
+library(dust2)
+```
+
 ## Example: an age structured SIR model {#sec-stochastic-age}
 
 Let's take the simple stochastic SIR model from @sec-stochastic-sir and add age structure to it, with heterogeneous mixing between age groups
 
-```r
-odin2::odin({
+```{r}
+sir_age <- odin({
   # Equations for transitions between compartments by age group
   update(S[]) <- S[i] - n_SI[i]
   update(I[]) <- I[i] + n_SI[i] - n_IR[i]
@@ -67,13 +72,13 @@ odin2::odin({
 
 In the odin code above
 
-```
+```r
 update(S[]) <- S[i] - n_SI[i]
 ```
 
 becomes (approximately)
 
-```
+```r
 for (int i = 0; i < S_length; ++i) {
   update_S[i] = S[i] + n_SI[i];
 }
@@ -85,8 +90,8 @@ so there is an implicit indexing by `i` on the LHS in that equation of the odin 
 ## Another example: an age-structured SIR model with vaccination
 Let's take the above model and additionally add some vaccination to it.
 
-```
-odin2::odin({
+```{r}
+sir_age_vax <- odin({
   # Equations for transitions between compartments by age group
   update(S[, ]) <- new_S[i, j]
   update(I[, ]) <- I[i, j] + n_SI[i, j] - n_IR[i, j]
@@ -111,7 +116,7 @@ odin2::odin({
   # Assume you cannot move vaccine class and get infected in same step
   n_S_vax[, ] <- Binomial(S[i, j] - n_SI[i, j], p_vax[i, j])
   new_S[, 1] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, N_vax]
-  new_S[, 2:N_vax] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, j - 1])
+  new_S[, 2:N_vax] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, j - 1]
   
   initial(S[, ]) <- S0[i, j]
   initial(I[, ]) <- I0[i, j]
@@ -147,19 +152,19 @@ odin2::odin({
 })
 ```
 
-We see we can use multiple lines to deal with boundary conditions
-```
+We see we can use multiple lines to deal with boundary conditions:
+```r
 new_S[, 1] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, N_vax]
 new_S[, 2:N_vax] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, j - 1]
 ```
 which we could also write as
-```
+```r
 new_S[, ] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j]
 new_S[, 1] <- new_S[i, j] + n_S_vax[i, N_vax]
 new_S[, 2:N_vax] <- new_S[i, j] + n_S_vax[i, j - 1]
 ```
 or another alternative way of writing this would be to use `if else`
-```
+```r
 new_S[, ] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] +
     (if (j == 1) n_S_vax[i, N_vax] else n_S_vax[i, j - 1])
 ```
@@ -177,20 +182,20 @@ Be careful with array equations! It's possible that in an array equation you end
 You must declare the dimensions of all arrays within your `odin` code using a `dim` equation.
 
 Dimensions can be hardcoded:
-```
+```r
 dim(y) <- 10
 ```
 or dimensions themselves can be parameters:
-```
+```r
 dim(x) <- c(nr, 5)
 nr <- parameter()
 ```
 You may have array parameters, these can have dimensions explicitly declared
-```
+```r
 dim(m) <- c(N_age, N_age)
 ```
 or they can also have their dimensions detected when the parameters are passed into the system - this still needs a `dim` equation where you must explicitly state the rank:
-```
+```r
 dim(m) <- parameter(rank = 2)
 ```
 
@@ -198,13 +203,13 @@ dim(m) <- parameter(rank = 2)
 
 Stochastic functions are called for each element in an array they are assigned to, at each time.  So here:
 
-```
+```r
 x[] <- Normal(0, 1)
 ```
 
 `x` will be filled with each element having a different draw from a standard normal.  In contrast, in:
 
-```
+```r
 a <- Normal(0, 1)
 x[] <- a
 ```
@@ -228,6 +233,6 @@ m1_tot <- sum(m[, 2])
 
 This partial sum approach is frequently used within implicit loops:
 
-```
+```r
 m_col_totals[] <- sum(m[, i])
 ```
