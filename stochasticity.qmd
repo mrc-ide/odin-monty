@@ -105,9 +105,32 @@ matplot(t, t(y$I), type = "l", lty = 1, col = "#00000044",
 
 Here, we see some epidemics fail to take off, and a huge variation in where the peak is, with some trajectories only starting to take off at time 100 where in the previous example all were in decline.
 
+## Supported random number functions
+
+We have already seen use of Binomial draws, and we support other distributions. Support for the distributions includes both random draws and density calculations (more on that later). The support for these functions comes from `monty` and all the distributions are available for use in the both the `odin` DSL and the `monty` DSL (more on that also later).
+
+Some distributions have several parameterisations; these are distinguished by the arguments to the functions. These distributions have a default parameterisation. For example, the Gamma distribution defaults to a `shape` and `rate` parameterisation so:
+
+```r
+a <- Gamma(2, 0.1)
+a <- Gamma(shape = 2, rate = 0.1)
+```
+
+draw from a Gamma distribution with a shape of 2 and a **rate** of 0.1, while
+
+```r
+a <- Gamma(2, scale = 10)
+a <- Gamma(shape = 2, scale = 10)
+```
+
+draw from a Gamma distribution with a shape of 2 and a **scale** of 10. You may find it is good practice to specify your arguments with such distributions whether using the default parameterisation or not.
+
+Other supported distributions include the Normal, Uniform, Exponential, Beta and Poisson distributions. A full list of supported distributions and their parameterisations can be found [here](https://mrc-ide.github.io/odin2/articles/functions.html).
+
+## Semantics of random number draws
+
 ## More sections to add:
 
-* Supported random number functions
 * Seeding
 * Something on threads and parallelism
 * Stochastic quantities vary over time
