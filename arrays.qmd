@@ -88,6 +88,7 @@ so there is an implicit indexing by `i` on the LHS in that equation of the odin 
 
 
 ## Another example: an age-structured SIR model with vaccination
+
 Let's take the above model and additionally add some vaccination to it.
 
 ```{r}
@@ -179,6 +180,7 @@ Of course you may want to use higher-dimensional arrays! We currently supporting
 Be careful with array equations! It's possible that in an array equation you end up going out of bounds with an array used on the RHS. This can crash the program when running.
 
 ## Declaring dimensions
+
 You must declare the dimensions of all arrays within your `odin` code using a `dim` equation.
 
 Dimensions can be hardcoded:
@@ -215,6 +217,7 @@ x[] <- a
 ```
 
 `x` will be a vector where every element is the same, the result of a *single* draw from a standard normal.
+
 
 
 ## Summing over arrays
