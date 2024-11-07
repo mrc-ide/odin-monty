@@ -1,16 +1,13 @@
 # Getting started with monty
 
-* the philosophie
-* three options
-
-`monty` is a R package design to work with statistical models in a *modular* way. It uses Monte Carlo methods to facilitate drawing from these statistical models and is currently built to create complex models through four different routes:
+`monty` is a R package designed to work with statistical models in a modular way. It uses Monte Carlo methods to sample from these statistical models. It is currently built to create complex models through four different routes:
 
 * simple R code
 * a dedicated DSL
 * odin models
 * composing two monty models.
 
-The simple example in this chapter is built from a simple R function and is the most basic way of defining a monty model. We will cover more complex examples in the model section. Section ** deals with the monty DSL, while section ** explains how to obtain new monty models through composition of two monty models. monty models obtains from odin models are dealt in the odin & monty chapter.
+The simple example in this chapter comes from a simple R function and is the most basic way of defining a monty model. We will cover more complex examples in the model section. Section ** deals with the monty DSL, while section ** explains how to obtain new monty models through the composition of two monty models. monty models obtained from odin models are dealt in the odin & monty chapter.
 
 ## A simple example
 
@@ -24,15 +21,42 @@ For this we start by defining
 
 ```{r}
 fn <- function(l, p, m1, m2) {
-  p*dnorm(l,mean = m1) + (1-p)*dnorm(l, mean = m2)
+  log(p*dnorm(l,mean = m1) + (1-p)*dnorm(l, mean = m2))
 }
 ```
 
 ```{r}
-l_distribution <- monty_model_function(fn, fixed = list(p = 0.75, m1 = 5, m2=7))
+l_distribution <- monty_model_function(fn, fixed = list(p = 0.75, m1 = 3, m2=7))
 ```
 
+We have just created a `monty` model. 
+
+```{r}
+l <- seq(from = 0, to = 10, by = 0.1)
+plot(l,
+     exp(Vectorize(l_distribution$density)(l)),
+     type = "l",
+     ylab = "density")
+```
+
+
 ## Sampling from our example distribution
+
+
+```{r}
+sampler <- monty_sampler_random_walk(matrix(1))
+samples <- monty_sample(l_distribution, sampler, 2000, initial = 3,
+                        n_chains = 4)
+```
+
+```{r}
+matplot(samples$density, type = "l", lty = 1,
+        xlab = "log posterior density", ylab = "sample", col = "#00000055")
+```
+
+```{r}
+hist(samples$pars["l",,], breaks=100)
+```
 
 ## Further work
 
