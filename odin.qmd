@@ -1,4 +1,4 @@
-# Getting started with odin
+# Getting started with odin {#sec-getting-started}
 
 ```{r}
 #| include: false
