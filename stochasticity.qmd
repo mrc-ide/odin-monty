@@ -125,7 +125,7 @@ a <- Gamma(shape = 2, scale = 10)
 
 draw from a Gamma distribution with a shape of 2 and a **scale** of 10. You may find it is good practice to specify your arguments with such distributions whether using the default parameterisation or not.
 
-Other supported distributions include the Normal, Uniform, Exponential, Beta and Poisson distributions. A full list of supported distributions and their parameterisations can be found [here](https://mrc-ide.github.io/odin2/articles/functions.html).
+Other supported distributions include the Normal, Uniform, Exponential, Beta and Poisson distributions. A full list of supported distributions and their parameterisations can be found [here](https://mrc-ide.github.io/odin2/articles/functions.html#distribution-functions).
 
 ## More sections to add:
 
