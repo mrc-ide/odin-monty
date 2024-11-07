@@ -1,4 +1,4 @@
-# Composability
+# Composability {#sec-monty-combine}
 
 ```{r}
 library(monty)
