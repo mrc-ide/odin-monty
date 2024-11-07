@@ -10,6 +10,7 @@ Imports:
     coda,
     cpp11,
     decor,
+    devtools,
     dust2,
     fs,
     knitr,
@@ -20,6 +21,7 @@ Imports:
     posterior,
     quarto,
     rmarkdown,
+    roxygen2,
     sessioninfo,
     usethis
 Remotes:
