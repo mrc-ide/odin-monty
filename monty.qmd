@@ -1,13 +1,13 @@
 # Getting started with monty
 
-`monty` is a R package designed to work with statistical models in a modular way. It uses Monte Carlo methods to sample from these statistical models. It is currently built to create complex models through four different routes:
+The `monty` R package is designed for modular work with statistical distributions, leveraging Monte Carlo methods for sampling. It enables the construction of increasingly complex models through four approaches:
 
-* simple R code
-* a dedicated DSL
-* odin models
-* composing two monty models.
+1. Simple R code,
+2. A dedicated domain-specific language (DSL),
+3. Integration with `odin` models,
+4. Composition of two `monty` models.
 
-The simple example in this chapter comes from a simple R function and is the most basic way of defining a monty model. We will cover more complex examples in the model section. Section ** deals with the monty DSL, while section ** explains how to obtain new monty models through the composition of two monty models. monty models obtained from odin models are dealt in the odin & monty chapter.
+The most basic method to define a `monty` model is through a simple R function, as shown in this chapter. More advanced examples are covered in the @sec-monty-models in particular in the context of Bayesian statistics. @sec-monty-dsl introduces the monty DSL for more versatile model building using a small probabilistic DSL similar to BUGs. @sec-monty-combine explains how to compose new monty models by combining two existing ones. The last part of this book starting from @sec-inference demonstrates how to incorporate `odin` models into `monty` workflows.
 
 ## A simple example
 
@@ -15,9 +15,9 @@ The simple example in this chapter comes from a simple R function and is the mos
 library(monty)
 ```
 
-We can define a simple Gaussian mixture model of two sub-population using the `monty_model_function()` from the package
+We can define a simple Gaussian [mixture model](https://en.wikipedia.org/wiki/Mixture_model) of two sub-populations using the `monty_model_function()` from the package. The model represents the distribution of a quantity $l$, sampled with a probability $p$ from a normal distribution of mean $m_{1}$ and with a probability $1-p$ from another normal distribution of mean $m_{2}$. Both subpopulations have variance equal to 1. 
 
-For this we start by defining 
+To build our `monty` model, we start by defining an R function returning the log-density of our statistical model. This function has for arguments $l$, the quantity of interest and the three parameters $p$, $m_{1}$ and $m_{1}$ defining the two subpopulations.
 
 ```{r}
 fn <- function(l, p, m1, m2) {
@@ -25,11 +25,20 @@ fn <- function(l, p, m1, m2) {
 }
 ```
 
+Assuming that the population is 75% with mean 3 and 25% with mean 7, we can build our `monty` model by indicating that the parameters of the subpopulations are fixed at these given values.
+
 ```{r}
-l_distribution <- monty_model_function(fn, fixed = list(p = 0.75, m1 = 3, m2=7))
+l_distribution <- monty_model_function(fn,
+                                       fixed = list(p = 0.75, m1 = 3, m2=7))
 ```
 
 We have just created a `monty` model. 
+
+```{r}
+l_distribution
+```
+
+We can plot the density of our model for values of $l$ between 0 and 10 and check that it returns the correct value.
 
 ```{r}
 l <- seq(from = 0, to = 10, by = 0.1)
@@ -42,25 +51,32 @@ plot(l,
 
 ## Sampling from our example distribution
 
+We want now to sample from this model, using the `monty_sample()` function. For this we need to create a sampler object that will be used to explore our distribution. The most simple one is the random walk [Metropolis-Hastings](https://en.wikipedia.org/wiki/Metropolis%E2%80%93Hastings_algorithm) algorithm that should work almost out of the box (though not necesseraly efficiently). It takes as an argument a variance-covariance (VCV) matrix that describes the random walk exploration of the sampler by jumping from the current point to the next one using a multivariate-normal draw defined with our covariance matrix. Here we have a single parameter $l$, we thus take matrix(1) as our VCV matrix.
 
 ```{r}
 sampler <- monty_sampler_random_walk(matrix(1))
-samples <- monty_sample(l_distribution, sampler, 2000, initial = 3,
-                        n_chains = 4)
 ```
 
+We are now ready to sample from our distribution using `monty_sample()` with 2000 samples, starting our MCMC chain at the value 3 and running 4 chains simultaneously.
+
+```{r}
+samples <- monty_sample(l_distribution, sampler, 2000, initial = 3, n_chains = 4)
+```
+
+We can visualise our 4 chains.
 ```{r}
 matplot(samples$density, type = "l", lty = 1,
         xlab = "log posterior density", ylab = "sample", col = "#00000055")
 ```
 
+We can also check that our samples are correctly representing our distribution:
 ```{r}
 hist(samples$pars["l",,], breaks=100)
 ```
 
-## Further work
+## Going further
 
-Before showing how to fit odin models to data, we'll focus for a bit on monty itself.  If you are anxious to get on and fit the model from @sec-data-filter, you might skip ahead to @sec-inference, where we resume this.
+We've discussed a little bit about the philosophy of `monty` and built a simple model using an R function with `monty_function`.
 
 There are a bunch of things we want to cover in this chapter so likely it will be split into a few:
 
