@@ -5,30 +5,67 @@
 source("common.R")
 ```
 
-::: {.callout-warning}
-These examples come from the 2023 teaching slides, and have not been turned into actual content yet.
-:::
+## When scalars are just not enough
 
-When scalars are just not enough
+The aim of this section is to show you how you use odin's array syntax, via some motivating examples. The examples here are necessarily a bit longer than in the previous sections because we will generally need a few more moving parts.
 
-The aim of this section is to show you how you use odin's array syntax, via some motivating examples.  We may need to break this up into several sections!  The examples here are necessarily a bit longer than in the previous sections because we will generally need a few more moving parts.
+## Example: an age structured SIR model {#sec-stochastic-age}
 
-* Need a good motivating example for an array - previously we used an age structured model
-* show example code
+Let's take the simple stochastic SIR model from @sec-stochastic-sir and add age structure to it, with heterogeneous mixing between age groups
 
+```r
+odin2::odin({
+  # Equations for transitions between compartments by age group
+  update(S[]) <- S[i] - n_SI[i]
+  update(I[]) <- I[i] + n_SI[i] - n_IR[i]
+  update(R[]) <- R[i] + n_IR[i]
+  
+  # Individual probabilities of transition:
+  p_SI[] <- 1 - exp(-lambda[i] * dt) # S to I
+  p_IR <- 1 - exp(-gamma * dt) # I to R
+  
+  # Calculate force of infection
+  ## age-structured contact matrix: m[i, j] is mean number of contacts an
+  ## individual in group i has with an individual in group j per time unit
+  m <- parameter()
+  ## here s_ij[i, j] gives the mean number of contacts and individual in group
+  ## i will have with the currently infectious individuals of group j
+  s_ij[, ] <- m[i, j] * I[j]
+  ## lambda[i] is the total force of infection on an individual in group i 
+  lambda[] <- beta * sum(s_ij[i, ])
+  
+  # Draws from binomial distributions for numbers changing between
+  # compartments:
+  n_SI[] <- Binomial(S[i], p_SI[i])
+  n_IR[] <- Binomial(I[i], p_IR)
+  
+  initial(S[]) <- S0[i]
+  initial(I[]) <- I0[i]
+  initial(R[]) <- 0
+  
+  # User defined parameters - default in parentheses:
+  S0 <- parameter()
+  I0 <- parameter()
+  beta <- parameter(0.0165)
+  gamma <- parameter(0.1)
+  
+  # Dimensions of arrays
+  N_age <- parameter()
+  dim(S0) <- N_age
+  dim(I0) <- N_age
+  dim(S) <- N_age
+  dim(I) <- N_age
+  dim(R) <- N_age
+  dim(n_SI) <- N_age
+  dim(n_IR) <- N_age
+  dim(p_SI) <- N_age
+  dim(m) <- c(N_age, N_age)
+  dim(s_ij) <- c(N_age, N_age)
+  dim(lambda) <- N_age
+})
 ```
-update(S) <- S - n_SI
-update(I) <- I + n_SI - n_IR
-update(R) <- R + n_IR
-```
 
-```
-update(S[]) <- S[i] - n_SI[i]
-update(I[]) <- I[i] + n_SI[i] - n_IR[i]
-update(R[]) <- R[i] + n_IR[i]
-```
-
-The odin code
+In the odin code above
 
 ```
 update(S[]) <- S[i] - n_SI[i]
@@ -42,68 +79,88 @@ for (int i = 0; i < S_length; ++i) {
 }
 ```
 
-* Don't use index variables (`i`, `j`, `k`, etc) on the left hand side
-* Use multiple lines to account for boundary conditions
-* Can crash the program if out of bounds (we have plans for this)
+so there is an implicit indexing by `i` on the LHS in that equation of the odin code, and the generated code will then loop over all values of `i`. 
 
-## An age structured SIR model
 
-```r
-# Equations for transitions between compartments by age group
-update(S[]) <- S[i] - n_SI[i]
-update(I[]) <- I[i] + n_SI[i] - n_IR[i]
-update(R[]) <- R[i] + n_IR[i]
-
-# Individual probabilities of transition:
-p_SI[] <- 1 - exp(-lambda[i] * dt) # S to I
-p_IR <- 1 - exp(-gamma * dt) # I to R
-
-# Force of infection
-m <- parameter() # age-structured contact matrix
-s_ij[, ] <- m[i, j] * I[j]
-lambda[] <- beta * sum(s_ij[i, ])
-
-# Draws from binomial distributions for numbers changing between
-# compartments:
-n_SI[] <- Binomial(S[i], p_SI[i])
-n_IR[] <- Binomial(I[i], p_IR)
-
-initial(S[]) <- S_ini[i]
-initial(I[]) <- I_ini[i]
-initial(R[]) <- 0
-
-# User defined parameters - default in parentheses:
-S_ini <- parameter()
-I_ini <- parameter()
-beta <- parameter(0.0165)
-gamma <- parameter(0.1)
-
-# Dimensions of arrays
-N_age <- parameter()
-dim(S_ini) <- N_age
-dim(I_ini) <- N_age
-dim(S) <- N_age
-dim(I) <- N_age
-dim(R) <- N_age
-dim(n_SI) <- N_age
-dim(n_IR) <- N_age
-dim(p_SI) <- N_age
-dim(m) <- c(N_age, N_age)
-dim(s_ij) <- c(N_age, N_age)
-dim(lambda) <- N_age
-```
-
-Relevant changes from the above:
+## Another example: an age-structured SIR model with vaccination
+Let's take the above model and additionally add some vaccination to it.
 
 ```
-m <- parameter() # age-structured contact matrix
-s_ij[, ] <- m[i, j] * I[j]
-lambda[] <- beta * sum(s_ij[i, ])
-p_SI[] <- 1 - exp(-lambda[i] * dt)
-update(S[]) <- S[i] - n_SI[i]
-N_age <- user()
-dim(S) <- N_age
-dim(m) <- c(N_age, N_age)
+odin2::odin({
+  # Equations for transitions between compartments by age group
+  update(S[, ]) <- new_S[i, j]
+  update(I[, ]) <- I[i, j] + n_SI[i, j] - n_IR[i, j]
+  update(R[, ]) <- R[i, j] + n_IR[i, j]
+  
+  # Individual probabilities of transition:
+  p_SI[, ] <- 1 - exp(-rel_susceptibility[i, j] * lambda[i] * dt) # S to I
+  p_IR <- 1 - exp(-gamma * dt) # I to R
+  p_vax[, ] <- 1 - exp(-eta[i, j] * dt)
+  
+  # Force of infection
+  m <- parameter() # age-structured contact matrix
+  s_ij[, ] <- m[i, j] * sum(I[j, ])
+  lambda[] <- beta * sum(s_ij[i, ])
+  
+  # Draws from binomial distributions for numbers changing between
+  # compartments:
+  n_SI[, ] <- Binomial(S[i, j], p_SI[i, j])
+  n_IR[, ] <- Binomial(I[i, j], p_IR)
+  
+  # Nested binomial draw for vaccination in S
+  # Assume you cannot move vaccine class and get infected in same step
+  n_S_vax[, ] <- Binomial(S[i, j] - n_SI[i, j], p_vax[i, j])
+  new_S[, 1] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, N_vax]
+  new_S[, 2:N_vax] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, j - 1])
+  
+  initial(S[, ]) <- S0[i, j]
+  initial(I[, ]) <- I0[i, j]
+  initial(R[, ]) <- 0
+  
+  # User defined parameters - default in parentheses:
+  S0 <- parameter()
+  I0 <- parameter()
+  beta <- parameter(0.0165)
+  gamma <- parameter(0.1)
+  eta <- parameter()
+  rel_susceptibility[, ] <- parameter()
+  
+  # Dimensions of arrays
+  N_age <- parameter()
+  N_vax <- parameter()
+  dim(S0) <- c(N_age, N_vax)
+  dim(I0) <- c(N_age, N_vax)
+  dim(S) <- c(N_age, N_vax)
+  dim(I) <- c(N_age, N_vax)
+  dim(R) <- c(N_age, N_vax)
+  dim(n_SI) <- c(N_age, N_vax)
+  dim(n_IR) <- c(N_age, N_vax)
+  dim(p_SI) <- c(N_age, N_vax)
+  dim(m) <- c(N_age, N_age)
+  dim(s_ij) <- c(N_age, N_age)
+  dim(lambda) <- N_age
+  dim(eta) <- c(N_age, N_vax)
+  dim(rel_susceptibility) <- c(N_age, N_vax)
+  dim(p_vax) <- c(N_age, N_vax)
+  dim(n_S_vax) <- c(N_age, N_vax)
+  dim(new_S) <- c(N_age, N_vax)
+})
 ```
 
-## Vaccination
+We see we can use multiple lines to deal with boundary conditions
+```
+new_S[, 1] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, N_vax]
+new_S[, 2:N_vax] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, j - 1]
+```
+which we could also write as
+```
+new_S[, ] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j]
+new_S[, 1] <- new_S[i, j] + n_S_vax[i, N_vax]
+new_S[, 2:N_vax] <- new_S[i, j] + n_S_vax[i, j - 1]
+```
+or another alternative way of writing this would be to use `if else`
+```
+new_S[, ] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] +
+    (if (j == 1) n_S_vax[i, N_vax] else n_S_vax[i, j - 1])
+```
+Note that in odin, an `if` always requires an `else`!
