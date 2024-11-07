@@ -127,8 +127,6 @@ draw from a Gamma distribution with a shape of 2 and a **scale** of 10. You may 
 
 Other supported distributions include the Normal, Uniform, Exponential, Beta and Poisson distributions. A full list of supported distributions and their parameterisations can be found [here](https://mrc-ide.github.io/odin2/articles/functions.html).
 
-## Semantics of random number draws
-
 ## More sections to add:
 
 * Seeding
