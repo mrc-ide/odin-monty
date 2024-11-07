@@ -7,8 +7,10 @@ Authors@R: c(person("Rich", "FitzJohn", role = c("aut", "cre"),
                     role = "cph"))
 Imports:
     brio,
+    coda,
     cpp11,
     decor,
+    devtools,
     dust2,
     fs,
     knitr,
@@ -16,8 +18,10 @@ Imports:
     odin2,
     pkgbuild,
     pkgload,
+    posterior,
     quarto,
     rmarkdown,
+    roxygen2,
     sessioninfo,
     usethis
 Remotes:

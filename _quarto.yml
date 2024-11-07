@@ -3,7 +3,7 @@ project:
 
 book:
   title: "Odin and Monty"
-  author: "Rich FitzJohn"
+  author: "Rich FitzJohn, Wes Hinsley, Ed Knock, Marc Baguelin, [and you?](https://github.com/mrc-ide/odin-montyblob/main/CONTRIBUTING.md)"
   search: true
   repo-url: https://github.com/mrc-ide/odin-monty/
   repo-actions: [edit, issue, source]

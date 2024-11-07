@@ -54,7 +54,7 @@ logistic_t <- odin({
   K <- parameter()
   r0 <- parameter()
   p <- parameter(0.2)
-  r <- r0 * (1 - p) + r0 * p * (1 + sin(time * 2 * 3.141))
+  r <- r0 * (1 - p) + r0 * p * (1 + sin(time * 2 * pi))
 })
 ```
 
@@ -143,7 +143,7 @@ matplot(t, t(y), type = "l", lty = 1, col = "black",
         xlab = "Time", ylab = "Variable")
 ```
 
-With `dust_system_simulate()` the solver will stop at every time, so we'll never jump over the solution.  But if you were running this where you were just advancing the solution through time you might do so.  We get our expected value of (approximately) 1 at time 25 whenere `r1` is 15:
+With `dust_system_simulate()` the solver will stop at every time, so we'll never jump over the solution.  But if you were running this where you were just advancing the solution through time you might do so.  We get our expected value of (approximately) 1 at time 25 whenever `r1` is 15:
 
 ```{r}
 sys <- dust_system_create(wave, list(r1 = 15))
