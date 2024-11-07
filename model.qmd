@@ -5,3 +5,41 @@ We often refers to using models.
 ## SimCity vs Statistical models
 
 ## Normalised vs unormalised densities
+
+In Bayesian inference, we often encounter probability densities that can either be normalised or unnormalised, and understanding the distinction between these is crucial for implementing Monte Carlo methods effectively. Normalisation is particularly important when interpreting probabilities and integrating over parameter spaces, a concept with parallels in physics, where distributions are sometimes normalised to ensure they represent meaningful physical quantities.
+
+### Unnormalised Density
+
+An **unnormalised density** represents a probability density function that is proportional to the target distribution but has not been scaled to integrate to 1 over the entire parameter space. In Bayesian inference, we are often interested in the posterior distribution of a parameter $\theta$ given data $y$. The posterior density is given by:
+
+$$p(\theta | y) = \frac{p(y|\theta) p(\theta)}{p(y)}$$
+
+where:
+
+- $p(y | \theta))$ is the likelihood of the data given the parameter,
+- $p(\theta)$ is the prior distribution, and
+- $p(y) = \int p(y | \theta) p(\theta) \, d\theta \)$ is the marginal likelihood, or the evidence, which acts as a normalising constant.
+
+In many cases, computing $p(y)$ is challenging or even intractable, so we work with the unnormalised posterior density \( p(y \mid \theta) p(\theta) \). The unnormalised density is sufficient for methods like **Markov Chain Monte Carlo (MCMC)**, where the absolute probability values are less relevant than their relative proportions across different values of \( \theta \).
+
+### Normalised Density
+
+A **normalised density** ensures that the total probability over all possible parameter values is 1. Normalisation is achieved by dividing by the integral over the entire density, as shown above with \( p(y) \) in the denominator. This step is essential when absolute probability values are required or when we need to make direct probabilistic interpretations. 
+
+In Bayesian inference, although we often rely on unnormalised densities, there are cases—such as when comparing models using Bayes factors—where we require the fully normalised posterior.
+
+### Link to Physics: Partition Function and Probability Density
+
+The concept of normalisation has parallels in statistical mechanics. In physics, the **partition function** \( Z \) normalises the probability density over all microstates \( x \) of a system, enabling calculations of thermodynamic properties. Here, the probability density for a state \( x \) with energy \( E(x) \) at temperature \( T \) is proportional to \( e^{-E(x)/kT} \), where \( k \) is Boltzmann's constant. The partition function \( Z = \sum_{x} e^{-E(x)/kT} \) or its integral form over a continuous state space normalises this density, ensuring probabilities are meaningful when summing over all possible states.
+
+In Monte Carlo algorithms, this parallel becomes especially useful. For example, in the **Metropolis-Hastings algorithm**, we only need the ratio of probabilities between two states. This mirrors physical systems where absolute energies are less important than energy differences between states, similar to unnormalised densities in Bayesian inference.
+
+### Monte Carlo Methods with Unnormalised Densities
+
+Monte Carlo methods like **Metropolis-Hastings** and **Importance Sampling** often operate with unnormalised densities, since only the relative probabilities affect the algorithm's behaviour. This allows us to bypass the need to calculate the normalising constant, which can be computationally expensive or intractable in high-dimensional spaces.
+
+In Importance Sampling, for example, we estimate expectations with respect to the target distribution by drawing samples from a simpler proposal distribution and weighting them according to the unnormalised target density. 
+
+
+
+## Properties of monty models

@@ -25,6 +25,8 @@ book:
       - montyDSL.qmd
       - composability.qmd
       - samplers.qmd
+      - runners.qmd
+      - advanced_monty.qmd
     - part: "Odin & Monty"
       chapters:
       - inference.qmd

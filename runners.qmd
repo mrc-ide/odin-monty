@@ -1,0 +1,3 @@
+# Runners
+
+One of the focus of `monty` is tailoring implementation to optimise usage of available hardware while ensuring reproducible results accross platforms.

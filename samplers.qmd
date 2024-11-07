@@ -1,4 +1,4 @@
-# Samplers
+# Samplers and inference
 
 This vignette will describe the samplers available in monty.
 
