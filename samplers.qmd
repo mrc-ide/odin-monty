@@ -1,5 +1,10 @@
 # Samplers and inference
 
+```{r}
+#| include: false
+source("common.R")
+```
+
 This vignette will describe the samplers available in monty.
 
 ```{r}

@@ -1,6 +1,11 @@
 # Composability {#sec-monty-combine}
 
 ```{r}
+#| include: false
+source("common.R")
+```
+
+```{r}
 library(monty)
 ```
 
