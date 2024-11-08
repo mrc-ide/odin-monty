@@ -53,7 +53,6 @@ plot(l,
      ylab = "density")
 ```
 
-
 ## Sampling from our example distribution
 
 We want now to sample from this model, using the `monty_sample()` function. For this we need to create a sampler object that will be used to explore our distribution. The most simple one is the random walk [Metropolis-Hastings](https://en.wikipedia.org/wiki/Metropolis%E2%80%93Hastings_algorithm) algorithm that should work almost out of the box (though not necesseraly efficiently). It takes as an argument a variance-covariance (VCV) matrix that describes the random walk exploration of the sampler by jumping from the current point to the next one using a multivariate-normal draw defined with our covariance matrix. Here we have a single parameter $l$, we thus take matrix(1) as our VCV matrix.
@@ -71,7 +70,7 @@ samples <- monty_sample(l_distribution, sampler, 2000, initial = 3, n_chains = 4
 We can visualise our 4 chains.
 ```{r}
 matplot(samples$density, type = "l", lty = 1,
-        xlab = "log posterior density", ylab = "sample", col = "#00000055")
+        xlab = "sample", ylab = "log posterior density", col = "#00000055")
 ```
 
 We can also check that our samples are correctly representing our distribution:
