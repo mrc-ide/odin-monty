@@ -14,9 +14,139 @@ library(odin2)
 library(dust2)
 ```
 
-## Example: an age structured SIR model {#sec-stochastic-age}
 
-Let's take the simple stochastic SIR model from @sec-stochastic-sir and add age structure to it, with heterogeneous mixing between age groups
+## Example: a two-group age structured SIR model
+
+Let's take the simple stochastic SIR model from @sec-stochastic-sir and add age structure to it by having two groups (children and adults), with heterogeneous mixing between the groups.
+
+```{r}
+sir_2 <- odin({
+  # Equations for transitions between compartments by age group
+  update(S[]) <- S[i] - n_SI[i]
+  update(I[]) <- I[i] + n_SI[i] - n_IR[i]
+  update(R[]) <- R[i] + n_IR[i]
+  
+  # Individual probabilities of transition:
+  p_SI[] <- 1 - exp(-lambda[i] * dt) # S to I
+  p_IR <- 1 - exp(-gamma * dt) # I to R
+  
+  # Calculate force of infection
+  ## age-structured contact matrix: m[i, j] is mean number of contacts an
+  ## individual in group i has with an individual in group j per time unit
+  m <- parameter()
+  ## here s_ij[i, j] gives the mean number of contacts and individual in group
+  ## i will have with the currently infectious individuals of group j
+  s_ij[, ] <- m[i, j] * I[j]
+  ## lambda[i] is the total force of infection on an individual in group i 
+  lambda[] <- beta * (s_ij[i, 1] + s_ij[i, 2])
+  
+  # Draws from binomial distributions for numbers changing between
+  # compartments:
+  n_SI[] <- Binomial(S[i], p_SI[i])
+  n_IR[] <- Binomial(I[i], p_IR)
+  
+  initial(S[]) <- S0[i]
+  initial(I[]) <- I0[i]
+  initial(R[]) <- 0
+  
+  # User defined parameters - default in parentheses:
+  S0 <- parameter()
+  I0 <- parameter()
+  beta <- parameter(0.0165)
+  gamma <- parameter(0.1)
+  
+  # Dimensions of arrays
+  dim(S0) <- 2
+  dim(I0) <- 2
+  dim(S) <- 2
+  dim(I) <- 2
+  dim(R) <- 2
+  dim(n_SI) <- 2
+  dim(n_IR) <- 2
+  dim(p_SI) <- 2
+  dim(m) <- c(2, 2)
+  dim(s_ij) <- c(2, 2)
+  dim(lambda) <- 2
+})
+```
+
+In the odin code above
+
+```r
+update(S[]) <- S[i] - n_SI[i]
+```
+
+becomes (approximately)
+
+```r
+for (int i = 0; i < S_length; ++i) {
+  update_S[i] = S[i] + n_SI[i];
+}
+```
+
+so there is an implicit indexing by `i` on the LHS in that equation of the odin code, and the generated code will then produce a for loop over all values of `i`.
+
+## Declaring dimensions
+
+We can see in our first example that it is necessary to declare the dimensions of all arrays within your `odin` code using a `dim` equation.
+
+Dimensions can be hardcoded:
+```r
+dim(S) <- 2
+```
+or can be generalised so that the dimensions themselves become parameters:
+```r
+dim(S) <- N_age
+N_age <- parameter()
+```
+You may have array parameters, these can have dimensions explicitly declared
+```r
+dim(m) <- c(N_age, N_age)
+```
+or they can also have their dimensions detected when the parameters are passed into the system - this still needs a `dim` equation where you must explicitly state the rank:
+```r
+dim(m) <- parameter(rank = 2)
+```
+
+## Summing over arrays
+
+Frequently, you will want to take a sum over an array, or part of an array, using `sum`.  To sum over all elements of an array, use `sum()` with the name of the array you would like to sum over:
+
+```r
+dim(x) <- 10
+x_tot <- sum(x)
+```
+
+If `m` is a matrix you can compute the sums over the second column by writing:
+
+```r
+m1_tot <- sum(m[, 2])
+```
+
+This partial sum approach is frequently used within implicit loops:
+
+```r
+m_col_totals[] <- sum(m[, i])
+```
+
+In our example we calculated the force of infection by summing over the two age groups
+```r
+lambda[] <- beta * (s_ij[i, 1] + s_ij[i, 2])
+```
+so we could have used `sum` to write this as
+```r
+lambda[] <- beta * sum(s_ij[i, ])
+```
+and this equation has been generalised to any number of age groups now!
+
+::: {.callout-note}
+The same syntax applies to other functions that reduce arrays: `min`, `max` and `prod`.
+:::
+
+
+## Example: a generalised age structured SIR model {#sec-stochastic-age}
+
+Let's now take the two group SIR model and generalise it to `N_age` age groups
 
 ```{r}
 sir_age <- odin({
@@ -70,24 +200,29 @@ sir_age <- odin({
 })
 ```
 
-In the odin code above
-
+::: {.callout-note}
+With the equations
 ```r
-update(S[]) <- S[i] - n_SI[i]
+s_ij[, ] <- m[i, j] * I[j]
+lambda[] <- beta * sum(s_ij[i, ])
 ```
-
-becomes (approximately)
-
+what we are really doing is matrix multiplication, and in R this would be
 ```r
-for (int i = 0; i < S_length; ++i) {
-  update_S[i] = S[i] + n_SI[i];
-}
+lambda <- beta * (m %*% I)
 ```
+We are aiming to support matrix multiplication in future to help simplify this code.
+:::
 
-so there is an implicit indexing by `i` on the LHS in that equation of the odin code, and the generated code will then loop over all values of `i`. 
 
+## Indexing
 
-## Another example: an age-structured SIR model with vaccination
+We have seen in the above examples uses of 1d and 2d arrays, making use of index variables `i` and `j`. Note that while we never use these index variables on the LHS, it is implicit that on the LHS we are indexing by `i` for 1d arrays and `i` and `j` for 2d arrays! Use of these index variables on the RHS corresponds to the indexing on the LHS.
+
+Of course you may want to use higher-dimensional arrays! We currently supporting up to 8 dimensions, with index variables `i`, `j`, `k`, `l`, `i5`, `i6`, `i7` and `i8`.
+
+Be careful with array equations! It's possible that in an array equation you end up going out of bounds with an array used on the RHS. This can crash the program when running.
+
+## Example: an age-structured SIR model with vaccination
 
 Let's take the above model and additionally add some vaccination to it.
 
@@ -171,35 +306,6 @@ new_S[, ] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] +
 ```
 Note that in odin, an `if` always requires an `else`!
 
-## Indexing
-
-We have seen in the above examples uses of 1d and 2d arrays, making use of index variables `i` and `j`. Note that while we never use these index variables on the LHS, it is implicit that on the LHS we are indexing by `i` for 1d arrays and `i` and `j` for 2d arrays! Use of these index variables on the RHS corresponds to the indexing on the LHS.
-
-Of course you may want to use higher-dimensional arrays! We currently supporting up to 8 dimensions, with index variables `i`, `j`, `k`, `l`, `i5`, `i6`, `i7` and `i8`.
-
-Be careful with array equations! It's possible that in an array equation you end up going out of bounds with an array used on the RHS. This can crash the program when running.
-
-## Declaring dimensions
-
-You must declare the dimensions of all arrays within your `odin` code using a `dim` equation.
-
-Dimensions can be hardcoded:
-```r
-dim(y) <- 10
-```
-or dimensions themselves can be parameters:
-```r
-dim(x) <- c(nr, 5)
-nr <- parameter()
-```
-You may have array parameters, these can have dimensions explicitly declared
-```r
-dim(m) <- c(N_age, N_age)
-```
-or they can also have their dimensions detected when the parameters are passed into the system - this still needs a `dim` equation where you must explicitly state the rank:
-```r
-dim(m) <- parameter(rank = 2)
-```
 
 ## Semantics of random number draws
 
@@ -217,25 +323,3 @@ x[] <- a
 ```
 
 `x` will be a vector where every element is the same, the result of a *single* draw from a standard normal.
-
-
-
-## Summing over arrays
-Frequently, you will want to take a sum over an array, or part of an array, using `sum`.  To sum over all elements of an array, use `sum()` with the name of the array you would like to sum over:
-
-```r
-dim(x) <- 10
-x_tot <- sum(x)
-```
-
-If `m` is a matrix you can compute the sums over the second column by writing:
-
-```r
-m1_tot <- sum(m[, 2])
-```
-
-This partial sum approach is frequently used within implicit loops:
-
-```r
-m_col_totals[] <- sum(m[, i])
-```
