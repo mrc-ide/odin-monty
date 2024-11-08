@@ -1,5 +1,10 @@
 # Getting started with monty
 
+```{r}
+#| include: false
+source("common.R")
+```
+
 The `monty` R package is designed for modular work with statistical distributions, leveraging Monte Carlo methods for sampling. It enables the construction of increasingly complex models through four approaches:
 
 1. Simple R code,

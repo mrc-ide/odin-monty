@@ -1,5 +1,10 @@
 # Advanced monty
 
+```{r}
+#| include: false
+source("common.R")
+```
+
 ## Observers
 
 ## Working with other packages

@@ -1,5 +1,10 @@
 # About monty models {#sec-monty-models}
 
+```{r}
+#| include: false
+source("common.R")
+```
+
 ## SimCity vs Statistical models
 
 ## Normalised vs unormalised densities
