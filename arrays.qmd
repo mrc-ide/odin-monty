@@ -226,6 +226,11 @@ Be careful with array equations! It's possible that in an array equation you end
 
 Let's take the above model and additionally add some vaccination to it.
 
+::: {.callout-note}
+This should not be considered a guide on how to model vaccination with `odin`, as it merely presents one model for the purposes of illustrating how arrays work in `odin` - there are many other ways one could model vaccination!
+:::
+
+
 ```{r}
 sir_age_vax <- odin({
   # Equations for transitions between compartments by age group
