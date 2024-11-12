@@ -1,17 +1,29 @@
-# Samplers and inference
+# Samplers and inference {#sec-samplers}
 
 ```{r}
 #| include: false
 source("common.R")
 ```
 
-This vignette will describe the samplers available in monty.
+Many quantities of interest in uncertain systems can be expressed as integrals that weight outcomes according to their probability. A common approach to computing these integrals is through Monte Carlo estimation, where we draw samples from our distribution of interest and take their mean as an approximation. This method, known as a 'Monte Carlo' estimate, has been central to probabilistic inference and has driven the development of sophisticated sampling algorithms since the advent of modern computing in the 1950s.
+
+The `monty` package offers a range of sampling algorithms tailored to different types of distributions and varying levels of available information. This flexibility allows users to select the most efficient sampler based on their distribution's characteristics and computational resources.
+
+## Samplers supported by `monty`
 
 ```{r}
 library(monty)
 ```
 
-## The bendy banana
+### Randow-Walk Metropolis-Hastings
+
+### Adaptive Random Walk
+
+### Nested models
+
+### Hamiltonian Monte Carlo
+
+## A simple example: The bendy banana
 
 This example shows HMC outperforming a random walk on a two dimensional banana-shaped function.  Our model takes two parameters `alpha` and `beta`, and is based on two successive simple draws, with the one conditional on the other, so $\beta \sim Normal(1,0)$ and $\alpha \sim Normal(\beta^2, \sigma)$, with $\sigma$ the standard deviation of the conditional draw.
 
