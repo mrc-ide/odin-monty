@@ -89,7 +89,7 @@ likelihood <- dust_likelihood_monty(filter, packer)
 likelihood
 ```
 
-At this point, we can "forget" that our likelihood is an SIR model, and instead just not that it is a stochastic estimate of a likelihood.
+At this point, we can "forget" that our likelihood is an SIR model, and instead just note that it is a stochastic estimate of a likelihood.
 
 The other ingredient we need is a **prior**.  This we can construct with `monty_dsl` as before:
 

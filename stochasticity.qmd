@@ -9,6 +9,14 @@ source("common.R")
 
 One of the key motivations for discrete time models is that they allow a natural mechanism for using stochasticity.  By including stochasticity in our models we can better capture things like demographic effects where random fluctuations when population sizes are small have profound consequences for the longer term dynamics.  In a deterministic system, things always happen the same way when you run them multiple times, but in a stochastic system -- especially nonlinear ones -- small changes in how the system arranges itself in its early steps can result in large changes in the dynamics later on, and this can help describe observed dynamics better.
 
+## Discrete-time
+
+Stochastic models can be constructed in continuous-time. However, running realisations of such models is computationally expensive and becomes prohibitively so with increasing model complexity. Typically every time an event changes the state of the model (e.g. an infection or a recovery), the distribution of the time to the next event changes along with the probabilities governing the next event.
+
+In odin we support discrete-time stochastic models as they are less expensive than continuous-time models as we just have to update the state of the model at a finite number of fixed time points. Models are updated at increments of `dt`, which currently must be the inverse of an integer (we recommend it be a non-recurring decimal, e.g. 1, 0.5, 0.25, 0.2, 0.125, 0.1 etc).
+
+For the discrete-time stochastic models to be implemented in odin, they must follow the [Markov property](https://en.wikipedia.org/wiki/Markov_property) - given the entire history of the model up until time `t`, the distribution of the state at time `t + dt` must only depend upon the state of the model at time `t`.
+
 ::: {.callout-note}
 If you have used odin version 1, you will see that the interface for stochastic models has changed, and we no longer use functions named after R's random functions.  For example we now use `Normal()` rather than `rnorm` to refer to the normal distribution.  See the [odin2 migration vignette](https://mrc-ide.github.io/odin2/articles/migrating.html) for more details.
 :::
