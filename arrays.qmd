@@ -222,9 +222,14 @@ Of course you may want to use higher-dimensional arrays! We currently supporting
 
 Be careful with array equations! It's possible that in an array equation you end up going out of bounds with an array used on the RHS. This can crash the program when running.
 
-## Example: an age-structured SIR model with vaccination
+## Example: an age-structured SIR model with vaccination {#sec-age-vax}
 
 Let's take the above model and additionally add some vaccination to it.
+
+::: {.callout-note}
+This should not be considered a guide on how to model vaccination with `odin`, as it merely presents one model for the purposes of illustrating how arrays work in `odin` - there are many other ways one could model vaccination!
+:::
+
 
 ```{r}
 sir_age_vax <- odin({
@@ -264,7 +269,7 @@ sir_age_vax <- odin({
   beta <- parameter(0.0165)
   gamma <- parameter(0.1)
   eta <- parameter()
-  rel_susceptibility[, ] <- parameter()
+  rel_susceptibility <- parameter()
   
   # Dimensions of arrays
   N_age <- parameter()
@@ -323,3 +328,42 @@ x[] <- a
 ```
 
 `x` will be a vector where every element is the same, the result of a *single* draw from a standard normal.
+
+
+## Using arrays for Erlang durations
+
+In our examples we have assumed that infectious periods follow a discretised exponential distribution (rounded up to the nearest `dt`), for instance in @sec-age-vax we see this in the equations governing movement from `I` to `R`:
+
+```r
+p_IR <- 1 - exp(-gamma * dt) # I to R
+n_IR[, ] <- Binomial(I[i, j], p_IR)
+
+update(I[, ]) <- I[i, j] + n_SI[i, j] - n_IR[i, j]
+update(R[, ]) <- R[i, j] + n_IR[i, j]
+
+dim(I) <- c(N_age, N_vax)
+dim(n_IR) <- c(N_age, N_vax)
+
+```
+
+However, exponential distributions often do not capture the true distribution of infectious periods or other such delays you may be interested in modelling. Arrays in odin can be used to implement (discretised) [Erlang](https://en.wikipedia.org/wiki/Erlang_distribution)  distributions by breaking them down into stages of iid exponential distributions by adding a dimension to an array corresponding to these stages. For instance we could generalise the above to an Erlang with shape parameter `k_I` (the number of stages) and rate `gamma`:
+
+```r
+k_I <- parameter()
+p_I_progress <- 1 - exp(-gamma * dt)
+n_I_progress[, , ] <- Binomial(I[i, j, k], p_I_progress)
+
+update(I[, , ]) <- I[i, j, k] - n_I_progress[i, j, k] +
+  (if (k == 1) n_SI[i, j] else n_I_progress[i, j, k - 1])
+update(R[, ]) <- R[i, j] + n_I_progress[i, j, k_I]
+dim(I) <- c(N_age, N_vax, k_I)
+dim(n_I_progress) <- c(N_age, N_vax, k_I)
+```
+
+and there would be some other bits we'd need to change to deal with the increased dimensionality of `I`:
+
+```r
+s_ij[, ] <- m[i, j] * sum(I[j, ,])
+initial(I[, , ]) <- I0[i, j, k]
+dim(I0) <- c(N_age, N_vax, k_I)
+```
