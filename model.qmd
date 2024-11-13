@@ -99,7 +99,7 @@ where:
   - $p(y|\theta)$ is the likelihood, and
   - $p(\theta)$ is the prior distribution, as above.
   
-Note that it does not involve anymore $p(y)$ the normalising constant. The reason is that since calculating $p(y)$ can be very difficult, we often work with the **unnormalised posterior density** $p(y|\theta)p(\theta)$. This unnormalised form is sufficient for many Monte Carlo methods, where only relative densities matter.
+Note that it does not involve the normalising constant $p(y)$ anymore. The reason is that since calculating $p(y)$ can be very difficult, we often work with the **unnormalised posterior density** $p(y|\theta)p(\theta)$. This unnormalised form is sufficient for many Monte Carlo methods, where only relative densities matter.
 
 ### Normalised density
 
