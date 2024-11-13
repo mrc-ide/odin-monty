@@ -42,7 +42,7 @@ usethis::create_package(
   path,
   fields = list(Package = "pkg",
                 Title = "My Odin Model",
-                Description = ""))
+                Description = "An example odin model"))
 usethis::proj_set(path)
 ```
 
