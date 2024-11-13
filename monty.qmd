@@ -34,7 +34,7 @@ Assuming that the population is 75% from subpopulation 1 (normally distributed w
 
 ```{r}
 l_distribution <- monty_model_function(fn,
-                                       fixed = list(p = 0.75, m1 = 3, m2=7))
+                                       fixed = list(p = 0.75, m1 = 3, m2 = 7))
 ```
 
 We have just created a `monty` model. 
