@@ -44,7 +44,6 @@ sir <- odin({
   s_ij[, ] <- m[i, j] * I[j]
   
   # lambda[i] is the total force of infection on an individual in group i 
-  
   lambda[] <- beta * (s_ij[i, 1] + s_ij[i, 2])
   
   # Draws from binomial distributions for numbers changing between
