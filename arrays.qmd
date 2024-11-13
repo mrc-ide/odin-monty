@@ -42,7 +42,6 @@ sir <- odin({
   
   # here s_ij[i, j] gives the mean number of contacts and individual in group
   # i will have with the currently infectious individuals of group j
-  
   s_ij[, ] <- m[i, j] * I[j]
   
   # lambda[i] is the total force of infection on an individual in group i 
