@@ -115,6 +115,31 @@ matplot(t, t(y$I), type = "l", lty = 1, col = "#00000044",
 
 Here, we see some epidemics fail to take off, and a huge variation in where the peak is, with some trajectories only starting to take off at time 100 where in the previous example all were in decline.
 
+We can see we have used `zero_every` to calculate the incidence of new infections in discrete-time in a similar way to how we did in the continuous-time deterministic model in @sec-reset-variables.
+
+Running the model we see the incidence produced:
+
+```{r}
+pars <- list(beta = 1, gamma = 0.6)
+sys <- dust_system_create(sir, pars, dt = 0.25)
+dust_system_set_state_initial(sys)
+t <- seq(0, 20, by = 0.25)
+y <- dust_system_simulate(sys, t)
+y <- dust_unpack_state(sys, y)
+plot(t, y$incidence, type = "s", xlab = "Time", ylab = "Incidence")
+```
+
+Our step is a quarter of a day, so we see four levels of incidence per day, with the last being the daily peak.  Let's run again, this time outputting only every day, we see:
+
+```{r}
+sys <- dust_system_create(sir, pars, dt = 0.25)
+dust_system_set_state_initial(sys)
+t <- seq(0, 20)
+y <- dust_system_simulate(sys, t)
+y <- dust_unpack_state(sys, y)
+plot(t, y$incidence, type = "p", xlab = "Time", ylab = "Incidence")
+```
+
 ## Supported random number functions
 
 We have already seen use of Binomial draws, and we support other distributions. Support for the distributions includes both random draws and density calculations (more on that later). The support for these functions comes from `monty` and all the distributions are available for use in the both the `odin` DSL and the `monty` DSL (more on that also later).

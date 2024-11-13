@@ -113,7 +113,7 @@ plot(t, run(3.8, sys2, t), ylim = 0:1, type = "l",
 
 None of these dynamics appeared in the continuous time version!
 
-## Variables that reset
+## Variables that reset {#sec-reset-variables}
 
 Let's revisit our simple SIR example from @sec-odin-sir. Our model had just three compartments; `S`, `I` and `R`. These all represent prevalences, but frequently we are interested in incidences, for example the incidence of new infections or cases. This might be because we want to fit to data that are incidences, or it might just be that we want to run projections of a model and output incidences over time.
 
