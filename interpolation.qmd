@@ -260,7 +260,7 @@ sis <- odin({
 })
 ```
 
-When we create the system, we must pass in values for the components of `school`; there are no defaults for vector parameters.
+When we create the system, we must pass in values for the components of `school`; there are no defaults for vector parameters. The `constant = TRUE` argument when declaring the parameters specifies that these parameters cannot be changed after being set; this is necessary if we wanted to use these parameters to index into an array later, but moreover makes our intentions clear for the purposes of these parameters.
 
 ```{r}
 pars <- list(schools_time = schools_time, schools_open = schools_open)
