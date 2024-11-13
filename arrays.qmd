@@ -64,7 +64,6 @@ sir <- odin({
   gamma <- parameter(0.1)
   
   # Dimensions of arrays
-  
   dim(S0) <- 2
   dim(I0) <- 2
   dim(S) <- 2
