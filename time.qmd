@@ -140,7 +140,7 @@ sir <- odin({
 })
 ```
 
-If we were intrested in weekly incidence we might choose to write
+If we were interested in weekly incidence we might choose to write
 
 ```r
 initial(incidence, zero_every = 7) <- 0
