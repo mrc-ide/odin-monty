@@ -96,12 +96,12 @@ dim(S) <- 2
 ```
 or can be generalised so that the dimensions themselves become parameters:
 ```r
-dim(S) <- N_age
-N_age <- parameter()
+dim(S) <- n_age
+n_age <- parameter()
 ```
 You may have array parameters, these can have dimensions explicitly declared
 ```r
-dim(m) <- c(N_age, N_age)
+dim(m) <- c(n_age, n_age)
 ```
 or they can also have their dimensions detected when the parameters are passed into the system - this still needs a `dim` equation where you must explicitly state the rank:
 ```r
@@ -146,7 +146,7 @@ The same syntax applies to other functions that reduce arrays: `min`, `max` and 
 
 ## Example: a generalised age structured SIR model {#sec-stochastic-age}
 
-Let's now take the two group SIR model and generalise it to `N_age` age groups
+Let's now take the two group SIR model and generalise it to `n_age` age groups
 
 ```{r}
 sir_age <- odin({
@@ -185,18 +185,18 @@ sir_age <- odin({
   gamma <- parameter(0.1)
   
   # Dimensions of arrays
-  N_age <- parameter()
-  dim(S0) <- N_age
-  dim(I0) <- N_age
-  dim(S) <- N_age
-  dim(I) <- N_age
-  dim(R) <- N_age
-  dim(n_SI) <- N_age
-  dim(n_IR) <- N_age
-  dim(p_SI) <- N_age
-  dim(m) <- c(N_age, N_age)
-  dim(s_ij) <- c(N_age, N_age)
-  dim(lambda) <- N_age
+  n_age <- parameter()
+  dim(S0) <- n_age
+  dim(I0) <- n_age
+  dim(S) <- n_age
+  dim(I) <- n_age
+  dim(R) <- n_age
+  dim(n_SI) <- n_age
+  dim(n_IR) <- n_age
+  dim(p_SI) <- n_age
+  dim(m) <- c(n_age, n_age)
+  dim(s_ij) <- c(n_age, n_age)
+  dim(lambda) <- n_age
 })
 ```
 
@@ -272,24 +272,24 @@ sir_age_vax <- odin({
   rel_susceptibility <- parameter()
   
   # Dimensions of arrays
-  N_age <- parameter()
+  n_age <- parameter()
   N_vax <- parameter()
-  dim(S0) <- c(N_age, N_vax)
-  dim(I0) <- c(N_age, N_vax)
-  dim(S) <- c(N_age, N_vax)
-  dim(I) <- c(N_age, N_vax)
-  dim(R) <- c(N_age, N_vax)
-  dim(n_SI) <- c(N_age, N_vax)
-  dim(n_IR) <- c(N_age, N_vax)
-  dim(p_SI) <- c(N_age, N_vax)
-  dim(m) <- c(N_age, N_age)
-  dim(s_ij) <- c(N_age, N_age)
-  dim(lambda) <- N_age
-  dim(eta) <- c(N_age, N_vax)
+  dim(S0) <- c(n_age, N_vax)
+  dim(I0) <- c(n_age, N_vax)
+  dim(S) <- c(n_age, N_vax)
+  dim(I) <- c(n_age, N_vax)
+  dim(R) <- c(n_age, N_vax)
+  dim(n_SI) <- c(n_age, N_vax)
+  dim(n_IR) <- c(n_age, N_vax)
+  dim(p_SI) <- c(n_age, N_vax)
+  dim(m) <- c(n_age, n_age)
+  dim(s_ij) <- c(n_age, n_age)
+  dim(lambda) <- n_age
+  dim(eta) <- c(n_age, N_vax)
   dim(rel_susceptibility) <- c(N_vax)
-  dim(p_vax) <- c(N_age, N_vax)
-  dim(n_S_vax) <- c(N_age, N_vax)
-  dim(new_S) <- c(N_age, N_vax)
+  dim(p_vax) <- c(n_age, N_vax)
+  dim(n_S_vax) <- c(n_age, N_vax)
+  dim(new_S) <- c(n_age, N_vax)
 })
 ```
 
@@ -341,8 +341,8 @@ n_IR[, ] <- Binomial(I[i, j], p_IR)
 update(I[, ]) <- I[i, j] + n_SI[i, j] - n_IR[i, j]
 update(R[, ]) <- R[i, j] + n_IR[i, j]
 
-dim(I) <- c(N_age, N_vax)
-dim(n_IR) <- c(N_age, N_vax)
+dim(I) <- c(n_age, N_vax)
+dim(n_IR) <- c(n_age, N_vax)
 
 ```
 
@@ -356,8 +356,8 @@ n_I_progress[, , ] <- Binomial(I[i, j, k], p_I_progress)
 update(I[, , ]) <- I[i, j, k] - n_I_progress[i, j, k] +
   (if (k == 1) n_SI[i, j] else n_I_progress[i, j, k - 1])
 update(R[, ]) <- R[i, j] + n_I_progress[i, j, k_I]
-dim(I) <- c(N_age, N_vax, k_I)
-dim(n_I_progress) <- c(N_age, N_vax, k_I)
+dim(I) <- c(n_age, N_vax, k_I)
+dim(n_I_progress) <- c(n_age, N_vax, k_I)
 ```
 
 and there would be some other bits we'd need to change to deal with the increased dimensionality of `I`:
@@ -365,5 +365,5 @@ and there would be some other bits we'd need to change to deal with the increase
 ```r
 s_ij[, ] <- m[i, j] * sum(I[j, ,])
 initial(I[, , ]) <- I0[i, j, k]
-dim(I0) <- c(N_age, N_vax, k_I)
+dim(I0) <- c(n_age, N_vax, k_I)
 ```
