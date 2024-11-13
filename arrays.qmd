@@ -256,8 +256,8 @@ sir_age_vax <- odin({
   # Nested binomial draw for vaccination in S
   # Assume you cannot move vaccine class and get infected in same step
   n_S_vax[, ] <- Binomial(S[i, j] - n_SI[i, j], p_vax[i, j])
-  new_S[, 1] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, N_vax]
-  new_S[, 2:N_vax] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, j - 1]
+  new_S[, 1] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, n_vax]
+  new_S[, 2:n_vax] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, j - 1]
   
   initial(S[, ]) <- S0[i, j]
   initial(I[, ]) <- I0[i, j]
@@ -273,41 +273,41 @@ sir_age_vax <- odin({
   
   # Dimensions of arrays
   n_age <- parameter()
-  N_vax <- parameter()
-  dim(S0) <- c(n_age, N_vax)
-  dim(I0) <- c(n_age, N_vax)
-  dim(S) <- c(n_age, N_vax)
-  dim(I) <- c(n_age, N_vax)
-  dim(R) <- c(n_age, N_vax)
-  dim(n_SI) <- c(n_age, N_vax)
-  dim(n_IR) <- c(n_age, N_vax)
-  dim(p_SI) <- c(n_age, N_vax)
+  n_vax <- parameter()
+  dim(S0) <- c(n_age, n_vax)
+  dim(I0) <- c(n_age, n_vax)
+  dim(S) <- c(n_age, n_vax)
+  dim(I) <- c(n_age, n_vax)
+  dim(R) <- c(n_age, n_vax)
+  dim(n_SI) <- c(n_age, n_vax)
+  dim(n_IR) <- c(n_age, n_vax)
+  dim(p_SI) <- c(n_age, n_vax)
   dim(m) <- c(n_age, n_age)
   dim(s_ij) <- c(n_age, n_age)
   dim(lambda) <- n_age
-  dim(eta) <- c(n_age, N_vax)
-  dim(rel_susceptibility) <- c(N_vax)
-  dim(p_vax) <- c(n_age, N_vax)
-  dim(n_S_vax) <- c(n_age, N_vax)
-  dim(new_S) <- c(n_age, N_vax)
+  dim(eta) <- c(n_age, n_vax)
+  dim(rel_susceptibility) <- c(n_vax)
+  dim(p_vax) <- c(n_age, n_vax)
+  dim(n_S_vax) <- c(n_age, n_vax)
+  dim(new_S) <- c(n_age, n_vax)
 })
 ```
 
 We see we can use multiple lines to deal with boundary conditions:
 ```r
-new_S[, 1] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, N_vax]
-new_S[, 2:N_vax] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, j - 1]
+new_S[, 1] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, n_vax]
+new_S[, 2:n_vax] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, j - 1]
 ```
 which we could also write as
 ```r
 new_S[, ] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j]
-new_S[, 1] <- new_S[i, j] + n_S_vax[i, N_vax]
-new_S[, 2:N_vax] <- new_S[i, j] + n_S_vax[i, j - 1]
+new_S[, 1] <- new_S[i, j] + n_S_vax[i, n_vax]
+new_S[, 2:n_vax] <- new_S[i, j] + n_S_vax[i, j - 1]
 ```
 or another alternative way of writing this would be to use `if else`
 ```r
 new_S[, ] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] +
-    (if (j == 1) n_S_vax[i, N_vax] else n_S_vax[i, j - 1])
+    (if (j == 1) n_S_vax[i, n_vax] else n_S_vax[i, j - 1])
 ```
 Note that in odin, an `if` always requires an `else`!
 
@@ -341,8 +341,8 @@ n_IR[, ] <- Binomial(I[i, j], p_IR)
 update(I[, ]) <- I[i, j] + n_SI[i, j] - n_IR[i, j]
 update(R[, ]) <- R[i, j] + n_IR[i, j]
 
-dim(I) <- c(n_age, N_vax)
-dim(n_IR) <- c(n_age, N_vax)
+dim(I) <- c(n_age, n_vax)
+dim(n_IR) <- c(n_age, n_vax)
 
 ```
 
@@ -356,8 +356,8 @@ n_I_progress[, , ] <- Binomial(I[i, j, k], p_I_progress)
 update(I[, , ]) <- I[i, j, k] - n_I_progress[i, j, k] +
   (if (k == 1) n_SI[i, j] else n_I_progress[i, j, k - 1])
 update(R[, ]) <- R[i, j] + n_I_progress[i, j, k_I]
-dim(I) <- c(n_age, N_vax, k_I)
-dim(n_I_progress) <- c(n_age, N_vax, k_I)
+dim(I) <- c(n_age, n_vax, k_I)
+dim(n_I_progress) <- c(n_age, n_vax, k_I)
 ```
 
 and there would be some other bits we'd need to change to deal with the increased dimensionality of `I`:
@@ -365,5 +365,5 @@ and there would be some other bits we'd need to change to deal with the increase
 ```r
 s_ij[, ] <- m[i, j] * sum(I[j, ,])
 initial(I[, , ]) <- I0[i, j, k]
-dim(I0) <- c(n_age, N_vax, k_I)
+dim(I0) <- c(n_age, n_vax, k_I)
 ```
