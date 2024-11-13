@@ -117,7 +117,7 @@ None of these dynamics appeared in the continuous time version!
 
 Let's revisit our simple SIR example from @sec-odin-sir. Our model had just three compartments; `S`, `I` and `R`. These all represent prevalences, but frequently we are interested in incidences, for example the incidence of new infections or cases. This might be because we want to fit to data that are incidences, or it might just be that we want to run projections of a model and output incidences over time.
 
-In some simple models it might be simple enough to extract incidences given outputs on all states of the model, but with increasingly complexity this calculation quickly becomes overly complicated or even impossible. Thus we support calculating incidences within your odin code.
+In some simple models it might be easy enough to extract incidences given outputs on all states of the model, but with increasingly complexity this calculation quickly becomes overly complicated or even impossible. Thus we support calculating incidences within your odin code.
 
 Suppose that each time unit represents one day.  We can declare `incidence` as a variable that resets every day by using the `zero_every` argument.
 
