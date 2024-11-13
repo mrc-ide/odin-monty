@@ -25,6 +25,7 @@ sir_2 <- odin({
   update(S[]) <- S[i] - n_SI[i]
   update(I[]) <- I[i] + n_SI[i] - n_IR[i]
   update(R[]) <- R[i] + n_IR[i]
+  update(incidence) <- incidence + n_SI[1] + n_SI[2]
   
   # Individual probabilities of transition:
   p_SI[] <- 1 - exp(-lambda[i] * dt) # S to I
@@ -48,6 +49,7 @@ sir_2 <- odin({
   initial(S[]) <- S0[i]
   initial(I[]) <- I0[i]
   initial(R[]) <- 0
+  initial(incidence, zero_every = 1) <- 0
   
   # User defined parameters - default in parentheses:
   S0 <- parameter()
@@ -154,6 +156,7 @@ sir_age <- odin({
   update(S[]) <- S[i] - n_SI[i]
   update(I[]) <- I[i] + n_SI[i] - n_IR[i]
   update(R[]) <- R[i] + n_IR[i]
+  update(incidence) <- incidence + sum(n_SI)
   
   # Individual probabilities of transition:
   p_SI[] <- 1 - exp(-lambda[i] * dt) # S to I
@@ -177,6 +180,7 @@ sir_age <- odin({
   initial(S[]) <- S0[i]
   initial(I[]) <- I0[i]
   initial(R[]) <- 0
+  initial(incidence, zero_every = 1) <- 0
   
   # User defined parameters - default in parentheses:
   S0 <- parameter()
@@ -237,6 +241,7 @@ sir_age_vax <- odin({
   update(S[, ]) <- new_S[i, j]
   update(I[, ]) <- I[i, j] + n_SI[i, j] - n_IR[i, j]
   update(R[, ]) <- R[i, j] + n_IR[i, j]
+  update(incidence) <- incidence + sum(n_SI)
   
   # Individual probabilities of transition:
   p_SI[, ] <- 1 - exp(-rel_susceptibility[j] * lambda[i] * dt) # S to I
@@ -262,6 +267,7 @@ sir_age_vax <- odin({
   initial(S[, ]) <- S0[i, j]
   initial(I[, ]) <- I0[i, j]
   initial(R[, ]) <- 0
+  initial(incidence, zero_every = 1) <- 0
   
   # User defined parameters - default in parentheses:
   S0 <- parameter()
