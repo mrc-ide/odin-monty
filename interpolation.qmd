@@ -352,9 +352,9 @@ There are situations where you won't just want to interpolate a scalar value at 
 In such an example the relevant odin code could be
 
 ```r
-daily_doses_value <- parameter()
+daily_doses_value <- parameter(constant = TRUE)
 dim(daily_doses_value) <- parameter(rank = 2)
-daily_doses_time <- parameter()
+daily_doses_time <- parameter(constant = TRUE)
 dim(daily_doses_time) <- parameter(rank = 1)
 
 daily_doses <- interpolate(daily_doses_time, daily_doses_value, "constant")
