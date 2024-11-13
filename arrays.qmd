@@ -23,7 +23,6 @@ Let's take the simple stochastic SIR model from @sec-stochastic-sir and add age 
 sir <- odin({
   
   # Equations for transitions between compartments by age group
-  
   update(S[]) <- S[i] - n_SI[i]
   update(I[]) <- I[i] + n_SI[i] - n_IR[i]
   update(R[]) <- R[i] + n_IR[i]
