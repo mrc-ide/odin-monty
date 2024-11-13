@@ -344,7 +344,34 @@ y <- dust_unpack_state(sys, y)
 plot(t, y$I, type = "l", xlab = "Time", ylab = "Number of infected individuals")
 ```
 
+
+### Interpolation of arrays
+
+There are situations where you won't just want to interpolate a scalar value at a time point, but an array. For instance, you have parameters indicating the daily number of vaccine doses that are being distributed and the time points at which these change.
+
+In such an example the relevant odin code could be
+
+```r
+daily_doses_value <- parameter()
+dim(daily_doses_value) <- parameter(rank = 2)
+daily_doses_time <- parameter()
+dim(daily_doses_time) <- parameter(rank = 1)
+
+daily_doses <- interpolate(daily_doses_time, daily_doses_value, "constant")
+dim(daily_doses) <- N_age
+```
+
+Here `daily_doses_value` will be an array with first dimension of length `N_age` and the 2nd dimension of length equal to the length of `daily_doses_time`. Thus `daily_doses_value[i, j]` will be the value of `daily_doses[i]` at time `daily_doses_time[j]`. Interpolation will then be applied for each `i` (constant interpolation in the above case, but it could also be linear).
+
+Note that the syntax of the line
+```r
+daily_doses <- interpolate(daily_doses_time, daily_doses_value, "constant")
+```
+does not differ whether are interpolating a scalar quantity or an array quantity.
+
+In this example we have interpolated a vector quantity. You can interpolate higher-dimensional arrays. Just always make sure that the last dimension of your "value" array corresponds to your "time" vector.
+
+
 ## Additional topics not yet covered
 
 * order of events in interpolation with discrete time models
-* interpolation of arrays (especially for data inputs in piecewise constant interpolation)
