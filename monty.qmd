@@ -65,7 +65,7 @@ The choice of the VCV matrix is critical for the sampler's efficiency, especiall
 sampler <- monty_sampler_random_walk(matrix(1))
 ```
 
-We are now ready to sample from our distribution using `monty_sample()` with 2000 samples, starting our MCMC chain at the value 3 and running 4 chains simultaneously.
+We are now ready to sample from our distribution using `monty_sample()` with 2000 samples, starting our MCMC chain at the value 3 and running 4 chains sequentially.
 
 ```{r}
 samples <- monty_sample(l_distribution, sampler, 2000, initial = 3, n_chains = 4)
