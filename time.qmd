@@ -113,7 +113,7 @@ plot(t, run(3.8, sys2, t), ylim = 0:1, type = "l",
 
 None of these dynamics appeared in the continuous time version!
 
-## Incidence calculations
+## Variables that reset
 
 Let's revisit our simple SIR example from @sec-odin-sir. Our model had just three compartments; `S`, `I` and `R`. These all represent prevalences, but frequently we are interested in incidences, for example the incidence of new infections or cases. This might be because we want to fit to data that are incidences, or it might just be that we want to run projections of a model and output incidences over time.
 
@@ -148,6 +148,10 @@ initial(incidence, zero_every = 7) <- 0
 
 or to work with time so that one unit represents a *week* rather than a day and scaling our rates accordingly.
 
+::: {.callout-note}
+Variables reset on multiples of the value of `zero_every`, and it is not currently possible to have this offset. If `zero_every = 7` the variable would reset only on multiples of 7 - so if you were dealing with weekly data, you would have to be careful to set time-zero in such a way that your weekly data aligns on multiples of 7!
+:::=
+
 When running this model we'll see incidence produced:
 
 ```{r}
@@ -170,3 +174,5 @@ y <- dust_system_simulate(sys, t)
 y <- dust_unpack_state(sys, y)
 plot(t, y$incidence, type = "p", xlab = "Time", ylab = "Incidence")
 ```
+
+We will see that resetting variables works in a similar fashion for discrete-time models in @sec-stochasticity.
