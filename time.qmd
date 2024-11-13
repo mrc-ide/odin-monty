@@ -150,7 +150,7 @@ or to work with time so that one unit represents a *week* rather than a day and 
 
 ::: {.callout-note}
 Variables reset on multiples of the value of `zero_every`, and it is not currently possible to have this offset. If `zero_every = 7` the variable would reset only on multiples of 7 - so if you were dealing with weekly data, you would have to be careful to set time-zero in such a way that your weekly data aligns on multiples of 7!
-:::=
+:::
 
 When running this model we'll see incidence produced:
 
