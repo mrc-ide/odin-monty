@@ -59,7 +59,6 @@ sir <- odin({
   initial(R[]) <- 0
   
   # User defined parameters - default in parentheses:
-  
   S0 <- parameter()
   I0 <- parameter()
   beta <- parameter(0.0165)
