@@ -17,5 +17,5 @@ r_output <- function(x) {
 }
 
 plain_output <- function(x) {
-  lang_output(x, "")
+  lang_output(x, "md") # not great, but at least renders nicely
 }
