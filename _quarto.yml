@@ -23,7 +23,6 @@ book:
       - monty.qmd
       - model.qmd
       - monty-dsl.qmd
-      - composability.qmd
       - samplers.qmd
       - runners.qmd
     - part: "Odin & Monty"
