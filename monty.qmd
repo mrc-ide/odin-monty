@@ -60,12 +60,12 @@ plot(l,
 
 We now want to sample from this model, using the `monty_sample()` function. For this we need to tell `monty` which sampler we want to use to explore our distribution. There are a variety of samplers avalaible and you can learn about them in @sec-samplers. One of the simplest is the random walk [Metropolis-Hastings](https://en.wikipedia.org/wiki/Metropolis%E2%80%93Hastings_algorithm) algorithm that should work almost out of the box (though not necesseraly efficiently) in most cases.
 
-The random walk sampler uses a variance-covariance (VCV) matrix to guide its exploration, determining the 'jump' from the current point to the next in a random walk by drawing from a multivariate normal distribution parameterised by this matrix. For a single-parameter model, we use a 1x1 matrix (`matrix(1)`) as our VCV matrix.
+The random walk sampler uses a variance-covariance (VCV) matrix to guide its exploration, determining the 'jump' from the current point to the next in a random walk by drawing from a multivariate normal distribution parameterised by this matrix. For our single-parameter model here, we use a 1x1 matrix of variance 2 (`matrix(2)`) as our VCV matrix.
 
 The choice of the VCV matrix is critical for the sampler's efficiency, especially in more complex cases where the tuning of this matrix can significantly affect performance. A well-chosen VCV matrix optimises moving accross the parameter space, making the random walk sampler more effective in exploring the distribution of interest.
 
 ```{r}
-sampler <- monty_sampler_random_walk(matrix(1))
+sampler <- monty_sampler_random_walk(matrix(2))
 ```
 
 We are now ready to sample from our distribution using `monty_sample()` with 2000 samples, starting our MCMC chain at the value 3 and running 4 chains sequentially.
