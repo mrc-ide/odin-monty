@@ -34,7 +34,8 @@ Assuming that the population is 75% from subpopulation 1 (normally distributed w
 
 ```{r}
 l_distribution <- monty_model_function(fn,
-                                       fixed = list(p = 0.75, m1 = 3, m2 = 7))
+                                       fixed = list(p = 0.75, m1 = 3, m2 = 7),
+                                       allow_multiple_parameters = TRUE)
 ```
 
 We have just created a `monty` model. 
@@ -46,7 +47,9 @@ l_distribution
 We can plot the density of our model for values of $l$ between 0 and 10 and eye-check that we can see the two subpopulations in the correct proportions and with the 3 and 7 as modes.
 
 ```{r}
+#l <- matrix(seq(from = 0, to = 10, by = 0.1), 1)
 l <- seq(from = 0, to = 10, by = 0.1)
+#monty_model_density(l_distribution, l)
 plot(l,
      exp(Vectorize(l_distribution$density)(l)),
      type = "l",
