@@ -86,8 +86,6 @@ Many statistical modelling tools, such as [WinBUGS](https://en.wikipedia.org/wik
 
 A key concept in Bayesian inference and Monte Carlo methods is the distinction between **normalised** and **unnormalised** probability densities.
 
-### Unnormalised density
-
 In Bayesian inference, rather than using the "full" Bayesian as above, we are often working with defining posterior density as being proportional to a product of densities:
 
 $$
@@ -101,14 +99,8 @@ where:
   
 Note that it does not involve the normalising constant $p(y)$ anymore. The reason is that since calculating $p(y)$ can be very difficult, we often work with the **unnormalised posterior density** $p(y|\theta)p(\theta)$. This unnormalised form is sufficient for many Monte Carlo methods, where only relative densities matter.
 
-### Normalised density
-
 A **normalised density** integrates to 1 over its entire parameter space. This is necessary for direct probability interpretations and for certain Bayesian methods, like model comparison using [Bayes factors](https://en.wikipedia.org/wiki/Bayes_factor).
 
-## Monte Carlo methods with unnormalised densities
-
 Monte Carlo algorithms, such as **Metropolis-Hastings** and **Importance Sampling**, often operate using unnormalised densities, focusing on relative probabilities rather than absolute values. This makes them efficient for high-dimensional problems where calculating a normalising constant is untractable.
-
-## Linking to Physics: partition functions and probability densities
 
 Normalisation in probability densities has parallels in physics. In statistical mechanics, the **partition function** $Z$ normalises probabilities over all possible states, much like normalising densities in Bayesian inference. This connection highlights why algorithms like **Metropolis-Hastings** use unnormalised densities: they mirror physical systems where absolute energies are less relevant than energy differences.
