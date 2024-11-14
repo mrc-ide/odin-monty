@@ -24,7 +24,6 @@ book:
       - model.qmd
       - monty-dsl.qmd
       - samplers.qmd
-      - runners.qmd
     - part: "Odin & Monty"
       chapters:
       - inference.qmd
