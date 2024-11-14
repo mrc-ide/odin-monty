@@ -65,16 +65,9 @@ sir <- odin({
   gamma <- parameter(0.1)
   
   # Dimensions of arrays
-  dim(S0) <- 2
-  dim(I0) <- 2
-  dim(S) <- 2
-  dim(I) <- 2
-  dim(R) <- 2
-  dim(n_SI) <- 2
-  dim(n_IR) <- 2
-  dim(p_SI) <- 2
-  dim(m) <- c(2, 2)
-  dim(s_ij) <- c(2, 2)
+  dim(S0, I0, S, I, R) <- 2
+  dim(n_SI, n_IR, p_SI) <- 2
+  dim(m, s_ij) <- c(2, 2)
   dim(lambda) <- 2
 })
 ```
@@ -170,13 +163,17 @@ sir_age <- odin({
   p_IR <- 1 - exp(-gamma * dt) # I to R
   
   # Calculate force of infection
-  ## age-structured contact matrix: m[i, j] is mean number of contacts an
-  ## individual in group i has with an individual in group j per time unit
+  
+  # age-structured contact matrix: m[i, j] is mean number of contacts an
+  # individual in group i has with an individual in group j per time unit
+  
   m <- parameter()
-  ## here s_ij[i, j] gives the mean number of contacts and individual in group
-  ## i will have with the currently infectious individuals of group j
+  
+  # here s_ij[i, j] gives the mean number of contacts and individual in group
+  # i will have with the currently infectious individuals of group j
   s_ij[, ] <- m[i, j] * I[j]
-  ## lambda[i] is the total force of infection on an individual in group i 
+  
+  # lambda[i] is the total force of infection on an individual in group i 
   lambda[] <- beta * sum(s_ij[i, ])
   
   # Draws from binomial distributions for numbers changing between
@@ -197,16 +194,9 @@ sir_age <- odin({
   
   # Dimensions of arrays
   n_age <- parameter()
-  dim(S0) <- n_age
-  dim(I0) <- n_age
-  dim(S) <- n_age
-  dim(I) <- n_age
-  dim(R) <- n_age
-  dim(n_SI) <- n_age
-  dim(n_IR) <- n_age
-  dim(p_SI) <- n_age
-  dim(m) <- c(n_age, n_age)
-  dim(s_ij) <- c(n_age, n_age)
+  dim(S0, I0, S, I, R) <- n_age
+  dim(n_SI, n_IR, p_SI) <- n_age
+  dim(m, s_ij) <- c(n_age, n_age)
   dim(lambda) <- n_age
 })
 ```
@@ -287,22 +277,13 @@ sir_age_vax <- odin({
   # Dimensions of arrays
   n_age <- parameter()
   n_vax <- parameter()
-  dim(S0) <- c(n_age, n_vax)
-  dim(I0) <- c(n_age, n_vax)
-  dim(S) <- c(n_age, n_vax)
-  dim(I) <- c(n_age, n_vax)
-  dim(R) <- c(n_age, n_vax)
-  dim(n_SI) <- c(n_age, n_vax)
-  dim(n_IR) <- c(n_age, n_vax)
-  dim(p_SI) <- c(n_age, n_vax)
-  dim(m) <- c(n_age, n_age)
-  dim(s_ij) <- c(n_age, n_age)
+  dim(S0, I0, S, I, R) <- c(n_age, n_vax)
+  dim(n_SI, n_IR, p_SI) <- c(n_age, n_vax)
+  dim(m, s_ij) <- c(n_age, n_age)
   dim(lambda) <- n_age
   dim(eta) <- c(n_age, n_vax)
   dim(rel_susceptibility) <- c(n_vax)
-  dim(p_vax) <- c(n_age, n_vax)
-  dim(n_S_vax) <- c(n_age, n_vax)
-  dim(new_S) <- c(n_age, n_vax)
+  dim(p_vax, n_S_vax, new_S) <- c(n_age, n_vax)
 })
 ```
 
