@@ -33,7 +33,7 @@ fn <- function(l, p, m1, m2) {
 Assuming that the population is 75% from subpopulation 1 (normally distributed with mean 3) and 25% from subpopulation 2 (also normally distributed but with mean 7), we can build our `monty` model by indicating that the parameters of the subpopulations are fixed at these given values.
 
 ```{r}
-l_distribution <- monty_model_function(fn,
+mixture_model <- monty_model_function(fn,
                                        fixed = list(p = 0.75, m1 = 3, m2 = 7),
                                        allow_multiple_parameters = TRUE)
 ```
@@ -41,7 +41,7 @@ l_distribution <- monty_model_function(fn,
 We have just created a `monty` model. 
 
 ```{r}
-l_distribution
+mixture_model
 ```
 
 We can plot the density of our model for values of $l$ between 0 and 10 and eye-check that we can see the two subpopulations in the correct proportions and with the 3 and 7 as modes.
@@ -51,7 +51,7 @@ We can plot the density of our model for values of $l$ between 0 and 10 and eye-
 l <- seq(from = 0, to = 10, by = 0.1)
 #monty_model_density(l_distribution, l)
 plot(l,
-     exp(Vectorize(l_distribution$density)(l)),
+     exp(Vectorize(mixture_model$density)(l)),
      type = "l",
      ylab = "density")
 ```
@@ -71,7 +71,7 @@ sampler <- monty_sampler_random_walk(matrix(1))
 We are now ready to sample from our distribution using `monty_sample()` with 2000 samples, starting our MCMC chain at the value 3 and running 4 chains sequentially.
 
 ```{r}
-samples <- monty_sample(l_distribution, sampler, 2000, initial = 3, n_chains = 4)
+samples <- monty_sample(mixture_model, sampler, 2000, initial = 3, n_chains = 4)
 ```
 
 We can visualise our 4 chains.
