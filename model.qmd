@@ -62,9 +62,11 @@ where:
   - $p(\theta)$ is the prior distribution, and
   - $p(y)$ is a normalising constant to ensure the posterior integrates to 1 over all $\theta$ values.
 
-Bayesian inference updates our beliefs about parameters based on observed data, yielding a posterior distribution that reflects both model assumptions and data influence. This probabilistic framework around a dynamical system’s parameters creates a flexible statistical model that adapts as new data becomes available.
+Bayesian inference allows us to update our understanding of parameters based on observed data, yielding a posterior distribution that incorporates both model assumptions and the influence of the data. This approach provides a probabilistic framework that can adapt dynamically as new data becomes available, making it ideal for statistical models that require flexibility.
 
-In this way, **stochastic processes** add an uncertainty dimension to the state of dynamical systems, while **Bayesian inference** applies probabilistic modelling to the parameters, merging dynamical and statistical perspectives. Together, these methods provide a rich toolkit for modelling complex systems that evolve over time and accounting for both randomness and uncertainty.
+Many statistical modelling tools—such as [WinBUGS](https://en.wikipedia.org/wiki/WinBUGS), [JAGS](https://en.wikipedia.org/wiki/Just_another_Gibbs_sampler), `stan`, and `BayesTools`—are fundamentally Bayesian. However, the `monty` package is **Bayesian-agnostic**, allowing users to choose between Bayesian and non-Bayesian approaches to probabilistic modelling, depending on the analytical requirements.
+
+By combining **stochastic processes** with **Bayesian inference**, we add a dual dimension of uncertainty: randomness in the state of dynamical systems through stochastic processes, and probabilistic modelling of parameters through Bayesian methods. Together, these frameworks enable us to build robust models for complex systems that evolve over time, capturing both inherent randomness and uncertainty in our understanding.
 
 ## Parameters and model complexity
 
@@ -77,10 +79,6 @@ In dynamical models, parameters define the structure and dynamics of the scenari
 Statistical models, meanwhile, use parameters to define probability distributions over possible outcomes rather than scenario-specific details. Here, parameters describe uncertainties, often quantifying risks, making predictions, or summarising patterns in data.
 
 The `odin` package allows us to build and explore the behaviours of dynamical models over time, while `monty` enables us to quantify uncertainties and make probabilistic inferences without simulating detailed dynamics.
-
-## Bayesian or non-Bayesian modelling
-
-Many statistical modelling tools, such as [WinBUGS](https://en.wikipedia.org/wiki/WinBUGS), [JAGS](https://en.wikipedia.org/wiki/Just_another_Gibbs_sampler), `stan`, and `BayesTools`, are inherently Bayesian. However, the `monty` package is **Bayesian-agnostic**: it does not require a Bayesian interpretation. This flexibility allows users to work with probabilistic models either within a Bayesian framework or outside of it, depending on the needs of the analysis.
 
 ## Probability densities: normalised vs. unnormalised
 
