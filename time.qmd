@@ -112,3 +112,67 @@ plot(t, run(3.8, sys2, t), ylim = 0:1, type = "l",
 ```
 
 None of these dynamics appeared in the continuous time version!
+
+## Variables that reset {#sec-reset-variables}
+
+Let's revisit our simple SIR example from @sec-odin-sir. Our model had just three compartments; `S`, `I` and `R`. These all represent prevalences, but frequently we are interested in incidences, for example the incidence of new infections or cases. This might be because we want to fit to data that are incidences, or it might just be that we want to run projections of a model and output incidences over time.
+
+In some simple models it might be easy enough to extract incidences given outputs on all states of the model, but with increasingly complexity this calculation quickly becomes overly complicated or even impossible. Thus we support calculating incidences within your odin code.
+
+Suppose that each time unit represents one day.  We can declare `incidence` as a variable that resets every day by using the `zero_every` argument.
+
+```{r}
+sir <- odin({
+  deriv(S) <- -beta * S * I / N
+  deriv(I) <- beta * S * I / N - gamma * I
+  deriv(R) <- gamma * I
+  deriv(incidence) <- incidence + beta * S * I / N
+
+  initial(S) <- N - I0
+  initial(I) <- I0
+  initial(R) <- 0
+  initial(incidence, zero_every = 1) <- 0
+
+  N <- parameter(1000)
+  I0 <- parameter(10)
+  beta <- parameter(0.2)
+  gamma <- parameter(0.1)
+})
+```
+
+If we were interested in weekly incidence we might choose to write
+
+```r
+initial(incidence, zero_every = 7) <- 0
+```
+
+or to work with time so that one unit represents a *week* rather than a day and scaling our rates accordingly.
+
+::: {.callout-note}
+Variables reset on multiples of the value of `zero_every`, and it is not currently possible to have this offset. If `zero_every = 7` the variable would reset only on multiples of 7 - so if you were dealing with weekly data, you would have to be careful to set time-zero in such a way that your weekly data aligns on multiples of 7!
+:::
+
+When running this model we'll see incidence produced:
+
+```{r}
+pars <- list(beta = 1, gamma = 0.6)
+sys <- dust_system_create(sir, pars)
+dust_system_set_state_initial(sys)
+t <- seq(0, 20, by = 0.05)
+y <- dust_system_simulate(sys, t)
+y <- dust_unpack_state(sys, y)
+plot(t, y$incidence, type = "s", xlab = "Time", ylab = "Incidence")
+```
+
+We have output at intervals of one 20th of a day, so we see 20 levels of incidence per day, with the last being the daily peak.  If we output instead at intervals of one day, we only get those peaks corresponding to the daily incidence
+
+```{r}
+sys <- dust_system_create(sir, pars)
+dust_system_set_state_initial(sys)
+t <- seq(0, 20)
+y <- dust_system_simulate(sys, t)
+y <- dust_unpack_state(sys, y)
+plot(t, y$incidence, type = "p", xlab = "Time", ylab = "Incidence")
+```
+
+We will see that resetting variables works in a similar fashion for discrete-time models in @sec-stochasticity.
