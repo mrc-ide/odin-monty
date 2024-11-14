@@ -70,15 +70,13 @@ By combining **stochastic processes** with **Bayesian inference**, we add a dual
 
 ## Parameters and model complexity
 
-### Parameters in dynamical systems
+In both dynamical and statistical frameworks, the number of parameters can be adjusted as needed to capture the desired level of complexity. In the `monty` package, random variables - termed 'parameters' with a slight simplification of language - are typically used to summarise processes, and so they often form a more compact set than those found in dynamical models. This distinction is especially relevant in Bayesian models constructed from complex `odin` models.
 
-In dynamical models, parameters define the structure and dynamics of the scenario. For example, a detailed epidemiological model may need parameters for transmission rates, contact patterns, or intervention schedules. These inputs allow us to examine "what-if" scenarios, enabling decision-makers to predict and manage changes in real-time.
+In dynamical systems, parameters define the structure and evolution of a scenario in detail. For instance, an epidemiological model may include parameters for transmission rates, contact patterns, or intervention schedules. These inputs enable "what-if" scenarios, allowing decision-makers to predict and manage changes in real time. The `odin` package, designed to support such dynamical models, provides the flexibility to specify numerous parameters for exploring system behaviours over time. 
 
-### Parameters in statistical models
+Statistical models, by contrast, use parameters to define probability distributions over possible outcomes, capturing uncertainties, predicting risks, or summarising data patterns. In Bayesian models based on a complex `odin` framework, the statistical parameters are usually a subset of those used in the dynamical model itself. Parameters such as those defining a vaccination campaign (e.g. daiy number of doses given to target groups), for example, might be central to shaping the `odin` model but may not necessarily be included in Bayesian inference (that might focus on just vaccine efficacy at most). This selective approach allows us to quantify uncertainties and make probabilistic inferences about key aspects of the model without needing to explore detail of the underlying dynamics that are "known" for what was actually observed.
 
-Statistical models, meanwhile, use parameters to define probability distributions over possible outcomes rather than scenario-specific details. Here, parameters describe uncertainties, often quantifying risks, making predictions, or summarising patterns in data.
-
-The `odin` package allows us to build and explore the behaviours of dynamical models over time, while `monty` enables us to quantify uncertainties and make probabilistic inferences without simulating detailed dynamics.
+Thus, while dynamical models rely on a broad parameter set for flexibility, statistical parameters summarise uncertainty more compactly, making the combined approach especially effective for realistic, data-driven inferences. 
 
 ## Probability densities: normalised vs. unnormalised
 
