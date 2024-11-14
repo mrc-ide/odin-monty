@@ -80,7 +80,7 @@ The `odin` package allows us to build and explore the behaviours of dynamical mo
 
 ## Bayesian or non-Bayesian modelling
 
-Many statistical modelling tools, such as `stan`, `mcstate`, and `BayesTools`, are inherently Bayesian. However, the `monty` package is **Bayesian-agnostic**: it does not require a Bayesian interpretation. This flexibility allows users to work with probabilistic models either within a Bayesian framework or outside of it, depending on the needs of the analysis.
+Many statistical modelling tools, such as [WinBUGS](https://en.wikipedia.org/wiki/WinBUGS), [JAGS](https://en.wikipedia.org/wiki/Just_another_Gibbs_sampler), `stan`, and `BayesTools`, are inherently Bayesian. However, the `monty` package is **Bayesian-agnostic**: it does not require a Bayesian interpretation. This flexibility allows users to work with probabilistic models either within a Bayesian framework or outside of it, depending on the needs of the analysis.
 
 ## Probability densities: normalised vs. unnormalised
 
