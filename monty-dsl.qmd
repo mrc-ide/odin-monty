@@ -5,7 +5,7 @@
 source("common.R")
 ```
 
-The `monty` DSL provides a more intuitive way to define statistical models with `monty`. It is currently relatively basic and focus on providing support for defining priors in Bayesian models. It fully support differentiability allowing to use gradient based samplers on these models.
+The `monty` DSL provides a more intuitive way to define statistical models with `monty`. It is currently relatively basic and focuses on providing support for defining priors in Bayesian models. It fully support differentiability allowing to use gradient based samplers on these models.
 
 ```{r}
 library(monty)
