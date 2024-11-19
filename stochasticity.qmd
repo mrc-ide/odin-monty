@@ -61,6 +61,8 @@ sir <- odin({
 
 This is a discrete-time model (using `update()` and not `deriv()`) as stochastic models must run in discrete time.  We use `dt` to scale the rates, and adjusting `dt` will change the way that stochasticity affects the dynamics of the system.
 
+The call to `Binomial()` samples from a binomial distribution, returning the number of successes from `S` (or `I`) draws, each with probability `p_SI` (or `p_IR`).
+
 ```{r}
 sir
 ```

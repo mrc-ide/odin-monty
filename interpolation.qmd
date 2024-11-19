@@ -252,8 +252,7 @@ sis <- odin({
   schools <- interpolate(schools_time, schools_open, "constant")
   schools_time <- parameter(constant = TRUE)
   schools_open <- parameter(constant = TRUE)
-  dim(schools_time) <- parameter(rank = 1)
-  dim(schools_open) <- parameter(rank = 1)
+  dim(schools_time, schools_open) <- parameter(rank = 1)
   schools_modifier <- parameter(0.6)
   beta <- ((1 - schools) * (1 - schools_modifier) + schools) * beta0
   gamma <- 0.1
@@ -316,8 +315,7 @@ sis <- odin({
   beta <- interpolate(beta_time, beta_value, "spline")
   beta_time <- parameter(constant = TRUE)
   beta_value <- parameter(constant = TRUE)
-  dim(beta_time) <- parameter(rank = 1)
-  dim(beta_value) <- parameter(rank = 1)
+  dim(beta_time, beta_value) <- parameter(rank = 1)
   gamma <- 0.1
 })
 ```

@@ -1,4 +1,9 @@
 # References {.unnumbered}
 
+```{r}
+#| include: false
+source("common.R")
+```
+
 ::: {#refs}
 :::

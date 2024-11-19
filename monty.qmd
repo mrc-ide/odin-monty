@@ -5,6 +5,8 @@
 source("common.R")
 ```
 
+Before showing how to fit odin models to data, we'll focus for a bit on monty itself.  If you are anxious to get on and fit the model from @sec-data-filter, you might skip ahead to @sec-inference, where we resume this.
+
 The `monty` R package is designed for modular work with statistical distributions, leveraging Monte Carlo methods for sampling. It enables the construction of increasingly complex models through four approaches:
 
 1. Simple R code,
