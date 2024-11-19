@@ -24,7 +24,7 @@ library(monty)
 
 We can define a simple Gaussian [mixture model](https://en.wikipedia.org/wiki/Mixture_model) of two sub-populations using the `monty_model_function()` from the package. The model represents the distribution of a quantity $l$, sampled with a probability $p$ from a normal distribution of mean $m_{1}$ and with a probability $1-p$ from another normal distribution of mean $m_{2}$. Both subpopulations have variance equal to 1. 
 
-To build our `monty` model, we start by defining an R function returning the log-density of our statistical model. This function has for arguments $l$, the quantity of interest and the three parameters $p$, $m_{1}$ and $m_{1}$ defining the two Normally-distributed subpopulations.
+To build our `monty` model, we start by defining an R function returning the log-density of our statistical model. This function has four arguments $l$ (the quantity of interest) and the three parameters $p$, $m_{1}$ and $m_{2}$ defining the two Normally-distributed subpopulations.
 
 ```{r}
 fn <- function(l, p, m1, m2) {
