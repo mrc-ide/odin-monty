@@ -1,5 +1,10 @@
 # Installation
 
+```{r}
+#| include: false
+source("common.R")
+```
+
 Package installation is hard, let's go shopping.
 
 ## Packages

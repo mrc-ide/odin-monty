@@ -252,15 +252,14 @@ sis <- odin({
   schools <- interpolate(schools_time, schools_open, "constant")
   schools_time <- parameter(constant = TRUE)
   schools_open <- parameter(constant = TRUE)
-  dim(schools_time) <- parameter(rank = 1)
-  dim(schools_open) <- parameter(rank = 1)
+  dim(schools_time, schools_open) <- parameter(rank = 1)
   schools_modifier <- parameter(0.6)
   beta <- ((1 - schools) * (1 - schools_modifier) + schools) * beta0
   gamma <- 0.1
 })
 ```
 
-When we create the system, we must pass in values for the components of `school`; there are no defaults for vector parameters.
+When we create the system, we must pass in values for the components of `school`; there are no defaults for vector parameters. The `constant = TRUE` argument when declaring the parameters specifies that these parameters cannot be changed after being set; this is necessary if we wanted to use these parameters to index into an array later, but moreover makes our intentions clear for the purposes of these parameters.
 
 ```{r}
 pars <- list(schools_time = schools_time, schools_open = schools_open)
@@ -316,8 +315,7 @@ sis <- odin({
   beta <- interpolate(beta_time, beta_value, "spline")
   beta_time <- parameter(constant = TRUE)
   beta_value <- parameter(constant = TRUE)
-  dim(beta_time) <- parameter(rank = 1)
-  dim(beta_value) <- parameter(rank = 1)
+  dim(beta_time, beta_value) <- parameter(rank = 1)
   gamma <- 0.1
 })
 ```
@@ -344,7 +342,34 @@ y <- dust_unpack_state(sys, y)
 plot(t, y$I, type = "l", xlab = "Time", ylab = "Number of infected individuals")
 ```
 
+
+### Interpolation of arrays
+
+There are situations where you won't just want to interpolate a scalar value at a time point, but an array. For instance, you have parameters indicating the daily number of vaccine doses that are being distributed and the time points at which these change.
+
+In such an example the relevant odin code could be
+
+```r
+daily_doses_value <- parameter(constant = TRUE)
+dim(daily_doses_value) <- parameter(rank = 2)
+daily_doses_time <- parameter(constant = TRUE)
+dim(daily_doses_time) <- parameter(rank = 1)
+
+daily_doses <- interpolate(daily_doses_time, daily_doses_value, "constant")
+dim(daily_doses) <- N_age
+```
+
+Here `daily_doses_value` will be an array with first dimension of length `N_age` and the 2nd dimension of length equal to the length of `daily_doses_time`. Thus `daily_doses_value[i, j]` will be the value of `daily_doses[i]` at time `daily_doses_time[j]`. Interpolation will then be applied for each `i` (constant interpolation in the above case, but it could also be linear).
+
+Note that the syntax of the line
+```r
+daily_doses <- interpolate(daily_doses_time, daily_doses_value, "constant")
+```
+does not differ whether are interpolating a scalar quantity or an array quantity.
+
+In this example we have interpolated a vector quantity. You can interpolate higher-dimensional arrays. Just always make sure that the last dimension of your "value" array corresponds to your "time" vector.
+
+
 ## Additional topics not yet covered
 
 * order of events in interpolation with discrete time models
-* interpolation of arrays (especially for data inputs in piecewise constant interpolation)

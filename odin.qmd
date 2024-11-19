@@ -13,7 +13,15 @@ library(odin2)
 
 ## A simple example {#sec-odin-sir}
 
-Here is a small system of equations for an "SIR" (Susceptible-Infected-Recovered) model, implemented as a set of ordinary differential equations:
+Here is a small system of differential equations for an "SIR" (Susceptible-Infected-Recovered) model:
+
+\begin{gather*}
+\frac{dS}{dt} = -\beta S \frac{I}{N}\\
+\frac{dI}{dt} = \beta S \frac{I}{N} - \gamma I\\
+\frac{dR}{dt} = \gamma I
+\end{gather*}
+
+And here is an implementation of these equations in `odin`:
 
 ```{r}
 sir <- odin({

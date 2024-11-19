@@ -20,34 +20,43 @@ library(dust2)
 Let's take the simple stochastic SIR model from @sec-stochastic-sir and add age structure to it by having two groups (children and adults), with heterogeneous mixing between the groups.
 
 ```{r}
-sir_2 <- odin({
+sir <- odin({
+  
   # Equations for transitions between compartments by age group
   update(S[]) <- S[i] - n_SI[i]
   update(I[]) <- I[i] + n_SI[i] - n_IR[i]
   update(R[]) <- R[i] + n_IR[i]
+  update(incidence) <- incidence + n_SI[1] + n_SI[2]
   
   # Individual probabilities of transition:
+  
   p_SI[] <- 1 - exp(-lambda[i] * dt) # S to I
   p_IR <- 1 - exp(-gamma * dt) # I to R
   
   # Calculate force of infection
-  ## age-structured contact matrix: m[i, j] is mean number of contacts an
-  ## individual in group i has with an individual in group j per time unit
+  
+  # age-structured contact matrix: m[i, j] is mean number of contacts an
+  # individual in group i has with an individual in group j per time unit
+  
   m <- parameter()
-  ## here s_ij[i, j] gives the mean number of contacts and individual in group
-  ## i will have with the currently infectious individuals of group j
+  
+  # here s_ij[i, j] gives the mean number of contacts and individual in group
+  # i will have with the currently infectious individuals of group j
   s_ij[, ] <- m[i, j] * I[j]
-  ## lambda[i] is the total force of infection on an individual in group i 
+  
+  # lambda[i] is the total force of infection on an individual in group i 
   lambda[] <- beta * (s_ij[i, 1] + s_ij[i, 2])
   
   # Draws from binomial distributions for numbers changing between
   # compartments:
+  
   n_SI[] <- Binomial(S[i], p_SI[i])
   n_IR[] <- Binomial(I[i], p_IR)
   
   initial(S[]) <- S0[i]
   initial(I[]) <- I0[i]
   initial(R[]) <- 0
+  initial(incidence, zero_every = 1) <- 0
   
   # User defined parameters - default in parentheses:
   S0 <- parameter()
@@ -96,16 +105,25 @@ dim(S) <- 2
 ```
 or can be generalised so that the dimensions themselves become parameters:
 ```r
-dim(S) <- N_age
-N_age <- parameter()
+dim(S) <- n_age
+n_age <- parameter()
 ```
 You may have array parameters, these can have dimensions explicitly declared
 ```r
-dim(m) <- c(N_age, N_age)
+dim(m) <- c(n_age, n_age)
 ```
 or they can also have their dimensions detected when the parameters are passed into the system - this still needs a `dim` equation where you must explicitly state the rank:
 ```r
 dim(m) <- parameter(rank = 2)
+```
+You can also declare the dimensions of one array to be the same as the dimensions of another:
+```r
+dim(m) <- c(n_age, n_age)
+dim(s_ij) <- dim(m)
+```
+or collectively declare dimensions of arrays that have the same dimensions:
+```r
+dim(m, s_ij) <- c(n_age, n_age)
 ```
 
 ## Summing over arrays
@@ -146,7 +164,7 @@ The same syntax applies to other functions that reduce arrays: `min`, `max` and 
 
 ## Example: a generalised age structured SIR model {#sec-stochastic-age}
 
-Let's now take the two group SIR model and generalise it to `N_age` age groups
+Let's now take the two group SIR model and generalise it to `n_age` age groups
 
 ```{r}
 sir_age <- odin({
@@ -154,19 +172,24 @@ sir_age <- odin({
   update(S[]) <- S[i] - n_SI[i]
   update(I[]) <- I[i] + n_SI[i] - n_IR[i]
   update(R[]) <- R[i] + n_IR[i]
+  update(incidence) <- incidence + sum(n_SI)
   
   # Individual probabilities of transition:
   p_SI[] <- 1 - exp(-lambda[i] * dt) # S to I
   p_IR <- 1 - exp(-gamma * dt) # I to R
   
   # Calculate force of infection
-  ## age-structured contact matrix: m[i, j] is mean number of contacts an
-  ## individual in group i has with an individual in group j per time unit
+  
+  # age-structured contact matrix: m[i, j] is mean number of contacts an
+  # individual in group i has with an individual in group j per time unit
+  
   m <- parameter()
-  ## here s_ij[i, j] gives the mean number of contacts and individual in group
-  ## i will have with the currently infectious individuals of group j
+  
+  # here s_ij[i, j] gives the mean number of contacts and individual in group
+  # i will have with the currently infectious individuals of group j
   s_ij[, ] <- m[i, j] * I[j]
-  ## lambda[i] is the total force of infection on an individual in group i 
+  
+  # lambda[i] is the total force of infection on an individual in group i 
   lambda[] <- beta * sum(s_ij[i, ])
   
   # Draws from binomial distributions for numbers changing between
@@ -177,6 +200,7 @@ sir_age <- odin({
   initial(S[]) <- S0[i]
   initial(I[]) <- I0[i]
   initial(R[]) <- 0
+  initial(incidence, zero_every = 1) <- 0
   
   # User defined parameters - default in parentheses:
   S0 <- parameter()
@@ -185,18 +209,12 @@ sir_age <- odin({
   gamma <- parameter(0.1)
   
   # Dimensions of arrays
-  N_age <- parameter()
-  dim(S0) <- N_age
-  dim(I0) <- N_age
-  dim(S) <- N_age
-  dim(I) <- N_age
-  dim(R) <- N_age
-  dim(n_SI) <- N_age
-  dim(n_IR) <- N_age
-  dim(p_SI) <- N_age
-  dim(m) <- c(N_age, N_age)
-  dim(s_ij) <- c(N_age, N_age)
-  dim(lambda) <- N_age
+  n_age <- parameter()
+  dim(S, S0, n_SI, p_SI) <- n_age
+  dim(I, I0, n_IR) <- n_age
+  dim(R) <- n_age
+  dim(m, s_ij) <- c(n_age, n_age)
+  dim(lambda) <- n_age
 })
 ```
 
@@ -216,7 +234,7 @@ We are aiming to support matrix multiplication in future to help simplify this c
 
 ## Indexing
 
-We have seen in the above examples uses of 1d and 2d arrays, making use of index variables `i` and `j`. Note that while we never use these index variables on the LHS, it is implicit that on the LHS we are indexing by `i` for 1d arrays and `i` and `j` for 2d arrays! Use of these index variables on the RHS corresponds to the indexing on the LHS.
+We have seen in the above examples uses of 1-dimensions and 2-dimensional arrays, making use of index variables `i` and `j`. Note that while we never use these index variables on the LHS, it is implicit that on the LHS we are indexing by `i` for 1-dimensional arrays and `i` and `j` for 2-dimensional arrays! Use of these index variables on the RHS corresponds to the indexing on the LHS.
 
 Of course you may want to use higher-dimensional arrays! We currently supporting up to 8 dimensions, with index variables `i`, `j`, `k`, `l`, `i5`, `i6`, `i7` and `i8`.
 
@@ -237,6 +255,7 @@ sir_age_vax <- odin({
   update(S[, ]) <- new_S[i, j]
   update(I[, ]) <- I[i, j] + n_SI[i, j] - n_IR[i, j]
   update(R[, ]) <- R[i, j] + n_IR[i, j]
+  update(incidence) <- incidence + sum(n_SI)
   
   # Individual probabilities of transition:
   p_SI[, ] <- 1 - exp(-rel_susceptibility[j] * lambda[i] * dt) # S to I
@@ -256,12 +275,13 @@ sir_age_vax <- odin({
   # Nested binomial draw for vaccination in S
   # Assume you cannot move vaccine class and get infected in same step
   n_S_vax[, ] <- Binomial(S[i, j] - n_SI[i, j], p_vax[i, j])
-  new_S[, 1] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, N_vax]
-  new_S[, 2:N_vax] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, j - 1]
+  new_S[, 1] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, n_vax]
+  new_S[, 2:n_vax] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, j - 1]
   
   initial(S[, ]) <- S0[i, j]
   initial(I[, ]) <- I0[i, j]
   initial(R[, ]) <- 0
+  initial(incidence, zero_every = 1) <- 0
   
   # User defined parameters - default in parentheses:
   S0 <- parameter()
@@ -272,42 +292,34 @@ sir_age_vax <- odin({
   rel_susceptibility <- parameter()
   
   # Dimensions of arrays
-  N_age <- parameter()
-  N_vax <- parameter()
-  dim(S0) <- c(N_age, N_vax)
-  dim(I0) <- c(N_age, N_vax)
-  dim(S) <- c(N_age, N_vax)
-  dim(I) <- c(N_age, N_vax)
-  dim(R) <- c(N_age, N_vax)
-  dim(n_SI) <- c(N_age, N_vax)
-  dim(n_IR) <- c(N_age, N_vax)
-  dim(p_SI) <- c(N_age, N_vax)
-  dim(m) <- c(N_age, N_age)
-  dim(s_ij) <- c(N_age, N_age)
-  dim(lambda) <- N_age
-  dim(eta) <- c(N_age, N_vax)
-  dim(rel_susceptibility) <- c(N_vax)
-  dim(p_vax) <- c(N_age, N_vax)
-  dim(n_S_vax) <- c(N_age, N_vax)
-  dim(new_S) <- c(N_age, N_vax)
+  n_age <- parameter()
+  n_vax <- parameter()
+  dim(S, S0, n_SI, p_SI) <- c(n_age, n_vax)
+  dim(I, I0, n_IR) <- c(n_age, n_vax)
+  dim(R) <- c(n_age, n_vax)
+  dim(m, s_ij) <- c(n_age, n_age)
+  dim(lambda) <- n_age
+  dim(eta) <- c(n_age, n_vax)
+  dim(rel_susceptibility) <- c(n_vax)
+  dim(p_vax, n_S_vax, new_S) <- c(n_age, n_vax)
 })
 ```
 
 We see we can use multiple lines to deal with boundary conditions:
 ```r
-new_S[, 1] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, N_vax]
-new_S[, 2:N_vax] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, j - 1]
+new_S[, 1] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, n_vax]
+new_S[, 2:n_vax] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, j - 1]
 ```
 which we could also write as
 ```r
 new_S[, ] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j]
-new_S[, 1] <- new_S[i, j] + n_S_vax[i, N_vax]
-new_S[, 2:N_vax] <- new_S[i, j] + n_S_vax[i, j - 1]
+new_S[, 1] <- new_S[i, j] + n_S_vax[i, n_vax]
+new_S[, 2:n_vax] <- new_S[i, j] + n_S_vax[i, j - 1]
 ```
 or another alternative way of writing this would be to use `if else`
 ```r
 new_S[, ] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] +
-    (if (j == 1) n_S_vax[i, N_vax] else n_S_vax[i, j - 1])
+    (if (j == 1) n_S_vax[i, n_vax] else n_S_vax[i, j - 1])
 ```
 Note that in odin, an `if` always requires an `else`!
 
@@ -341,9 +353,7 @@ n_IR[, ] <- Binomial(I[i, j], p_IR)
 update(I[, ]) <- I[i, j] + n_SI[i, j] - n_IR[i, j]
 update(R[, ]) <- R[i, j] + n_IR[i, j]
 
-dim(I) <- c(N_age, N_vax)
-dim(n_IR) <- c(N_age, N_vax)
-
+dim(I, I0, n_IR) <- c(n_age, n_vax)
 ```
 
 However, exponential distributions often do not capture the true distribution of infectious periods or other such delays you may be interested in modelling. Arrays in odin can be used to implement (discretised) [Erlang](https://en.wikipedia.org/wiki/Erlang_distribution)  distributions by breaking them down into stages of iid exponential distributions by adding a dimension to an array corresponding to these stages. For instance we could generalise the above to an Erlang with shape parameter `k_I` (the number of stages) and rate `gamma`:
@@ -356,8 +366,7 @@ n_I_progress[, , ] <- Binomial(I[i, j, k], p_I_progress)
 update(I[, , ]) <- I[i, j, k] - n_I_progress[i, j, k] +
   (if (k == 1) n_SI[i, j] else n_I_progress[i, j, k - 1])
 update(R[, ]) <- R[i, j] + n_I_progress[i, j, k_I]
-dim(I) <- c(N_age, N_vax, k_I)
-dim(n_I_progress) <- c(N_age, N_vax, k_I)
+dim(I, I0, n_I_progress) <- c(n_age, n_vax, k_I)
 ```
 
 and there would be some other bits we'd need to change to deal with the increased dimensionality of `I`:
@@ -365,5 +374,4 @@ and there would be some other bits we'd need to change to deal with the increase
 ```r
 s_ij[, ] <- m[i, j] * sum(I[j, ,])
 initial(I[, , ]) <- I0[i, j, k]
-dim(I0) <- c(N_age, N_vax, k_I)
 ```

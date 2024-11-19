@@ -5,6 +5,8 @@
 source("common.R")
 ```
 
+Before showing how to fit odin models to data, we'll focus for a bit on monty itself.  If you are anxious to get on and fit the model from @sec-data-filter, you might skip ahead to @sec-inference, where we resume this.
+
 The `monty` R package is designed for modular work with statistical distributions, leveraging Monte Carlo methods for sampling. It enables the construction of increasingly complex models through four approaches:
 
 1. Simple R code,
@@ -33,7 +35,7 @@ fn <- function(l, p, m1, m2) {
 Assuming that the population is 75% from subpopulation 1 (normally distributed with mean 3) and 25% from subpopulation 2 (also normally distributed but with mean 7), we can build our `monty` model by indicating that the parameters of the subpopulations are fixed at these given values.
 
 ```{r}
-l_distribution <- monty_model_function(fn,
+mixture_model <- monty_model_function(fn,
                                        fixed = list(p = 0.75, m1 = 3, m2 = 7),
                                        allow_multiple_parameters = TRUE)
 ```
@@ -41,7 +43,7 @@ l_distribution <- monty_model_function(fn,
 We have just created a `monty` model. 
 
 ```{r}
-l_distribution
+mixture_model
 ```
 
 We can plot the density of our model for values of $l$ between 0 and 10 and eye-check that we can see the two subpopulations in the correct proportions and with the 3 and 7 as modes.
@@ -51,7 +53,7 @@ We can plot the density of our model for values of $l$ between 0 and 10 and eye-
 l <- seq(from = 0, to = 10, by = 0.1)
 #monty_model_density(l_distribution, l)
 plot(l,
-     exp(Vectorize(l_distribution$density)(l)),
+     exp(Vectorize(mixture_model$density)(l)),
      type = "l",
      ylab = "density")
 ```
@@ -60,18 +62,18 @@ plot(l,
 
 We now want to sample from this model, using the `monty_sample()` function. For this we need to tell `monty` which sampler we want to use to explore our distribution. There are a variety of samplers available and you can learn about them in @sec-samplers. One of the simplest is the random walk [Metropolis-Hastings](https://en.wikipedia.org/wiki/Metropolis%E2%80%93Hastings_algorithm) algorithm that should work almost out of the box (though not necesseraly efficiently) in most cases.
 
-The random walk sampler uses a variance-covariance (VCV) matrix to guide its exploration, determining the 'jump' from the current point to the next in a random walk by drawing from a multivariate normal distribution parameterised by this matrix. For a single-parameter model, we use a 1x1 matrix (`matrix(1)`) as our VCV matrix.
+The random walk sampler uses a variance-covariance (VCV) matrix to guide its exploration, determining the 'jump' from the current point to the next in a random walk by drawing from a multivariate normal distribution parameterised by this matrix. For our single-parameter model here, we use a 1x1 matrix of variance 2 (`matrix(2)`) as our VCV matrix.
 
 The choice of the VCV matrix is critical for the sampler's efficiency, especially in more complex cases where the tuning of this matrix can significantly affect performance. A well-chosen VCV matrix optimises moving accross the parameter space, making the random walk sampler more effective in exploring the distribution of interest.
 
 ```{r}
-sampler <- monty_sampler_random_walk(matrix(1))
+sampler <- monty_sampler_random_walk(matrix(2))
 ```
 
 We are now ready to sample from our distribution using `monty_sample()` with 2000 samples, starting our MCMC chain at the value 3 and running 4 chains sequentially.
 
 ```{r}
-samples <- monty_sample(l_distribution, sampler, 2000, initial = 3, n_chains = 4)
+samples <- monty_sample(mixture_model, sampler, 2000, initial = 3, n_chains = 4)
 ```
 
 We can visualise our 4 chains.

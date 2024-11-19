@@ -22,16 +22,13 @@ book:
       chapters:
       - monty.qmd
       - model.qmd
-      - montyDSL.qmd
-      - composability.qmd
+      - monty-dsl.qmd
       - samplers.qmd
-      - runners.qmd
-      - advanced_monty.qmd
     - part: "Odin & Monty"
       chapters:
       - inference.qmd
       - differentiability.qmd
-      - 2009fluUK.qmd
+      - 2009-flu-uk.qmd
     - references.qmd
   appendices:
     - installation.qmd
