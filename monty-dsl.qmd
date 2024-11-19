@@ -11,9 +11,9 @@ The `monty` DSL provides a more intuitive way to define statistical models with 
 library(monty)
 ```
 
-## Some simple examples
+## A simple example
 
-In chapter 4 of Statistical Rethinking, we build a regression model of height with parameters $\alpha$, $\beta$ and $\sigma$.  We can define the model for the prior probability of this model in monty by running
+In chapter 4 of [Statistical Rethinking](https://xcelab.net/rm/), we build a regression model of height with parameters $\alpha$, $\beta$ and $\sigma$.  We can define the model for the prior probability of this model in monty by running
 
 ```{r}
 prior <- monty_dsl({
@@ -58,6 +58,34 @@ The computed properties for the model are:
 ```{r}
 prior$properties
 ```
+
+## Distribution functions
+
+In the above example we use distribution functions for the normal and uniform distributions. The distribution functions available for the `monty` DSL are the same as those for the `odin` DSL, the full list of which can be found [here](https://mrc-ide.github.io/odin2/articles/functions.html#distribution-functions).
+
+## Dependent distributions
+
+It is possible within the DSL to have the distribution of parameters to depend upon the value of other parameters:
+
+```{r}
+m <- monty_dsl({
+    a ~ Normal(0, 1)
+    b ~ Normal(a, 1)
+})
+```
+
+This is particularly useful for the implementation of [hyperpriors](https://en.wikipedia.org/wiki/Hyperprior) when using the DSL to define priors.
+
+Order of equations is important when using dependent distributions in the `monty` DSL! You cannot have the distribution of a parameter depend upon a parameter that is defined later. Thus rewriting the above example
+as
+
+```
+m <- monty_dsl({
+    b ~ Normal(a, 1)
+    a ~ Normal(0, 1)
+})
+```
+would produce an error.
 
 ## Calculations in the DSL
 
