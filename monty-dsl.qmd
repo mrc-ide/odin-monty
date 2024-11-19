@@ -76,8 +76,7 @@ m <- monty_dsl({
 
 This is particularly useful for the implementation of [hyperpriors](https://en.wikipedia.org/wiki/Hyperprior) when using the DSL to define priors.
 
-Order of equations is important when using dependent distributions in the `monty` DSL! You cannot have the distribution of a parameter depend upon a parameter that is defined later. Thus rewriting the above example
-as
+Order of equations is important when using dependent distributions in the `monty` DSL! You cannot have the distribution of a parameter depend upon a parameter that is defined later. Thus rewriting the above example as
 
 ```
 m <- monty_dsl({
