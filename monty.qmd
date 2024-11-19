@@ -14,7 +14,7 @@ The `monty` R package is designed for modular work with statistical distribution
 3. Integration of `odin` models,
 4. Composition of two `monty` models.
 
-The most basic method to define a `monty` model is through a simple R function, as shown in this chapter. More advanced examples are covered in the @sec-monty-models in particular in the context of Bayesian statistics. @sec-monty-dsl introduces the monty DSL for more versatile model building using a small probabilistic DSL similar to BUGs. @sec-monty-combine explains how to compose new monty models by combining two existing ones. The last part of this book starting from @sec-inference demonstrates how to incorporate `odin` models into `monty` workflows.
+The most basic method to define a `monty` model is through a simple R function, as shown in this chapter. More advanced examples are covered in the @sec-monty-models in particular in the context of Bayesian statistics. @sec-monty-dsl introduces the monty DSL for more versatile model building using a small probabilistic DSL similar to BUGs. The last part of this book starting from @sec-inference demonstrates how to incorporate `odin` models into `monty` workflows.
 
 ## A simple example
 
@@ -97,4 +97,4 @@ hist(samples$pars["l", , ], breaks = 100)
 
 We've discussed a little bit about the philosophy of `monty` and built a simple model using an R function with `monty_function`. The example introduces the basics of defining and sampling from a `monty` model.
 
-For more advanced applications, refer to @sec-monty-dsl for constructing models using `monty`'s domain-specific language, which enables greater flexibility for complex structures. To combine multiple models, see @sec-monty-combine, which demonstrates how to compose and integrate existing `monty` models. Lastly, @sec-inference illustrates how to incorporate `odin` models into `monty` workflows, expanding the package’s potential for Bayesian inference with more sophisticated, system-based models. Each section provides detailed examples to guide you in leveraging `monty`’s full capabilities.
+For more advanced applications, refer to @sec-monty-dsl for constructing models using `monty`'s domain-specific language, which enables greater flexibility for complex structures. Lastly, @sec-inference illustrates how to incorporate `odin` models into `monty` workflows, expanding the package’s potential for Bayesian inference with more sophisticated, system-based models. Each section provides detailed examples to guide you in leveraging `monty`’s full capabilities.
