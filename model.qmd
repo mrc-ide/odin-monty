@@ -1,0 +1,102 @@
+# About (monty) Models {#sec-monty-models}
+
+```{r}
+#| include: false
+source("common.R")
+```
+
+In this book, we explore two fundamentally different yet interconnected approaches to modelling: **dynamical systems** and **statistical models**. To illustrate these differences, let’s begin with a familiar (but maybe dated!) metaphor: the game [*SimCity*](https://en.wikipedia.org/wiki/SimCity).
+
+## Models vs. Models: dynamical and statistical perspectives
+
+### SimCity and dynamical systems
+
+Imagine a city model, as in *SimCity*, where thousands of virtual inhabitants follow routines, interact, and respond to changes like new buildings or natural disasters. These elements evolve according to predefined rules and parameters, similar to how **dynamical systems** simulate real-world processes over time.
+
+In a [**dynamical model**](https://en.wikipedia.org/wiki/Dynamical_system), we track changes in a system's "state" over time. The state is a summary of key information at a specific time point; for example, in an epidemiological model, the state might include the numbers of susceptible, infected, and recovered individuals. More detailed models may add variables like age, location, health risks, and symptoms, allowing us to simulate interventions, such as vaccination campaigns, and explore their potential impacts. There exist many formalisms to describe dynamical systems, incorporating e.g. specific input and output functions in control theory but the central element of these systems is this notion of the "state", a mathematical object summarising the system at a timepoint. 
+
+The `odin` package, which supports differential and difference equations, is an effective tool for building dynamical models, enabling users to simulate time-evolving systems. Dynamical models are well-suited for exploring how specific scenarios or interventions impact a system over time, making them particularly useful for modelling real-world phenomena in a structured way.
+
+TODO: simple odin deterministic model with discussion about results being a time indexed suite of "states"
+
+### Statistical models and uncertainty
+
+[**Statistical models**](https://en.wikipedia.org/wiki/Statistical_model), on the other hand, focus on capturing uncertainty in outcomes. Instead of simulating the system’s evolution over time, they represent possible states of the world probabilistically. Statistical models summarise data patterns or help make predictions based on uncertainties, such as estimating the range of future cases of a disease or identifying risk factors in a population.
+
+The `monty` package facilitates statistical modelling, providing tools for working with probability distributions and Monte Carlo methods. Where `odin` enables us to explore the dynamics of changing systems, `monty` is ideal for making probabilistic inferences and assessing variability across potential outcomes without necessarily modelling time-evolving dynamics.
+
+TODO: simple gaussian model - discussion about parameter being actually the sampling space and explain that it connects with Bayesian inference, show that the important component of the model is the parameters and domain support + density function, maybe shows that the model can be built in different way (R function, monty_model(), DSL).
+
+## Bridging dynamical systems and statistical models
+
+While dynamical systems and statistical models serve distinct purposes, they are not strictly separate. In fact, they can be connected through two powerful approaches that bring probabilistic reasoning into dynamical systems: **stochastic processes** and **Bayesian inference**.
+
+### Stochastic processes: adding uncertainty to dynamical models
+
+A natural way to bridge dynamical and statistical models is by introducing [**stochastic processes**](https://en.wikipedia.org/wiki/Stochastic_process). Traditional dynamical models use fixed parameters and deterministic rules to evolve a system’s state over time. However, many real-world systems have inherent randomness or uncertainty that deterministic models cannot capture.
+
+In a **stochastic process**, the system’s state is no longer a single deterministic value but a collection of potential outcomes, each weighted by a probability. This probabilistic view enables us to model fluctuations and uncertainties within the dynamical framework, capturing both the system’s evolution and the uncertainty in each state. Stochastic processes are thus a natural extension of dynamical models, adding an extra layer of realism by treating system evolution as inherently uncertain.
+
+The `odin` package provides an intuitive framework for writing a class of stochastic systems, making it easier to define models that incorporate randomness in their evolution over time. The `dust` package complements `odin` by enabling efficient large-scale simulations, allowing users to capture and analyse the uncertainty inherent to these systems through repeated runs. Together, `odin` and `dust` offer a powerful toolkit for developing and exploring stochastic models that reflect the complexity and variability of real-world dynamics. 
+
+TODO simple dust example or just link with relevant dust section in the book
+
+### Bayesian inference: statistical modelling of model parameters
+
+**Bayesian inference** is another approach to linking dynamical and statistical models by treating model parameters as random variables rather than fixed values. This introduces a probability distribution over possible parameter values, making parameter estimation a statistical problem.
+
+Using Bayes’ theorem, Bayesian inference combines:
+
+  - **The likelihood**: the probability of observing the data given specific parameter values, and
+  - **The prior distribution**: our initial assumptions about the parameter values before observing the data.
+  
+The result is the **posterior distribution** of a parameter $\theta$ given data $y$:
+
+$$
+p(\theta | y) = \frac{p(y|\theta) p(\theta)}{p(y)}
+$$
+
+where:
+
+  - $p(y|\theta)$ is the likelihood,
+  - $p(\theta)$ is the prior distribution, and
+  - $p(y)$ is a normalising constant to ensure the posterior integrates to 1 over all $\theta$ values.
+
+Bayesian inference allows us to update our understanding of parameters based on observed data, yielding a posterior distribution that incorporates both model assumptions and the influence of the data. This approach provides a probabilistic framework that can adapt dynamically as new data becomes available, making it ideal for statistical models that require flexibility.
+
+Many statistical modelling tools—such as [WinBUGS](https://en.wikipedia.org/wiki/WinBUGS), [JAGS](https://en.wikipedia.org/wiki/Just_another_Gibbs_sampler), `stan`, and `BayesTools`—are fundamentally Bayesian. However, the `monty` package is **Bayesian-agnostic**, allowing users to choose between Bayesian and non-Bayesian approaches to probabilistic modelling, depending on the analytical requirements.
+
+By combining **stochastic processes** with **Bayesian inference**, we add a dual dimension of uncertainty: randomness in the state of dynamical systems through stochastic processes, and probabilistic modelling of parameters through Bayesian methods. Together, these frameworks enable us to build robust models for complex systems that evolve over time, capturing both inherent randomness and uncertainty in our understanding.
+
+## Parameters and model complexity
+
+In both dynamical and statistical frameworks, the number of parameters can be adjusted as needed to capture the desired level of complexity. In the `monty` package, random variables - termed 'parameters' with a slight simplification of language - are typically used to summarise processes, and so they often form a more compact set than those found in dynamical models. This distinction is especially relevant in Bayesian models constructed from complex `odin` models.
+
+In dynamical systems, parameters define the structure and evolution of a scenario in detail. For instance, an epidemiological model may include parameters for transmission rates, contact patterns, or intervention schedules. These inputs enable "what-if" scenarios, allowing decision-makers to predict and manage changes in real time. The `odin` package, designed to support such dynamical models, provides the flexibility to specify numerous parameters for exploring system behaviours over time. 
+
+Statistical models, by contrast, use parameters to define probability distributions over possible outcomes, capturing uncertainties, predicting risks, or summarising data patterns. In Bayesian models based on a complex `odin` framework, the statistical parameters are usually a subset of those used in the dynamical model itself. Parameters such as those defining a vaccination campaign (e.g. daiy number of doses given to target groups), for example, might be central to shaping the `odin` model but may not necessarily be included in Bayesian inference (that might focus on just vaccine efficacy at most). This selective approach allows us to quantify uncertainties and make probabilistic inferences about key aspects of the model without needing to explore detail of the underlying dynamics that are "known" for what was actually observed.
+
+Thus, while dynamical models rely on a broad parameter set for flexibility, statistical parameters summarise uncertainty more compactly, making the combined approach especially effective for realistic, data-driven inferences. 
+
+## Probability densities: normalised vs. unnormalised
+
+A key concept in Bayesian inference and Monte Carlo methods is the distinction between **normalised** and **unnormalised** probability densities.
+
+In Bayesian inference, rather than using the "full" Bayesian as above, we are often working with defining posterior density as being proportional to a product of densities:
+
+$$
+p(\theta | y) \propto p(y|\theta) p(\theta)
+$$
+
+where:
+
+  - $p(y|\theta)$ is the likelihood, and
+  - $p(\theta)$ is the prior distribution, as above.
+  
+Note that it does not involve the normalising constant $p(y)$ anymore. The reason is that since calculating $p(y)$ can be very difficult, we often work with the **unnormalised posterior density** $p(y|\theta)p(\theta)$. This unnormalised form is sufficient for many Monte Carlo methods, where only relative densities matter.
+
+A **normalised density** integrates to 1 over its entire parameter space. This is necessary for direct probability interpretations and for certain Bayesian methods, like model comparison using [Bayes factors](https://en.wikipedia.org/wiki/Bayes_factor).
+
+Monte Carlo algorithms, such as **Metropolis-Hastings** and **Importance Sampling**, often operate using unnormalised densities, focusing on relative probabilities rather than absolute values. This makes them efficient for high-dimensional problems where calculating a normalising constant is untractable.
+
+Normalisation in probability densities has parallels in physics. In statistical mechanics, the **partition function** $Z$ normalises probabilities over all possible states, much like normalising densities in Bayesian inference. This connection highlights why algorithms like **Metropolis-Hastings** use unnormalised densities: they mirror physical systems where absolute energies are less relevant than energy differences.
