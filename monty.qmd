@@ -46,7 +46,7 @@ We have just created a `monty` model.
 mixture_model
 ```
 
-We can plot the density of our model for values of $l$ between 0 and 10 and eye-check that we can see the two subpopulations in the correct proportions and with the 3 and 7 as modes.
+We can plot the density of our model for values of $l$ between 0 and 10 and eye-check that we can see the two subpopulations in the correct proportions and with 3 and 7 as modes.
 
 ```{r}
 #l <- matrix(seq(from = 0, to = 10, by = 0.1), 1)
