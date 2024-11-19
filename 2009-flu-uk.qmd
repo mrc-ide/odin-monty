@@ -131,7 +131,12 @@ dim(h_times) <- parameter(rank=1)
 dim(h_values) <- length(h_times)
 gamma <- 1 / L
 sigma <- 1 / D
-beta <- R_0 * sigma})
+beta <- R_0 * sigma
+
+# observation model
+cases <- data()
+cases ~ Poisson(incidence)
+})
 ```
 
 ## Running the model
@@ -181,3 +186,12 @@ We now have a dataset and a working model, all loaded in our R environment. We n
 ## Cumulative incidence and observed cases
 
 The fundamental component of our model if the 'I' compartment tracking continuously the number of infectious people in our population (an infection prevalence). However, what we observe is a fraction of the cumulative incidence, more precisely the number of new cases in a period of 7 days (a week). In our `odin` model we track the cumulative incidence, and we have simulated it using 7 days intervals. We can thus write a simple function giving the cumulative incidence between two days:
+
+```{r}
+data$time <- data$Days
+filter <- dust_unfilter_create(seir, data = data, time_start = 0)
+dust_likelihood_run(filter, list(alpha=par0[1],
+                                    R_0=par0[2],
+                                    h_times = hol_t,
+                                    h_values= hol_v))
+```
