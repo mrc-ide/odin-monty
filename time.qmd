@@ -126,7 +126,7 @@ sir <- odin({
   deriv(S) <- -beta * S * I / N
   deriv(I) <- beta * S * I / N - gamma * I
   deriv(R) <- gamma * I
-  deriv(incidence) <- incidence + beta * S * I / N
+  deriv(incidence) <- beta * S * I / N
 
   initial(S) <- N - I0
   initial(I) <- I0

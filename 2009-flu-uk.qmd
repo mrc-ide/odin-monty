@@ -1,4 +1,4 @@
-# Modelling the 2009 UK flu pandemic
+# 2009 pandemic in the UK
 
 ```{r}
 #| include: false
@@ -60,10 +60,6 @@ original_data <- read.csv(file = "data/andre_estimates_21_02.txt", sep = "\t") %
 data <- data.frame(Cases = original_data) %>%
   mutate(Days = seq(7, by = 7, length.out = n())) %>%
   dplyr::select(Days, Cases)
-```
-
-```{r, echo=FALSE}
-q_n <- 1
 ```
 
 ## Plotting the data
