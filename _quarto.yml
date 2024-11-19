@@ -25,6 +25,7 @@ book:
       chapters:
       - inference.qmd
       - differentiability.qmd
+      - 2009-flu-uk.qmd
     - references.qmd
   appendices:
     - installation.qmd
