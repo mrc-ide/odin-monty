@@ -6,6 +6,7 @@ Authors@R: c(person("Rich", "FitzJohn", role = c("aut", "cre"),
              person("Imperial College of Science, Technology and Medicine",
                     role = "cph"))
 Imports:
+    bayesplot,
     brio,
     coda,
     cpp11,
