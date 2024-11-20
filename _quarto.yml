@@ -17,6 +17,7 @@ book:
       - arrays.qmd
       - interpolation.qmd
       - data.qmd
+      - debugging.qmd
       - packaging.qmd
     - part: "Monty"
       chapters:
