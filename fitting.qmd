@@ -61,7 +61,7 @@ matplot(t, t(incidence), type = "l", lty = 1, col = "#00000033",
 We need:
 
 * a data set
-  - time series of observed data (incidence? prevalance? something else?)
+  - time series of observed data (incidence? prevalence? something else?)
 * a measure of goodness of fit
   - how do we cope with stochasticity?
 * to know what parameters we are trying to fit
@@ -248,7 +248,7 @@ AKA, the particle filter
 - More complex structures are built up from simpler objects
   - Filter {data, model, n_particles}
   - PMCMC {parameters, filter}
-- Provides you with low-level tools, and little handholding
+- Provides you with low-level tools, and little hand-holding
 - Pretty fast though
 
 # PMCMC {.smaller}
@@ -503,7 +503,7 @@ samples <- monty_sample(posterior, sampler, 1000,
 monty_sample_manual_prepare(posterior, sampler, 10000, "mypath", n_chains = 10)
 ```
 
-Then queue these up on a cluster, e.g., using hipercow:
+Then queue these up on a cluster, e.g., using `hipercow`:
 
 ```r
 hipercow::task_create_bulk_call(
@@ -570,22 +570,8 @@ points(data, pch = 19, col = "red")
 
 * forward time predictions
 * posterior predictive checks
-* rerun filter in mcmc
+* rerun filter in MCMC
 * multi-parameter models
 * deterministic (expectation) models as starting points
 * adaptive fitting (deterministic models only)
 * HMC
-
-# Resources {.smaller}
-
-A nice PMCMC introduction written for the epidemiologist
-[Endo, A., van Leeuwen, E. & Baguelin, M. Introduction to particle Markov-chain Monte Carlo for disease dynamics modellers. Epidemics 29, 100363 (2019).](https://www.sciencedirect.com/science/article/pii/S1755436519300301?via%3Dihub)
-
-A tutorial about SMC
-[Doucet, A. & Johansen, A. M. A Tutorial on Particle filtering and smoothing: Fiteen years later. Oxford Handb. nonlinear Filter. 656–705 (2011). doi:10.1.1.157.772](https://www.stats.ox.ac.uk/~doucet/doucet_johansen_tutorialPF2011.pdf)
-
-The reference paper on PMCMC
-[Andrieu, C., Doucet, A. & Holenstein, R. Particle Markov chain Monte Carlo methods. J. R. Stat. Soc. Ser. B (Statistical Methodol. 72, 269–342 (2010).](https://www.stats.ox.ac.uk/~doucet/andrieu_doucet_holenstein_PMCMC.pdf)
-
-A software oriented paper introducing odin, dust and mcstate
-[R. G. FitzJohn et al. Reproducible parallel inference and simulation of stochastic state space models using odin, dust, and mcstate. Wellcome Open Res. 2021 5288 5, 288 (2021).](https://wellcomeopenresearch.org/articles/5-288)
