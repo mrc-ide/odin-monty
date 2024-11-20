@@ -397,11 +397,26 @@ sampler
 samples <- monty_sample(posterior, sampler, 1000)
 samples
 ```
+## The result: diagnostics
 
-## The result: parameters
+Diagnostics can be used from the `posterior` package
+```{r}
+## Note: as_draws_df converts samples$pars, and drops anything else in samples
+samples_df <- posterior::as_draws_df(samples)
+posterior::summarise_draws(samples_df)
+```
+
+## The results: parameters
+
+You can use the `posterior` package in conjunction with `bayesplot` (and then also `ggplot2`)
 
 ```{r}
-plot(t(drop(samples$pars)))
+bayesplot::mcmc_scatter(samples_df)
+```
+## The result: traceplots
+
+```{r}
+bayesplot::mcmc_trace(samples_df)
 ```
 
 ## The result: density over time
@@ -423,6 +438,25 @@ vcv <- matrix(c(0.005, 0.003, 0.003, 0.003), 2, 2)
 sampler <- monty_sampler_random_walk(vcv)
 samples <- monty_sample(posterior, sampler, 5000, n_chains = 4)
 matplot(samples$density[-(1:200), ], type = "l", lty = 1)
+```
+
+## Better mixing: the results
+
+```{r}
+samples_df <- posterior::as_draws_df(samples)
+posterior::summarise_draws(samples_df)
+```
+
+## Better mixing: the results
+
+```{r}
+bayesplot::mcmc_scatter(samples_df)
+```
+
+## Better mixing: the results
+
+```{r}
+bayesplot::mcmc_trace(samples_df)
 ```
 
 # Parallelism
