@@ -1,44 +1,5 @@
-project:
-  type: book
-
-book:
-  title: "Odin and Monty"
-  author: "Rich FitzJohn, Wes Hinsley, Ed Knock, Marc Baguelin, [and you?](https://github.com/mrc-ide/odin-montyblob/main/CONTRIBUTING.md)"
-  search: true
-  repo-url: https://github.com/mrc-ide/odin-monty/
-  repo-actions: [edit, issue, source]
-  chapters:
-    - index.qmd
-    - part: "Odin"
-      chapters:
-      - odin.qmd
-      - time.qmd
-      - stochasticity.qmd
-      - arrays.qmd
-      - interpolation.qmd
-      - data.qmd
-      - packaging.qmd
-    - part: "Monty"
-      chapters:
-      - monty.qmd
-      - model.qmd
-      - monty-dsl.qmd
-      - samplers.qmd
-    - part: "Odin & Monty"
-      chapters:
-      - inference.qmd
-      - differentiability.qmd
-      - 2009-flu-uk.qmd
-    - references.qmd
-  appendices:
-    - installation.qmd
-    - colophon.qmd
-
-bibliography: references.bib
-
-format:
-  html:
-    theme: cosmo
-
-resources:
-  - data/*.csv
+profile:
+  default: book
+  group:
+    - book
+    - slides

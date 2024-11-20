@@ -3,7 +3,7 @@ title: "Fitting odin models with monty"
 format:
   revealjs:
     preview-links: auto
-    footer: "[mrc-ide/odin-monty](..)"
+    footer: "[mrc-ide/odin-monty](.)"
 execute:
   echo: true
   message: true
@@ -14,8 +14,7 @@ execute:
 ```{r}
 #| include: false
 #| cache: false
-source("../common.R")
-file.copy("../data/incidence.csv", ".", overwrite = TRUE)
+source("common.R")
 ```
 # A pragmatic introduction
 
@@ -68,10 +67,10 @@ We need:
 
 ## The data {.smaller}
 
-You should download [incidence.csv](../incidence.csv)
+You should download [incidence.csv](data/incidence.csv)
 
 ```{r}
-data <- read.csv("incidence.csv")
+data <- read.csv("data/incidence.csv")
 head(data)
 ```
 
