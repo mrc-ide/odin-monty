@@ -28,7 +28,9 @@ jobs:
       - name: Render book to all format
         # Add any command line argument needed
         run: |
-          quarto render
+          quarto render --profile book
+          quarto render --profile slides
+          mv _slides _book/slides
 
       - name: Deploy to GitHub pages 🚀
         if: github.event_name != 'pull_request'
