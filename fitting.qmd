@@ -14,6 +14,7 @@ execute:
 ```{r}
 #| include: false
 #| cache: false
+set.seed(1)
 source("common.R")
 ```
 # A pragmatic introduction
@@ -60,7 +61,7 @@ matplot(t, t(incidence), type = "l", lty = 1, col = "#00000033",
 We need:
 
 * a data set
-  - time series of observed data (incidence? prevalance? something else?)
+  - time series of observed data (incidence? prevalence? something else?)
 * a measure of goodness of fit
   - how do we cope with stochasticity?
 * to know what parameters we are trying to fit
@@ -247,7 +248,7 @@ AKA, the particle filter
 - More complex structures are built up from simpler objects
   - Filter {data, model, n_particles}
   - PMCMC {parameters, filter}
-- Provides you with low-level tools, and little handholding
+- Provides you with low-level tools, and little hand-holding
 - Pretty fast though
 
 # PMCMC {.smaller}
@@ -493,3 +494,84 @@ Pass `runner` through to `monty_sample`:
 samples <- monty_sample(posterior, sampler, 1000,
                         runner = runner, n_chains = 4)
 ```
+
+(sorry, this is broken unless your model is in a package!)
+
+## Run chains on different cluster nodes
+
+```r
+monty_sample_manual_prepare(posterior, sampler, 10000, "mypath", n_chains = 10)
+```
+
+Then queue these up on a cluster, e.g., using `hipercow`:
+
+```r
+hipercow::task_create_bulk_call(
+  monty_sample_manual_run, 1:10, args = list("mypath"))
+```
+
+And retrieve the result
+
+```r
+samples <- monty_sample_manual_collect("mypath")
+```
+
+(sorry, also broken unless your model is in a package!)
+
+## Autocorrelation {.smaller}
+
+* Notion from time series, which translates for (P)MCMC in term of the steps of the chains
+* Autocorrelation refers to the correlation between the values of a time series at different points in time. In MCMC, this means correlation between successive samples.
+* In the context of MCMC, autocorrelation can most of the time be substituted instead of "bad mixing"
+* A signature of random-walk MCMC
+* Likely to bias estimate (wrong mean) and reduce variance compared with the true posterior distribution
+* Linked with the notion of Effective Sample Size, roughly speaking ESS gives the equivalent in i.i.d. samples
+
+## Autocorrelation in practice FAQ  {.smaller}
+
+* **Why is Autocorrelation a Problem?** For optimal performance, we want the samples to be independent and identically distributed (i.i.d.) samples from the target distribution.
+* **How to Detect Autocorrelation?** We can calculate the **autocorrelation function (ACF)**, which measures the correlation between the samples and their lagged values.
+* **How to Reduce Autocorrelation?** To mitigate the problem of autocorrelation, there's a number of strategies, including: using a longer chain, adapting the proposal distribution, using thinning or subsampling techniques. By reducing autocorrelation, we can obtain better estimates of the target distribution and improve the accuracy of our Bayesian inference.
+
+## Thinning the chain
+
+* Either before or after fit
+* Faster and less memory to thin before
+* More flexible to thin later
+* No real difference if trajectories not saved
+
+This is useful because most of your chain is not interesting due to the autocorrelation.
+
+## Saving history
+
+* Save your trajectories at every collected sample
+* Save the final state at every sample (for onward simulation)
+
+## Trajectories
+
+```{r}
+likelihood <- dust_likelihood_monty(filter, packer, save_trajectories = TRUE)
+posterior <- likelihood + prior
+samples2 <- monty_sample(posterior, sampler, 100, initial = samples)
+dim(samples2$observations$trajectories)
+```
+
+## Trajectories
+
+```{r}
+trajectories <- dust_unpack_state(filter,
+                                  samples2$observations$trajectories)
+matplot(data$time, drop(trajectories$incidence),
+        type = "l", lty = 1, col = "#00000033")
+points(data, pch = 19, col = "red")
+```
+
+# Next steps
+
+* forward time predictions
+* posterior predictive checks
+* rerun filter in MCMC
+* multi-parameter models
+* deterministic (expectation) models as starting points
+* adaptive fitting (deterministic models only)
+* HMC
