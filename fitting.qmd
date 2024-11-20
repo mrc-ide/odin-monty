@@ -14,6 +14,7 @@ execute:
 ```{r}
 #| include: false
 #| cache: false
+set.seed(1)
 source("common.R")
 ```
 # A pragmatic introduction
@@ -493,3 +494,98 @@ Pass `runner` through to `monty_sample`:
 samples <- monty_sample(posterior, sampler, 1000,
                         runner = runner, n_chains = 4)
 ```
+
+(sorry, this is broken unless your model is in a package!)
+
+## Run chains on different cluster nodes
+
+```r
+monty_sample_manual_prepare(posterior, sampler, 10000, "mypath", n_chains = 10)
+```
+
+Then queue these up on a cluster, e.g., using hipercow:
+
+```r
+hipercow::task_create_bulk_call(
+  monty_sample_manual_run, 1:10, args = list("mypath"))
+```
+
+And retrieve the result
+
+```r
+samples <- monty_sample_manual_collect("mypath")
+```
+
+(sorry, also broken unless your model is in a package!)
+
+## Autocorrelation {.smaller}
+
+* Notion from time series, which translates for (P)MCMC in term of the steps of the chains
+* Autocorrelation refers to the correlation between the values of a time series at different points in time. In MCMC, this means correlation between successive samples.
+* In the context of MCMC, autocorrelation can most of the time be substituted instead of "bad mixing"
+* A signature of random-walk MCMC
+* Likely to bias estimate (wrong mean) and reduce variance compared with the true posterior distribution
+* Linked with the notion of Effective Sample Size, roughly speaking ESS gives the equivalent in i.i.d. samples
+
+## Autocorrelation in practice FAQ  {.smaller}
+
+* **Why is Autocorrelation a Problem?** For optimal performance, we want the samples to be independent and identically distributed (i.i.d.) samples from the target distribution.
+* **How to Detect Autocorrelation?** We can calculate the **autocorrelation function (ACF)**, which measures the correlation between the samples and their lagged values.
+* **How to Reduce Autocorrelation?** To mitigate the problem of autocorrelation, there's a number of strategies, including: using a longer chain, adapting the proposal distribution, using thinning or subsampling techniques. By reducing autocorrelation, we can obtain better estimates of the target distribution and improve the accuracy of our Bayesian inference.
+
+## Thinning the chain
+
+* Either before or after fit
+* Faster and less memory to thin before
+* More flexible to thin later
+* No real difference if trajectories not saved
+
+This is useful because most of your chain is not interesting due to the autocorrelation.
+
+## Saving history
+
+* Save your trajectories at every collected sample
+* Save the final state at every sample (for onward simulation)
+
+## Trajectories
+
+```{r}
+likelihood <- dust_likelihood_monty(filter, packer, save_trajectories = TRUE)
+posterior <- likelihood + prior
+samples2 <- monty_sample(posterior, sampler, 100, initial = samples)
+dim(samples2$observations$trajectories)
+```
+
+## Trajectories
+
+```{r}
+trajectories <- dust_unpack_state(filter,
+                                  samples2$observations$trajectories)
+matplot(data$time, drop(trajectories$incidence),
+        type = "l", lty = 1, col = "#00000033")
+points(data, pch = 19, col = "red")
+```
+
+# Next steps
+
+* forward time predictions
+* posterior predictive checks
+* rerun filter in mcmc
+* multi-parameter models
+* deterministic (expectation) models as starting points
+* adaptive fitting (deterministic models only)
+* HMC
+
+# Resources {.smaller}
+
+A nice PMCMC introduction written for the epidemiologist
+[Endo, A., van Leeuwen, E. & Baguelin, M. Introduction to particle Markov-chain Monte Carlo for disease dynamics modellers. Epidemics 29, 100363 (2019).](https://www.sciencedirect.com/science/article/pii/S1755436519300301?via%3Dihub)
+
+A tutorial about SMC
+[Doucet, A. & Johansen, A. M. A Tutorial on Particle filtering and smoothing: Fiteen years later. Oxford Handb. nonlinear Filter. 656–705 (2011). doi:10.1.1.157.772](https://www.stats.ox.ac.uk/~doucet/doucet_johansen_tutorialPF2011.pdf)
+
+The reference paper on PMCMC
+[Andrieu, C., Doucet, A. & Holenstein, R. Particle Markov chain Monte Carlo methods. J. R. Stat. Soc. Ser. B (Statistical Methodol. 72, 269–342 (2010).](https://www.stats.ox.ac.uk/~doucet/andrieu_doucet_holenstein_PMCMC.pdf)
+
+A software oriented paper introducing odin, dust and mcstate
+[R. G. FitzJohn et al. Reproducible parallel inference and simulation of stochastic state space models using odin, dust, and mcstate. Wellcome Open Res. 2021 5288 5, 288 (2021).](https://wellcomeopenresearch.org/articles/5-288)
