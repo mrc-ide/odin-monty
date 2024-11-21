@@ -16,6 +16,7 @@ execute:
 #| cache: false
 set.seed(1)
 source("common.R")
+options(monty.progress = FALSE)
 ```
 # A pragmatic introduction
 
@@ -25,7 +26,7 @@ library(dust2)
 library(monty)
 ```
 
-## Previously on "Introduction to odin"
+## Previously, on "Introduction to odin"
 
 * We created some simple compartmental models
 * We ran these and observed trajectories over time
@@ -294,7 +295,7 @@ packer
 
 . . .
 
-We can transform from $\theta` to a named list:
+We can transform from $\theta$ to a named list:
 
 ```{r}
 packer$unpack(c(0.2, 0.1))
@@ -385,7 +386,7 @@ vcv <- diag(2) * 0.2
 vcv
 ```
 
-Use this as the argument to a sampler
+Use this to create a "random walk" sampler:
 
 ```{r}
 sampler <- monty_sampler_random_walk(vcv)
@@ -395,12 +396,14 @@ sampler
 ## Let's sample!
 
 ```{r, cache = TRUE}
-samples <- monty_sample(posterior, sampler, 1000)
+samples <- monty_sample(posterior, sampler, 1000, n_chains = 3)
 samples
 ```
+
 ## The result: diagnostics
 
 Diagnostics can be used from the `posterior` package
+
 ```{r}
 ## Note: as_draws_df converts samples$pars, and drops anything else in samples
 samples_df <- posterior::as_draws_df(samples)
@@ -423,22 +426,23 @@ bayesplot::mcmc_trace(samples_df)
 ## The result: density over time
 
 ```{r}
-plot(samples$density, type = "l")
+matplot(drop(samples$density), type = "l", lty = 1)
 ```
 
 ## The result: density over time
 
 ```{r}
-plot(samples$density[-(1:100), ], type = "l")
+matplot(drop(samples$density[-(1:100), ]), type = "l", lty = 1)
 ```
 
 ## Better mixing {.smaller}
 
 ```{r, cache = TRUE}
-vcv <- matrix(c(0.005, 0.003, 0.003, 0.003), 2, 2)
+vcv <- matrix(c(0.01, 0.005, 0.005, 0.005), 2, 2)
 sampler <- monty_sampler_random_walk(vcv)
-samples <- monty_sample(posterior, sampler, 5000, n_chains = 4)
-matplot(samples$density[-(1:200), ], type = "l", lty = 1)
+samples <- monty_sample(posterior, sampler, 5000, initial = samples,
+                        n_chains = 4)
+matplot(samples$density, type = "l", lty = 1)
 ```
 
 ## Better mixing: the results
@@ -495,12 +499,15 @@ samples <- monty_sample(posterior, sampler, 1000,
                         runner = runner, n_chains = 4)
 ```
 
+. . .
+
 (sorry, this is broken unless your model is in a package!)
 
 ## Run chains on different cluster nodes
 
 ```r
-monty_sample_manual_prepare(posterior, sampler, 10000, "mypath", n_chains = 10)
+monty_sample_manual_prepare(posterior, sampler, 10000, "mypath",
+                            n_chains = 10)
 ```
 
 Then queue these up on a cluster, e.g., using `hipercow`:
@@ -515,6 +522,8 @@ And retrieve the result
 ```r
 samples <- monty_sample_manual_collect("mypath")
 ```
+
+. . .
 
 (sorry, also broken unless your model is in a package!)
 
@@ -541,6 +550,24 @@ samples <- monty_sample_manual_collect("mypath")
 * No real difference if trajectories not saved
 
 This is useful because most of your chain is not interesting due to the autocorrelation.
+
+## Thinning the chain
+
+While running
+
+```r
+samples <- monty_sample(...,
+                        burnin = 100,
+                        thinning_factor = 4)
+```
+
+After running
+
+```r
+samples_thin <- monty_samples_thin(samples,
+                                   burnin = 100,
+                                   thinning_factor = 4)
+```
 
 ## Saving history
 
@@ -575,3 +602,15 @@ points(data, pch = 19, col = "red")
 * deterministic (expectation) models as starting points
 * adaptive fitting (deterministic models only)
 * HMC
+
+# 2025 Roadmap {.smaller}
+
+* Some missing features from mcstate/dust1
+  - multi-stage filters
+  - restarting filters
+  - GPU-accelerated fitting
+  - SMC^2 and IF (perhaps)
+* Some almost-ready features
+  - Parallel tempering (exploit parallelism, cope with multiple modes)
+  - Automatic differentiation
+  - NUTS and HMC algorithms
