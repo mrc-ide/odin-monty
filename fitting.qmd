@@ -107,13 +107,13 @@ segments(data$time, data$cases, y1 = drop(y))
 ## Measuring goodness of fit {.smaller}
 
 $$
-P(\mathrm{data} | \mathrm{model})
+\Pr(\mathrm{data} | \mathrm{model})
 $$
 
 perhaps:
 
 $$
-P(\mathrm{observed\ cases}) \sim \mathrm{Poisson}(\mathrm{modelled\ cases})
+\Pr(\mathrm{observed\ cases}) \sim \mathrm{Poisson}(\mathrm{modelled\ cases})
 $$
 
 ```{r}
@@ -370,12 +370,20 @@ likelihood
 
 ## Posterior from likelihood and prior {.smaller}
 
-Combine a likelihood and a prior (any two models)
+Combine a likelihood and a prior to make a posterior
+
+$$
+\underbrace{\Pr(\theta | \mathrm{data})}_{\mathrm{posterior}} \propto \underbrace{\Pr(\mathrm{data})}_\mathrm{likelihood} \times \underbrace{P(\theta)}_{\mathrm{prior}}
+$$
+
+. . .
 
 ```{r}
 posterior <- likelihood + prior
 posterior
 ```
+
+(remember that addition is multiplication on a log scale)
 
 ## Create a sampler
 
