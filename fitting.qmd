@@ -373,7 +373,7 @@ likelihood
 Combine a likelihood and a prior to make a posterior
 
 $$
-\underbrace{\Pr(\theta | \mathrm{data})}_{\mathrm{posterior}} \propto \underbrace{\Pr(\mathrm{data})}_\mathrm{likelihood} \times \underbrace{P(\theta)}_{\mathrm{prior}}
+\underbrace{\Pr(\theta | \mathrm{data})}_{\mathrm{posterior}} \propto \underbrace{\Pr(\mathrm{data} | \theta)}_\mathrm{likelihood} \times \underbrace{P(\theta)}_{\mathrm{prior}}
 $$
 
 . . .
