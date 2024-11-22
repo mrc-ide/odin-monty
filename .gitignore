@@ -1,6 +1,7 @@
 /.quarto/
 .Rproj.user
 _book/
+_slides/
 _dust/
 *_files/
 *_cache/

@@ -13,7 +13,7 @@ In this book, we explore two fundamentally different yet interconnected approach
 
 Imagine a city model, as in *SimCity*, where thousands of virtual inhabitants follow routines, interact, and respond to changes like new buildings or natural disasters. These elements evolve according to predefined rules and parameters, similar to how **dynamical systems** simulate real-world processes over time.
 
-In a [**dynamical model**](https://en.wikipedia.org/wiki/Dynamical_system), we track changes in a system's "state" over time. The state is a summary of key information at a specific time point; for example, in an epidemiological model, the state might include the numbers of susceptible, infected, and recovered individuals. More detailed models may add variables like age, location, health risks, and symptoms, allowing us to simulate interventions, such as vaccination campaigns, and explore their potential impacts. There exist many formalisms to describe dynamical systems, incorporating e.g. specific input and output functions in control theory but the central element of these systems is this notion of the "state", a mathematical object summarising the system at a timepoint. 
+In a [**dynamical model**](https://en.wikipedia.org/wiki/Dynamical_system), we track changes in a system's "state" over time. The state is a summary of key information at a specific time point; for example, in an epidemiological model, the state might include the numbers of susceptible, infected, and recovered individuals. More detailed models may add variables like age, location, health risks, and symptoms, allowing us to simulate interventions, such as vaccination campaigns, and explore their potential impacts. There exist many formalisms to describe dynamical systems, incorporating e.g. specific input and output functions in control theory but the central element of these systems is this notion of the "state", a mathematical object summarising the system at a time-point.
 
 The `odin` package, which supports differential and difference equations, is an effective tool for building dynamical models, enabling users to simulate time-evolving systems. Dynamical models are well-suited for exploring how specific scenarios or interventions impact a system over time, making them particularly useful for modelling real-world phenomena in a structured way.
 
@@ -37,7 +37,7 @@ A natural way to bridge dynamical and statistical models is by introducing [**st
 
 In a **stochastic process**, the system’s state is no longer a single deterministic value but a collection of potential outcomes, each weighted by a probability. This probabilistic view enables us to model fluctuations and uncertainties within the dynamical framework, capturing both the system’s evolution and the uncertainty in each state. Stochastic processes are thus a natural extension of dynamical models, adding an extra layer of realism by treating system evolution as inherently uncertain.
 
-The `odin` package provides an intuitive framework for writing a class of stochastic systems, making it easier to define models that incorporate randomness in their evolution over time. The `dust` package complements `odin` by enabling efficient large-scale simulations, allowing users to capture and analyse the uncertainty inherent to these systems through repeated runs. Together, `odin` and `dust` offer a powerful toolkit for developing and exploring stochastic models that reflect the complexity and variability of real-world dynamics. 
+The `odin` package provides an intuitive framework for writing a class of stochastic systems, making it easier to define models that incorporate randomness in their evolution over time. The `dust` package complements `odin` by enabling efficient large-scale simulations, allowing users to capture and analyse the uncertainty inherent to these systems through repeated runs. Together, `odin` and `dust` offer a powerful toolkit for developing and exploring stochastic models that reflect the complexity and variability of real-world dynamics.
 
 TODO simple dust example or just link with relevant dust section in the book
 
@@ -45,11 +45,11 @@ TODO simple dust example or just link with relevant dust section in the book
 
 **Bayesian inference** is another approach to linking dynamical and statistical models by treating model parameters as random variables rather than fixed values. This introduces a probability distribution over possible parameter values, making parameter estimation a statistical problem.
 
-Using Bayes’ theorem, Bayesian inference combines:
+Using Bayes' theorem, Bayesian inference combines:
 
   - **The likelihood**: the probability of observing the data given specific parameter values, and
   - **The prior distribution**: our initial assumptions about the parameter values before observing the data.
-  
+
 The result is the **posterior distribution** of a parameter $\theta$ given data $y$:
 
 $$
@@ -72,11 +72,11 @@ By combining **stochastic processes** with **Bayesian inference**, we add a dual
 
 In both dynamical and statistical frameworks, the number of parameters can be adjusted as needed to capture the desired level of complexity. In the `monty` package, random variables - termed 'parameters' with a slight simplification of language - are typically used to summarise processes, and so they often form a more compact set than those found in dynamical models. This distinction is especially relevant in Bayesian models constructed from complex `odin` models.
 
-In dynamical systems, parameters define the structure and evolution of a scenario in detail. For instance, an epidemiological model may include parameters for transmission rates, contact patterns, or intervention schedules. These inputs enable "what-if" scenarios, allowing decision-makers to predict and manage changes in real time. The `odin` package, designed to support such dynamical models, provides the flexibility to specify numerous parameters for exploring system behaviours over time. 
+In dynamical systems, parameters define the structure and evolution of a scenario in detail. For instance, an epidemiological model may include parameters for transmission rates, contact patterns, or intervention schedules. These inputs enable "what-if" scenarios, allowing decision-makers to predict and manage changes in real time. The `odin` package, designed to support such dynamical models, provides the flexibility to specify numerous parameters for exploring system behaviours over time.
 
-Statistical models, by contrast, use parameters to define probability distributions over possible outcomes, capturing uncertainties, predicting risks, or summarising data patterns. In Bayesian models based on a complex `odin` framework, the statistical parameters are usually a subset of those used in the dynamical model itself. Parameters such as those defining a vaccination campaign (e.g. daiy number of doses given to target groups), for example, might be central to shaping the `odin` model but may not necessarily be included in Bayesian inference (that might focus on just vaccine efficacy at most). This selective approach allows us to quantify uncertainties and make probabilistic inferences about key aspects of the model without needing to explore detail of the underlying dynamics that are "known" for what was actually observed.
+Statistical models, by contrast, use parameters to define probability distributions over possible outcomes, capturing uncertainties, predicting risks, or summarising data patterns. In Bayesian models based on a complex `odin` framework, the statistical parameters are usually a subset of those used in the dynamical model itself. Parameters such as those defining a vaccination campaign (e.g. daily number of doses given to target groups), for example, might be central to shaping the `odin` model but may not necessarily be included in Bayesian inference (that might focus on just vaccine efficacy at most). This selective approach allows us to quantify uncertainties and make probabilistic inferences about key aspects of the model without needing to explore detail of the underlying dynamics that are "known" for what was actually observed.
 
-Thus, while dynamical models rely on a broad parameter set for flexibility, statistical parameters summarise uncertainty more compactly, making the combined approach especially effective for realistic, data-driven inferences. 
+Thus, while dynamical models rely on a broad parameter set for flexibility, statistical parameters summarise uncertainty more compactly, making the combined approach especially effective for realistic, data-driven inferences.
 
 ## Probability densities: normalised vs. unnormalised
 
@@ -92,8 +92,8 @@ where:
 
   - $p(y|\theta)$ is the likelihood, and
   - $p(\theta)$ is the prior distribution, as above.
-  
-Note that it does not involve the normalising constant $p(y)$ anymore. The reason is that since calculating $p(y)$ can be very difficult, we often work with the **unnormalised posterior density** $p(y|\theta)p(\theta)$. This unnormalised form is sufficient for many Monte Carlo methods, where only relative densities matter.
+
+Note that it does not involve the normalising constant $p(y)$ any more. The reason is that since calculating $p(y)$ can be very difficult, we often work with the **unnormalised posterior density** $p(y|\theta)p(\theta)$. This unnormalised form is sufficient for many Monte Carlo methods, where only relative densities matter.
 
 A **normalised density** integrates to 1 over its entire parameter space. This is necessary for direct probability interpretations and for certain Bayesian methods, like model comparison using [Bayes factors](https://en.wikipedia.org/wiki/Bayes_factor).
 
