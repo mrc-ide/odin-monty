@@ -281,3 +281,23 @@ posterior::summarise_draws(samples_df)
 bayesplot::mcmc_pairs(samples_df)
 ```
 
+Finally we can get an idea of the fit of the samples by looking at 100 trajectories from the samples.
+
+```{r}
+n_groups <- 1000
+i_rand <- sample(dim(samples$pars)[2],n_groups)
+list_par <- lapply(i_rand, FUN = function(i) packer$unpack(samples$pars[,i,sample(3,1)]))
+
+mod_mult <- dust_system_create(seir,
+                          pars = list_par, n_groups = n_groups)
+
+t <- c(0,data$Days)
+dust_system_set_state_initial(mod_mult)
+y <- dust_system_simulate(mod_mult, t)
+y <- dust_unpack_state(mod_mult, y)
+
+matplot(t, t(y$incidence), type = "l", lty = 1, col = "#00000044",
+        xlab = "Time", ylab = "Infected population")
+points(data$Days, data$Cases/mean(samples$pars["rho",,]), pch=19, col="red")
+```
+
