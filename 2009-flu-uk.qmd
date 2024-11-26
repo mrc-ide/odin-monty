@@ -243,8 +243,8 @@ posterior <- likelihood + prior
 Next, we define a sampler; we'll start with a random walk with a fairly arbitrary diagonal proposal matrix:
 
 ```{r}
-vcv <- diag(c(5e-10,5e-5,1e-5))*0.0001
-#vcv <- matrix(c(4.3e-12,-1.2e-8,3.6e-9,-1.2e-8,4.9e-5,-1e-5,3.6e-9,-1e-5,1.1e-5), nrow = 3)*0.1
+#vcv <- diag(c(5e-10,5e-5,1e-5))*0.0001
+vcv <- matrix(c(2.5e-14,-1.04e-10,5.6e-12,-1.04e-10,4.9e-07,-2.5e-8,5.6e-12,-2.5e-8,3.5e-9), nrow = 3)
 sampler <- monty_sampler_random_walk(vcv)
 ```
 
@@ -257,8 +257,8 @@ init_values <- packer$pack(list(alpha=par0[1],
                   rho=0.1,
                   h_times = hol_t,
                   h_values= hol_v))
-init_values <- c(3e-5,1.35,0.04)
-samples <- monty_sample(posterior, sampler, 100000, initial = init_values,
+init_values <- c(3.05e-5,1.354,0.04)
+samples <- monty_sample(posterior, sampler, 10000, initial = init_values,
                         n_chains = 3)
 ```
 
@@ -271,6 +271,7 @@ Here the log posterior density of our three chains over time, showing a rapid im
 ```{r}
 matplot(samples$density, type = "l", lty = 1,
         xlab = "Sample", ylab = "Log posterior probability density")
+length(unique(samples$density))/length(samples$density)
 ```
 ```{r}
 samples_df <- posterior::as_draws_df(samples)
