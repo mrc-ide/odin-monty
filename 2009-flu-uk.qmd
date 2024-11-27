@@ -21,17 +21,26 @@ knitr::knit_hooks$set(small_margins = function(before, options, envir) {
   }
 })
 ```
+## Introduction
 
-This chapter explores the use of `odin` and `monty` to model the dynamics of the 2009 A/H1N1 influenza pandemic in England and Wales incorporating changes in social contacts during holiday periods. We demonstrate how to construct, fit, and analyse a compartmental model to infer key epidemiological parameters.
+### Objective of this chapter
 
-## Overview of the Pipeline
+The 2009 A/H1N1 influenza pandemic posed a significant public health challenge in England and Wales, requiring rapid and evidence-based decision-making to mitigate its impact. This chapter explores the use of `odin` and `monty` to model the dynamics of the 2009 A/H1N1 influenza pandemic in England and Wales incorporating changes in social contacts during holiday periods. We demonstrate how to construct, fit, and analyse a compartmental model to infer key epidemiological parameters.
+
+The chapter is structured to guide the reader through the entire modelling pipeline, from data preparation and visualisation to model construction, parameter inference, and validation. Along the way, we highlight the integration of real-world data, discuss challenges in linking models to observed cases, and showcase the use of Bayesian methods for robust parameter estimation.
+
+### Overview of the pipeline
 
 This chapter illustrates how to:
 
 1. Construct an SEIR model with time-varying transmission using `odin`.
 2. Implement an observation model, derive a likelihood based on observations using `odin`.
 3. Run Bayesian inference using Markov chain Monte Carlo (MCMC) with `monty`.
-4. Analyse and interpret MCMC results to estimate parameters such as:
+4. Analyse and interpret MCMC results.
+
+### Key parameters of interest
+
+
    - The basic reproduction number $R_0$.  
    - The ascertainment probability, i.e., the proportion of symptomatic infections reported as cases.
 
@@ -41,13 +50,13 @@ library(dust2)
 library(monty)
 ```
 
-## Data Preparation
+## Data preparation and visualisation
 
-The dataset consists of weekly case estimates, stratified by age group. For simplicity, we aggregate the data into a single time series for the analysis.
+Data is the number of weekly cases of A/H1N1 pandemic cases from June 2009, and initially broken in seven age-groups. For simplicity, we aggregate the data into a single time series for the analysis.
 
-## Loading data
+### Loading data
 
-Data is the number of weekly cases of A/H1N1 pandemic cases from June 2009, and initially broken in seven age-groups. The data file is taken from the supplement material in [@endo_introduction_2019] and can be found [here](https://github.com/akira-endo/Intro-PMCMC/blob/master/assets/andre_estimates_21_02.txt).
+The data file is taken from the supplement material in [@endo_introduction_2019] and can be found [here](https://github.com/akira-endo/Intro-PMCMC/blob/master/assets/andre_estimates_21_02.txt).
 
 We will fit our model to all cases aggregated so we need to load our data, add the age-group, and then build a dataframe (a table where each rows is an observations of certains variables in the columns) with 'Days' and 'cases'. We use the `dplyr` package, a popular R package for data handling, with the '%>%' ('pipe') operator but other methods are possible.  
 
@@ -63,7 +72,7 @@ data <- data.frame(Cases = original_data) %>%
   dplyr::select(Days, Cases)
 ```
 
-## Plotting the data
+### Plotting the data
 
 You can plot the data and see the two waves of infections and the presence of holiday periods.
 ```{r}
@@ -81,21 +90,79 @@ rect(xleft = hol_t[2],ybottom = 0, xright = hol_t[3], ytop = max(data$Cases)*1.2
 #half-term holiday block
 rect(xleft = hol_t[4],ybottom = 0, xright = hol_t[5], ytop = max(data$Cases)*1.2, col = "#aaaabb33", border = NA)
 ```
+## Model design
 
-## Understanding the model
+### Transmission model
 
-The SEIR model divides the population into four compartments:
+Similarly to the SIR model, we saw already, the SEIR model divides the population into four compartments:
 
 - **S**usceptible: Individuals at risk of infection.  
 - **E**xposed: Infected individuals who are not yet infectious.  
 - **I**nfectious: Actively transmitting the disease.  
 - **R**ecovered: Immune individuals.  
 
-The model incorporates time-varying transmission rates to account for changes in contact patterns during holidays. Using `odin`, we define this system of differential equations:
+Additionally, the model incorporates time-varying transmission rates to account for changes in contact patterns during holidays.
 
-## Compiling the model
+The SEIR model is governed by the following system of ordinary differential equations:
 
-The model needs to be transpiled (e.g. translated from one programming language to another) in order to create some C++ code. That code is then compiled and loaded to create a "fast" model that can be called from the R environment. 
+$$
+\begin{aligned}
+    \frac{dS}{dt} &= - \beta(t) \frac{S I}{N} \\
+    \frac{dE}{dt} &= \beta(t) \frac{S I}{N} - \gamma E \\
+    \frac{dI}{dt} &= \gamma - \sigma I \\
+    \frac{dR}{dt} &= \sigma I
+\end{aligned}
+$$
+
+The parameters for the transmission model are defined as follows:
+$$
+\begin{aligned}
+    R_0 &\text{ (basic reproduction number): } R_0 = 1.5, \\
+    \gamma &\text{ (rate of transition from exposed to infectious): } \gamma = \frac{1}{L}, \\
+    \sigma &\text{ (recovery rate): } \sigma = \frac{1}{D}, \\
+    \beta &\text{ (transmission rate): } \beta = R_0 \cdot \sigma, \\
+    N &\text{ (total population): } N = 55,000,000, \\
+    \text{hol} &\text{ (time-varying factor): interpolated from } h_{\text{times}} \text{ and } h_{\text{values}}.
+\end{aligned}
+$$
+
+The initial conditions are:
+$$
+\begin{aligned}
+    S(0) &= (1 - 2 \alpha) N \\
+    E(0) &= \alpha N \\
+    I(0) &= \alpha N \\
+    R(0) &= 0 \\
+\end{aligned}
+$$
+
+### Observation model
+
+The fundamental component of our transmission model is the 'I' compartment tracking continuously the number of infectious people in our population (an infection prevalence). However, what we observe through our surveillance system is a fraction of the cumulative incidence, more precisely an estimate of the number of new cases in a period of 7 days (a week).
+
+In our `odin` model we can track the weekly cumulative incidence $Z(t)$ by:
+
+1. adding a differential equation integrating the instantaneous incidence:
+$$\frac{dZ}{dt} = \gamma E$$
+
+2. reseting $Z(t) = 0$ at the beginning of each week.
+
+Then we get for each $t$ that is a multiple of 7:
+
+$$Z(t) = \int_{t-7}^{t} \gamma E$$
+i.e. the cumulative incidence over a week.
+
+Finally, the observation model is defined as:
+$$
+\text{Cases(t)} \sim \text{NegativeBinomial}(\mu = \rho Z(t), \text{size} = \eta),
+$$
+where \(\rho\) is the ascertainment probability, and $\eta$ is the dispersion parameter.
+
+### Odin code of the model
+
+Below is the `odin` code for our model - the structure matches closely the mathematical formulation. Note the `Cases <- data()` lines telling that `Cases` are observations. The model will compile and work even when it is not linked with any dataset. However providing data is essentiel to compute a likelihood with `dust` or derive a `monty` statistical model out of it.
+
+This step takes time. The model needs to be transpiled (e.g. translated from one programming language to another) in order to create some C++ code and then that code is compiled and loaded in the R environnment. After this, a "fast" model can be called from the R environment and used to simulate scenarios or perform inference. 
 
 ```{r, echo = TRUE}
 seir <- odin2::odin({
@@ -138,7 +205,7 @@ Cases ~ NegativeBinomial(size = eta, mu = rho*incidence)
 })
 ```
 
-## Running the model
+### Running the model
 
 Once the model is compiled, it is possible to generate one (or more!) instance of your model by using the `dust_system_create()` and your model generator.
 
@@ -183,15 +250,11 @@ plot(t, dust_unpack_state(mod, y)$incidence, type = "l", col = "red", lwd = 2)
 points(data$Days, data$Cases)
 ```
 
-# Part 2. Observation model, likelihood and prior distributions
+## The MCMC pipeline
 
 We now have a dataset and a working model, all loaded in our R environment. We need to link the output of this model with the data in order to derive a likelihood function. As we are working within a Bayesian framework we also need to define the prior distribution for our parameters. 
 
-## Cumulative incidence and observed cases
-
-The fundamental component of our model if the 'I' compartment tracking continuously the number of infectious people in our population (an infection prevalence). However, what we observe is a fraction of the cumulative incidence, more precisely the number of new cases in a period of 7 days (a week). In our `odin` model we track the cumulative incidence, and we have simulated it using 7 days intervals. We can thus write a simple function giving the cumulative incidence between two days:
-
-## Setting up the likelihood
+### Setting up the likelihood
 
 The likelihood is a function that takes a parameter as argument and return the probability density that our model (transmission model + observation) generates exactly the observed data. This number is usually very small as it is the product of each individual observation density given the model. As opposed to the example in the lecture, we thus always work using the log-density values rather than the density. Products then become sums and divisions become differences.
 
@@ -219,7 +282,7 @@ Now building the `monty` model for the likelihood of the model is very easy:
 likelihood <- dust_likelihood_monty(filter, packer)
 ```
 
-## Setting up the prior distribution
+### Setting up the prior distribution
 
 We similarly set up a log_prior function. Note that we use the function to exclude impossible values such as proportion below 0 or above 1. This is to avoid to get logdensity of -infinity given that these values would have a density value of 0 (=impossible).
 
@@ -253,15 +316,15 @@ colnames(prior_samples) <- prior$parameters
 bayesplot::mcmc_pairs(prior_samples)
 ```
 
-
-
-## Setting up the posterior
+### Setting up the posterior
 
 Our posterior is the product of the likelihood and prior, or the sum of their logs:
 
 ```{r}
 posterior <- likelihood + prior
 ```
+
+### Chosing the sampler
 
 Next, we define a sampler; we'll start with a random walk with a fairly arbitrary diagonal proposal matrix:
 
@@ -320,7 +383,7 @@ dust_system_set_state_initial(mod_mult)
 y <- dust_system_simulate(mod_mult, t)
 y <- dust_unpack_state(mod_mult, y)
 
-matplot(t, t(y$incidence), type = "l", lty = 1, col = "#00000044",
+matplot(t, t(y$incidence), type = "l", lty = 1, col = "#00008822",
         xlab = "Time", ylab = "Infected population")
 points(data$Days, data$Cases/mean(samples$pars["rho",,]), pch=19, col="red")
 ```
