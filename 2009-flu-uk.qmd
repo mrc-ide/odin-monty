@@ -75,21 +75,44 @@ data <- data.frame(Cases = original_data) %>%
 ### Plotting the data
 
 You can plot the data and see the two waves of infections and the presence of holiday periods.
-```{r}
-#plot the data
-plot(data$Day, data$Cases, pch = 19, col = "red",
-     xlab="Days since start of epidemics",
-     ylab="Official cases count")
 
-# Add the holiday periods - summer holidays and half-term
-# Holiday calendar assuming 30% contact reduction during summer and 15% during half term
-hol_t <- c(0,38,85,140,147)
-hol_v <- c(1,.70,1,.85,1)
-#summer holiday block
-rect(xleft = hol_t[2],ybottom = 0, xright = hol_t[3], ytop = max(data$Cases)*1.2, col = "#aaaabb33", border = NA)
-#half-term holiday block
-rect(xleft = hol_t[4],ybottom = 0, xright = hol_t[5], ytop = max(data$Cases)*1.2, col = "#aaaabb33", border = NA)
+```{r}
+# Set up the plot
+plot(data$Day, data$Cases, pch = 19, col = "red", 
+     xlab = "Days since start of epidemics",
+     ylab = "Official cases count",
+     main = "Cases over Time with Holiday Periods",
+     ylim = c(0, max(data$Cases) * 1.3), # Add padding to the y-axis
+     xlim = c(min(data$Day), max(data$Day)))
+
+# Add the holiday periods
+hol_t <- c(0, 38, 85, 140, 147) # Holiday timings
+hol_v <- c(1, 0.70, 1, 0.85, 1) # Contact reduction
+
+# Summer holidays
+rect(xleft = hol_t[2], ybottom = 0, xright = hol_t[3], 
+     ytop = max(data$Cases) * 1.2, 
+     col = adjustcolor("skyblue", alpha.f = 0.3), border = NA)
+text(x = mean(hol_t[2:3]), y = max(data$Cases) * 1.25, 
+     labels = "Summer Holiday", col = "blue", cex = 0.8)
+
+# Half-term holiday
+rect(xleft = hol_t[4], ybottom = 0, xright = hol_t[5], 
+     ytop = max(data$Cases) * 1.2, 
+     col = adjustcolor("lightgreen", alpha.f = 0.3), border = NA)
+text(x = mean(hol_t[4:5]), y = max(data$Cases) * 1.25, 
+     labels = "Half-Term", col = "darkgreen", cex = 0.8)
+
+# Legend
+legend("topright", legend = c("Cases", "Summer Holiday", "Half-Term"),
+       pch = c(19, NA, NA), col = c("red", "skyblue", "lightgreen"),
+       pt.bg = c(NA, "skyblue", "lightgreen"), 
+       lty = c(NA, 1, 1), lwd = c(NA, 10, 10), 
+       bg = "white", inset = 0.02, bty = "n")
+
 ```
+
+
 ## Model design
 
 ### Transmission model
@@ -106,13 +129,23 @@ Additionally, the model incorporates time-varying transmission rates to account 
 The SEIR model is governed by the following system of ordinary differential equations:
 
 $$
+\left\{
 \begin{aligned}
     \frac{dS}{dt} &= - \beta(t) \frac{S I}{N} \\
     \frac{dE}{dt} &= \beta(t) \frac{S I}{N} - \gamma E \\
     \frac{dI}{dt} &= \gamma - \sigma I \\
     \frac{dR}{dt} &= \sigma I
 \end{aligned}
+\right.
 $$
+
+where:
+
+- $\beta(t)$ is the time-dependent transmission rate, representing the rate at which susceptible individuals become exposed through contact with infectious individuals.
+- $\gamma$ is the rate at which exposed individuals transition to the infectious stage (the inverse of the incubation period).
+- $\sigma$ is the recovery rate, indicating the rate at which infectious individuals recover or are removed from the infectious population.
+- $N$ is the total population size, assumed to remain constant.
+- $S(t)$, $E(t)$, $I(t)$, and $R(t)$ represent the number of susceptible, exposed, infectious, and recovered individuals, respectively, at time $t$. 
 
 The parameters for the transmission model are defined as follows:
 $$
@@ -149,14 +182,14 @@ $$\frac{dZ}{dt} = \gamma E$$
 
 Then we get for each $t$ that is a multiple of 7:
 
-$$Z(t) = \int_{t-7}^{t} \gamma E$$
+$$Z(t) = \int_{t-7}^{t} \gamma E(s) \ ds$$
 i.e. the cumulative incidence over a week.
 
 Finally, the observation model is defined as:
 $$
 \text{Cases(t)} \sim \text{NegativeBinomial}(\mu = \rho Z(t), \text{size} = \eta),
 $$
-where \(\rho\) is the ascertainment probability, and $\eta$ is the dispersion parameter.
+where $\rho$ is the ascertainment probability, and $\eta$ is the dispersion parameter.
 
 ### Odin code of the model
 
@@ -210,7 +243,6 @@ Cases ~ NegativeBinomial(size = eta, mu = rho*incidence)
 Once the model is compiled, it is possible to generate one (or more!) instance of your model by using the `dust_system_create()` and your model generator.
 
 ```{r}
-#mod <- seir$new(h_times = hol_t, h_values = hol_v)
 mod <- dust_system_create(seir,
                           pars = list(h_times = hol_t, h_values = hol_v))
 ```
@@ -271,7 +303,7 @@ This is the likelihood associated with the dust model written using odin. We kno
 
 ```{r}
 packer <- monty_packer(c("alpha", "R_0", "rho", "eta"),
-                       fixed = list(h_times = hol_t,h_values= hol_v))
+                       fixed = list(h_times = hol_t, h_values= hol_v))
 ```
 
 This defines two functions that allows to 'pack' (define) and 'unpack' (define) our parameters.
