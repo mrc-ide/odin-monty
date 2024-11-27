@@ -101,8 +101,8 @@ The model needs to be transpiled (e.g. translated from one programming language 
 seir <- odin2::odin({
 # initial conditions
 initial(S) <- (1 - 2 * alpha) * N
-initial(E) <- alpha*N
-initial(I) <- alpha*N
+initial(E) <- alpha * N
+initial(I) <- alpha * N
 initial(R) <- 0
 initial(incidence, zero_every = 7) <- 0
 
@@ -132,8 +132,9 @@ beta <- R_0 * sigma
 
 # observation model
 rho <- parameter(0.1)
+eta <- parameter(10)
 Cases <- data()
-Cases ~ Poisson(rho*incidence)
+Cases ~ NegativeBinomial(size = eta, mu = rho*incidence)
 })
 ```
 
@@ -152,7 +153,7 @@ mod <- dust_system_create(seir,
 # First parameter -> proportion of population initially infected
 # Second argument -> R_0
 # Third argument -> Proportion of infection detected 
-par0 <- c(5e-5, 1.3, 0.1)
+par0 <- c(5e-5, 1.3, 0.1, 10)
 
 # This vector should be passed as a list
 dust_system_update_pars(sys = mod,
@@ -206,7 +207,7 @@ dust_likelihood_run(filter, list(alpha=par0[1],
 This is the likelihood associated with the dust model written using odin. We know need to move this into the monty statistical world to be able to integrate this into our pipeline. For this use the `packer` concept that allows us to definne a one-to-one translation between the two worlds.
 
 ```{r}
-packer <- monty_packer(c("alpha", "R_0", "rho"),
+packer <- monty_packer(c("alpha", "R_0", "rho", "eta"),
                        fixed = list(h_times = hol_t,h_values= hol_v))
 ```
 
@@ -229,6 +230,7 @@ prior <- monty_dsl({
   alpha ~ Beta(a = 4e-4, b = 2)
   R_0 ~ Gamma(2, 0.7)
   rho ~ Uniform(0, 1)
+  eta ~ Exponential(mean = 1000)
 })
 ```
 
@@ -241,10 +243,16 @@ As it has been built using the monty DSL, it comes with gradient calculation, di
 
 Let's try to generate samples and check that they match our prior distribution:
 ```{r}
-n_streams <- 10
+n_streams <- 10000
 r <- monty_rng$new(n_streams = n_streams)
 prior_samples <- matrix(monty_model_direct_sample(prior, r), nrow = n_streams)
+colnames(prior_samples) <- prior$parameters
 ```
+
+```{r}
+bayesplot::mcmc_pairs(prior_samples)
+```
+
 
 
 ## Setting up the posterior
@@ -258,7 +266,7 @@ posterior <- likelihood + prior
 Next, we define a sampler; we'll start with a random walk with a fairly arbitrary diagonal proposal matrix:
 
 ```{r}
-vcv <- diag(c(5e-10,5e-5,1e-5))
+vcv <- diag(c(5e-10,5e-5,1e-5,1))
 sampler <- monty_sampler_adaptive(vcv, initial_vcv_weight = 100)
 ```
 
@@ -269,9 +277,10 @@ We start this off, using explicit initial conditions
 init_values <- packer$pack(list(alpha=par0[1],
                   R_0=par0[2],
                   rho=0.1,
+                  eta=10,
                   h_times = hol_t,
                   h_values= hol_v))
-init_values <- c(3.05e-5,1.354,0.04)
+init_values <- c(3.05e-5,1.354,0.04, 10)
 samples <- monty_sample(posterior, sampler, 10000, initial = init_values,
                         n_chains = 3)
 ```
