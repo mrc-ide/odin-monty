@@ -241,8 +241,9 @@ As it has been built using the monty DSL, it comes with gradient calculation, di
 
 Let's try to generate samples and check that they match our prior distribution:
 ```{r}
-r <- monty_rng$new(n_streams = 3)
-monty_model_direct_sample(prior, r)
+n_streams <- 10
+r <- monty_rng$new(n_streams = n_streams)
+prior_samples <- matrix(monty_model_direct_sample(prior, r), nrow = n_streams)
 ```
 
 
