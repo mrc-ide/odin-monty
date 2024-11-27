@@ -232,6 +232,20 @@ prior <- monty_dsl({
 })
 ```
 
+Let's inspect the our prior `monty` model
+```{r}
+prior
+```
+
+As it has been built using the monty DSL, it comes with gradient calculation, direct sampling (so no need to use one of the Monte Carlo algorithm) and accepts multiple parameters.
+
+Let's try to generate samples and check that they match our prior distribution:
+```{r}
+r <- monty_rng$new(n_streams = 3)
+monty_model_direct_sample(prior, r)
+```
+
+
 ## Setting up the posterior
 
 Our posterior is the product of the likelihood and prior, or the sum of their logs:
