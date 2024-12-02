@@ -33,12 +33,12 @@ The chapter is structured to guide the reader through an entire modelling pipeli
 
 This chapter illustrates how to:
 
-1. Construct an SEIR transmission model with time-varying contact rate using `odin`.
+1. Construct an SEIR transmission model with time-varying contact rate using `odin`
 2. Implement a (probabilistic) observation model in `odin`
-3. Derive a likelihood based on observations using `dust` and convert it to `monty`.
-4. Built a prior distribution for you model parameters using the `monty` DSL.
-3. Run Bayesian inference using adaptive Markov chain Monte Carlo (MCMC) with `monty`.
-4. Analyse and interpret MCMC results.
+3. Derive a likelihood based on observations using `dust` and convert it to `monty`
+4. Built a prior distribution for the model parameters using the `monty` DSL
+3. Run Bayesian inference using adaptive Markov chain Monte Carlo (MCMC) with `monty`
+4. Analyse and interpret the MCMC results.
 
 ### Key parameters of interest
 
@@ -49,7 +49,7 @@ We are interested in particular in two epidemiological parameters:
 
 ## Data preparation and visualisation
 
-Data is the number of weekly cases of A/H1N1 pandemic cases from June 2009, and initially broken in seven age-groups. For simplicity, we aggregate the data into a single time series for the analysis.
+Data is the number of weekly cases of A/H1N1 pandemic cases from June 2009, and initially broken in seven age-groups. For simplicity, we aggregate the data into a single time series for this analysis.
 
 ### Loading data
 
@@ -97,14 +97,13 @@ text(x = mean(hol_t[2:3]), y = max(data$Cases) * 1.25,
 # Half-term holiday
 rect(xleft = hol_t[4], ybottom = 0, xright = hol_t[5], 
      ytop = max(data$Cases) * 1.2, 
-     col = adjustcolor("lightgreen", alpha.f = 0.3), border = NA)
+     col = "#90EE9077", border = NA)
 text(x = mean(hol_t[4:5]), y = max(data$Cases) * 1.25, 
      labels = "Half-Term", col = "darkgreen", cex = 0.8)
 
 # Legend
 legend("topright", legend = c("Cases", "Summer Holiday", "Half-Term"),
-       pch = c(19, NA, NA), col = c("red", "#87CEEB77", "lightgreen"),
-       fill = c(NA, "skyblue", "lightgreen"),
+       pch = c(19, NA, NA), col = c("red", "#87CEEB77", "#90EE9077"),
        lty = c(NA, 1, 1), lwd = c(NA, 10, 10), 
        bg = "white", inset = 0.02, bty = "n")
 
@@ -177,29 +176,27 @@ Then we get for each $t$ that is a multiple of 7 (i.e. when we change week):
 $$Z(t) = \int_{t-7}^{t} \gamma E(s) \ ds$$
 i.e. the cumulative incidence over a week.
 
-Finally, we need to account for the imperfection of the surveillance system, assuming that only a fraction $rho$ of the infections are captured by the surveillance system and accounting for potential overdispersion we define the following observation model using a Negative-Binomial distribution with mean $\mu = \rho Z(t)$ and size $\eta$:
+Finally, we need to account for the imperfection of the surveillance system, assuming that only a fraction $\rho$ of the infections are captured by the surveillance system and accounting for potential overdispersion we define the following observation model using a Negative-Binomial distribution with mean $\mu = \rho Z(t)$ and size $\eta$:
 $$
 \text{Cases(t)} \sim \text{NegativeBinomial}(\mu = \rho Z(t), \text{size} = \eta),
 $$
 where $\rho$ is the ascertainment probability, and $\eta$ is the dispersion parameter.
 
 ::: {.callout-note}
-Even if the surveillance system was perfect we would expect a difference between the number of *symptomatic* cases and the number of infections as a proportion of flu cases are *asymptomatic* or 'pauci-symptomatic'. 
+Even if the surveillance system was perfect we would expect a difference between the number of *symptomatic* cases and the number of infections as a proportion of flu cases are *asymptomatic* or 'pauci-symptomatic' (showing very few symptoms). 
 :::
 
 ### Summary of model parameters
 
-The parameters for the transmission model are defined as follows:
-$$
-\begin{aligned}
-    R_0 &\text{ (basic reproduction number): } R_0 = 1.5, \\
-    \gamma &\text{ (rate of transition from exposed to infectious): } \gamma = \frac{1}{L}, \\
-    \sigma &\text{ (recovery rate): } \sigma = \frac{1}{D}, \\
-    \beta &\text{ (transmission rate): } \beta = R_0 \cdot \sigma, \\
-    N &\text{ (total population): } N = 55,000,000, \\
-    \text{hol} &\text{ (time-varying factor): interpolated from } h_{\text{times}} \text{ and } h_{\text{values}}.
-\end{aligned}
-$$
+A summary of the parameters of our model:
+
+- $R_{0}$, the basic reproduction number,
+- $\gamma$, the inverse of the mean incubation period set to 1 day,
+- $\sigma$, the recovery rate, the inverse of the mean recovery time assumed to be 1.25 days,
+- $h(t)$, the reduction of contact due to holidays, assumed piecewise constant,
+- $\rho$, the ascertainment probability i.e. the proportion of infections we expect to ascert as cases,
+- $\eta$, the size parameter of our Negative Binomial observation model,
+- $N$ the total size of the population in England and Wales in 2009.
 
 ### Odin code of the model
 
@@ -209,9 +206,9 @@ library(dust2)
 library(monty)
 ```
 
-Below is the `odin` code for our model - the structure matches closely the mathematical formulation. Note the `Cases <- data()` lines telling that `Cases` are observations. The model will compile and work even when it is not linked with any dataset. However providing data is essentiel to compute a likelihood with `dust` or derive a `monty` statistical model out of it.
+Below is the `odin` code for our model - the structure matches closely the mathematical formulation we derived in the previous section. Note the `Cases <- data()` lines telling that `Cases` are observations though the model will compile and work even if not linked with any dataset. However providing data is essential to compute a likelihood with `dust` or derive a `monty` likelihood statistical model of our system.
 
-This step takes time. The model needs to be transpiled (e.g. translated from one programming language to another) in order to create some C++ code and then that code is compiled and loaded in the R environnment. After this, a "fast" model can be called from the R environment and used to simulate scenarios or perform inference. 
+The compilation step takes time. The model needs to be first transpiled (e.g. translated from one programming language to another) in order to create some C++ code and then that code is compiled and loaded in the R environnment. After this, a "fast" model can be called from the R environment and used to simulate scenarios or perform inference. 
 
 ```{r, echo = TRUE}
 seir <- odin2::odin({
@@ -297,6 +294,8 @@ It looks a bit like the actual epidemic; a good sign, but let's compare our mode
 plot(t, dust_unpack_state(mod, y)$incidence*par0[3], type = "l", col = "red", lwd = 2)
 points(data$Days, data$Cases)
 ```
+
+We seem to be overpredicted the expected number of cases by a factor two or so, but the MCMC pipeline should allow us to infer the distribution of the parameters consistent with the observations.
 
 ## The MCMC pipeline
 
