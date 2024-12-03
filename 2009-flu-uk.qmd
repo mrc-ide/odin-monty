@@ -49,7 +49,7 @@ We are interested in particular in two epidemiological parameters:
 
 ## Data preparation and visualisation
 
-Data is the number of weekly cases of A/H1N1 pandemic cases from June 2009, and initially broken in seven age-groups. For simplicity, we aggregate the data into a single time series for this analysis.
+Data is the number of weekly cases of A/H1N1 pandemic cases from June 2009, and initially broken up into seven age-groups. For simplicity, we aggregate the data into a single time series for this analysis.
 
 ### Loading data
 
