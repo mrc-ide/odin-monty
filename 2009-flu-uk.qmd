@@ -23,7 +23,7 @@ knitr::knit_hooks$set(small_margins = function(before, options, envir) {
 ```
 ## Introduction
 
-The 2009 A/H1N1 influenza pandemic [@ghani_early_2009] posed a significant public health challenge in England and Wales, requiring rapid and evidence-based decision-making to mitigate its impact [@Baguelin2010a]. This chapter explores the use of `odin` and `monty` to model the dynamics of the 2009 A/H1N1 influenza pandemic in England and Wales incorporating changes in social contacts during holiday periods. We demonstrate how to construct, fit, and analyse a compartmental model to infer key epidemiological parameters.
+The 2009 A/H1N1 influenza pandemic [@ghani_early_2009] posed a significant public health challenge in England and Wales, requiring rapid and evidence-based decision-making to mitigate its impact [@Baguelin2010a]. This chapter explores the use of `odin` and `monty` to model the dynamics of the 2009 A/H1N1 influenza pandemic in England and Wales, incorporating changes in social contacts during holiday periods. We demonstrate how to construct, fit, and analyse a compartmental model to infer key epidemiological parameters.
 
 ### Objective of this chapter
 
@@ -49,7 +49,7 @@ We are interested in particular in two epidemiological parameters:
 
 ## Data preparation and visualisation
 
-Data is the number of weekly cases of A/H1N1 pandemic cases from June 2009, and initially broken in seven age-groups. For simplicity, we aggregate the data into a single time series for this analysis.
+Data is the number of weekly cases of A/H1N1 pandemic cases from June 2009, and initially broken up into seven age-groups. For simplicity, we aggregate the data into a single time series for this analysis.
 
 ### Loading data
 
