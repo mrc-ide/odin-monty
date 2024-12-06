@@ -169,7 +169,7 @@ In our `odin` model we can track the weekly cumulative incidence $Z(t)$ by:
 1. adding a differential equation integrating the instantaneous incidence:
 $$\frac{dZ}{dt} = \gamma E$$
 
-2. reseting $Z(t) = 0$ at the beginning of each week to only account for the new cases from the current week.
+2. resetting $Z(t) = 0$ at the beginning of each week to only account for the new cases from the current week.
 
 Then we get for each $t$ that is a multiple of 7 (i.e. when we change week):
 
