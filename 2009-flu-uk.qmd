@@ -376,7 +376,7 @@ posterior <- likelihood + prior
 Next, we define a sampler; we'll start with a random walk with a fairly arbitrary diagonal proposal matrix:
 
 ```{r}
-vcv <- diag(c(5e-10,5e-5,1e-5,1))
+vcv <- diag(c(5e-10, 5e-5, 1e-5, 1))
 sampler <- monty_sampler_adaptive(vcv, initial_vcv_weight = 100)
 ```
 
