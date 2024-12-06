@@ -344,7 +344,7 @@ prior <- monty_dsl({
 })
 ```
 
-Let's inspect the our prior `monty` model
+Let's inspect our prior `monty` model
 ```{r}
 prior
 ```
