@@ -384,12 +384,12 @@ We start this off, using explicit initial conditions
 
 ```{r}
 #| cache: true
-init_values <- packer$pack(list(alpha=par0[1],
-                  R_0=par0[2],
-                  rho=0.1,
-                  eta=10,
+init_values <- packer$pack(list(alpha = par0[1],
+                  R_0 = par0[2],
+                  rho = 0.1,
+                  eta = 10,
                   h_times = hol_t,
-                  h_values= hol_v))
+                  h_values = hol_v))
 init_values <- c(3.05e-5,1.354,0.04, 10)
 samples <- monty_sample(posterior, sampler, 10000, initial = init_values,
                         n_chains = 3)
