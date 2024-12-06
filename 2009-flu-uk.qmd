@@ -419,7 +419,7 @@ Finally we can get an idea of the fit of the samples by looking at 100 trajector
 
 ```{r}
 n_groups <- 1000
-i_rand <- sample(dim(samples$pars)[2],n_groups)
+i_rand <- sample(dim(samples$pars)[2], n_groups)
 list_par <- lapply(i_rand, FUN = function(i) packer$unpack(samples$pars[,i,sample(3,1)]))
 
 mod_mult <- dust_system_create(seir,
