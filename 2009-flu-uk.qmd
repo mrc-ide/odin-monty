@@ -318,7 +318,7 @@ This is the likelihood associated with the dust model written using odin. We kno
 
 ```{r}
 packer <- monty_packer(c("alpha", "R_0", "rho", "eta"),
-                       fixed = list(h_times = hol_t, h_values= hol_v))
+                       fixed = list(h_times = hol_t, h_values = hol_v))
 ```
 
 This defines two functions that allows to 'pack' (define) and 'unpack' (define) our parameters.
