@@ -295,7 +295,7 @@ plot(t, dust_unpack_state(mod, y)$incidence*par0[3], type = "l", col = "red", lw
 points(data$Days, data$Cases)
 ```
 
-We seem to be overpredicted the expected number of cases by a factor two or so, but the MCMC pipeline should allow us to infer the distribution of the parameters consistent with the observations.
+We seem to be overestimating the expected number of cases by a factor two or so, but the MCMC pipeline should allow us to infer the distribution of the parameters consistent with the observations.
 
 ## The MCMC pipeline
 
@@ -303,7 +303,7 @@ We now have a dataset and a working model, all loaded in our R environment. We n
 
 ### Setting up the likelihood
 
-The likelihood is a function that takes a parameter as argument and return the probability density that our model (transmission model + observation) generates exactly the observed data. This number is usually very small as it is the product of each individual observation density given the model. As opposed to the example in the lecture, we thus always work using the log-density values rather than the density. Products then become sums and divisions become differences.
+The likelihood is a function that takes a parameter as argument and return the probability density that our model (transmission model + observation) generates exactly the observed data. This number is usually very small as it is the product of each individual observation density given the model. Remember that functionns log-densities (rather than densities) and that products then become sums and divisions become differences. So for example if we need to compute a ratio a densities, we would substract the relevant log-densities and then exponentiate the result.
 
 ```{r}
 data$time <- data$Days
@@ -314,7 +314,7 @@ dust_likelihood_run(filter, list(alpha = par0[1],
                                     h_values = hol_v))
 ```
 
-This is the likelihood associated with the dust model written using odin. We know need to move this into the monty statistical world to be able to integrate this into our pipeline. For this use the `packer` concept that allows us to definne a one-to-one translation between the two worlds.
+This is the likelihood associated with the `dust` model written using the `odin` DSL. We know need to move this into the `monty` statistical world to be able to integrate this into our pipeline. For this use the `packer` concept that allows us to define a one-to-one translation between the two worlds.
 
 ```{r}
 packer <- monty_packer(c("alpha", "R_0", "rho", "eta"),
