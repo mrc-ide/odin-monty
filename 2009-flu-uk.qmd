@@ -176,7 +176,7 @@ Then we get for each $t$ that is a multiple of 7 (i.e. when we change week):
 $$Z(t) = \int_{t-7}^{t} \gamma E(s) \ ds$$
 i.e. the cumulative incidence over a week.
 
-Finally, we need to account for the imperfection of the surveillance system, assuming that only a fraction $\rho$ of the infections are captured by the surveillance system and accounting for potential overdispersion we define the following observation model using a negative binomial distribution with mean $\mu = \rho Z(t)$ and size $\eta$:
+Finally, we need to account for the imperfection of the surveillance system, assuming that only a fraction $\rho$ of the infections are captured by the surveillance system and accounting for potential overdispersion we define the following observation model using a [negative binomial distribution](https://en.wikipedia.org/wiki/Negative_binomial_distribution) with mean $\mu = \rho Z(t)$ and size $\eta$:
 $$
 \text{Cases(t)} \sim \text{NegativeBinomial}(\mu = \rho Z(t), \text{size} = \eta),
 $$
