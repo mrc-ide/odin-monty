@@ -331,7 +331,7 @@ likelihood <- dust_likelihood_monty(filter, packer)
 
 ### Setting up the prior distribution
 
-We similarly set up a log_prior function. Note that we use the function to exclude impossible values such as proportion below 0 or above 1. This is to avoid to get logdensity of -infinity given that these values would have a density value of 0 (=impossible).
+We similarly set up a log-prior function. Note that we use the function to exclude impossible values such as a proportion below 0 or above 1. This is to avoid to getting a log-density of `-Inf` given that these values would have a density value of 0 (=impossible).
 
 The other ingredient we need is a prior. This we can construct with monty_dsl as before, note that the names are matching the parameters from the likelihood as it should be.
 
