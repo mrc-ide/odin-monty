@@ -308,10 +308,10 @@ The likelihood is a function that takes a parameter as argument and return the p
 ```{r}
 data$time <- data$Days
 filter <- dust_unfilter_create(seir, data = data, time_start = 0)
-dust_likelihood_run(filter, list(alpha=par0[1],
-                                    R_0=par0[2],
+dust_likelihood_run(filter, list(alpha = par0[1],
+                                    R_0 = par0[2],
                                     h_times = hol_t,
-                                    h_values= hol_v))
+                                    h_values = hol_v))
 ```
 
 This is the likelihood associated with the dust model written using odin. We know need to move this into the monty statistical world to be able to integrate this into our pipeline. For this use the `packer` concept that allows us to definne a one-to-one translation between the two worlds.
