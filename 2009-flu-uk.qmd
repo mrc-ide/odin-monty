@@ -432,6 +432,6 @@ y <- dust_unpack_state(mod_mult, y)
 
 matplot(t, t(y$incidence), type = "l", lty = 1, col = "#00008822",
         xlab = "Time", ylab = "Infected population")
-points(data$Days, data$Cases/mean(samples$pars["rho",,]), pch=19, col="red")
+points(data$Days, data$Cases / mean(samples$pars["rho", , ]), pch = 19, col = "red")
 ```
 
