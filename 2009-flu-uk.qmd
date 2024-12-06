@@ -212,42 +212,42 @@ The compilation step takes time. The model needs to be first transpiled (e.g. tr
 
 ```{r, echo = TRUE}
 seir <- odin2::odin({
-# initial conditions
-initial(S) <- (1 - 2 * alpha) * N
-initial(E) <- alpha * N
-initial(I) <- alpha * N
-initial(R) <- 0
-initial(incidence, zero_every = 7) <- 0
-
-# equations
-deriv(S) <- - hol * beta * S * I / N
-deriv(E) <- hol * beta * S * I / N - gamma * E
-deriv(I) <- gamma * E - sigma * I
-deriv(R) <- sigma * I
-deriv(incidence) <- gamma * E
-
-# parameter values
-R_0 <- parameter(1.5)
-L <- 1
-D <- 1.25
-alpha <- parameter(1e-4) # initial proportion
-N <- 55000000
-
-# convert parameters
-hol <- interpolate(h_times, h_values, "constant")
-h_times <- parameter()
-h_values <- parameter()
-dim(h_times) <- parameter(rank=1)
-dim(h_values) <- length(h_times)
-gamma <- 1 / L
-sigma <- 1 / D
-beta <- R_0 * sigma
-
-# observation model
-rho <- parameter(0.1)
-eta <- parameter(10)
-Cases <- data()
-Cases ~ NegativeBinomial(size = eta, mu = rho*incidence)
+  # initial conditions
+  initial(S) <- (1 - 2 * alpha) * N
+  initial(E) <- alpha * N
+  initial(I) <- alpha * N
+  initial(R) <- 0
+  initial(incidence, zero_every = 7) <- 0
+  
+  # equations
+  deriv(S) <- - hol * beta * S * I / N
+  deriv(E) <- hol * beta * S * I / N - gamma * E
+  deriv(I) <- gamma * E - sigma * I
+  deriv(R) <- sigma * I
+  deriv(incidence) <- gamma * E
+  
+  # parameter values
+  R_0 <- parameter(1.5)
+  L <- 1
+  D <- 1.25
+  alpha <- parameter(1e-4) # initial proportion
+  N <- 55000000
+  
+  # convert parameters
+  hol <- interpolate(h_times, h_values, "constant")
+  h_times <- parameter()
+  h_values <- parameter()
+  dim(h_times) <- parameter(rank=1)
+  dim(h_values) <- length(h_times)
+  gamma <- 1 / L
+  sigma <- 1 / D
+  beta <- R_0 * sigma
+  
+  # observation model
+  rho <- parameter(0.1)
+  eta <- parameter(10)
+  Cases <- data()
+  Cases ~ NegativeBinomial(size = eta, mu = rho*incidence)
 })
 ```
 
