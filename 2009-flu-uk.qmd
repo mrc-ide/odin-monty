@@ -178,7 +178,7 @@ i.e. the cumulative incidence over a week.
 
 Finally, we need to account for the imperfection of the surveillance system, assuming that only a fraction $\rho$ of the infections are captured by the surveillance system and accounting for potential overdispersion we define the following observation model using a [negative binomial distribution](https://en.wikipedia.org/wiki/Negative_binomial_distribution) with mean $\mu = \rho Z(t)$ and size $\eta$:
 $$
-\text{Cases(t)} \sim \text{NegativeBinomial}(\mu = \rho Z(t), \text{size} = \eta),
+\text{cases(t)} \sim \text{NegativeBinomial}(\mu = \rho Z(t), \text{size} = \eta),
 $$
 where $\rho$ is the ascertainment probability, and $\eta$ is the dispersion parameter.
 
