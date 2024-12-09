@@ -397,7 +397,7 @@ samples <- monty_sample(posterior,
 ```
 
 ::: {.callout-note}
-We have used explicit initial conditions here, which might not be what you want in all situations.  Better might be to sample from the prior, but we have not yet implemented support to try a few points from the sample before getting a point with finite density, which is really needed here.
+We have used explicit initial conditions here, which might not be what you want in all situations.  It might be better to sample from the prior, but we have not yet implemented support to try a few points from the sample before getting a point with finite density, which is really needed here.
 :::
 
 Here the log-posterior density of our three chains over time, showing a rapid improvement in the posterior probability density followed by what might be reasonable (but not great) mixing:
