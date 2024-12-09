@@ -378,14 +378,14 @@ posterior <- likelihood + prior
 
 ### Chosing the sampler
 
-Next, we define a sampler; we'll start with a random walk with a fairly arbitrary diagonal proposal matrix:
+Next, we define a sampler; as, we have little information about the scale and structure of our posterior, we'll use an adaptive sampler with a simple and fairly arbitrary variance-covariance matrix to generate the initial random walk:
 
 ```{r}
 vcv <- diag(c(5e-10, 5e-5, 1e-5, 1))
 sampler <- monty_sampler_adaptive(vcv, initial_vcv_weight = 100)
 ```
 
-We start this off, using explicit initial conditions
+We start this off, using explicit initial conditions based on the value we tested earlier:
 
 ```{r}
 #| cache: true
