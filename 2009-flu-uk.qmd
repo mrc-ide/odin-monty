@@ -281,7 +281,7 @@ dust_system_set_state_initial(mod)
 y <- dust_system_simulate(mod, t)
 ```
 
-Let's plot the I compartment over time.
+Let's plot the `incidence` compartment over time.
 
 ```{r}
 plot(t, dust_unpack_state(mod, y)$incidence, type = "l", col = "red", lwd = 2)
