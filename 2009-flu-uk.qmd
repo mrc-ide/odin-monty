@@ -370,7 +370,7 @@ bayesplot::mcmc_pairs(prior_samples)
 
 ### Setting up the posterior
 
-Our posterior is the product of the likelihood and prior, or the sum of their logs:
+Our posterior is the product of the likelihood and prior, or its log is the sum of their logs:
 
 ```{r}
 posterior <- likelihood + prior
