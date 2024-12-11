@@ -405,7 +405,7 @@ Here the log-posterior density of our three chains over time, showing a rapid im
 ```{r}
 matplot(samples$density, type = "l", lty = 1,
         xlab = "Sample", ylab = "Log posterior probability density")
-length(unique(samples$density))/length(samples$density)
+length(unique(samples$density)) / length(samples$density)
 ```
 ```{r}
 samples_df <- posterior::as_draws_df(samples)
