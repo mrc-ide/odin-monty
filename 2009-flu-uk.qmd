@@ -129,9 +129,9 @@ $$
 \left\{
 \begin{aligned}
     \frac{dS}{dt} &= - \beta(t) \frac{S I}{N} \\
-    \frac{dE}{dt} &= \beta(t) \frac{S I}{N} - \gamma E \\
-    \frac{dI}{dt} &= \gamma - \sigma I \\
-    \frac{dR}{dt} &= \sigma I
+    \frac{dE}{dt} &= \beta(t) \frac{S I}{N} - \sigma E \\
+    \frac{dI}{dt} &= \sigma E - \gamma I \\
+    \frac{dR}{dt} &= \gamma I
 \end{aligned}
 \right.
 $$
@@ -139,16 +139,14 @@ $$
 where:
 
 - $\beta(t)$ is the time-dependent transmission rate, representing the rate at which susceptible individuals become exposed through contact with infectious individuals.
-- $\gamma$ is the rate at which exposed individuals transition to the infectious stage (the inverse of the incubation period).
-- $\sigma$ is the recovery rate, indicating the rate at which infectious individuals recover or are removed from the infectious population.
+- $\sigma$ is the rate at which exposed individuals transition to the infectious stage (the inverse of the latency period).
+- $\gamma$ is the recovery rate, indicating the rate at which infectious individuals recover or are removed from the infectious population.
 - $N$ is the total population size, assumed to remain constant.
 - $S(t)$, $E(t)$, $I(t)$, and $R(t)$ represent the number of susceptible, exposed, infectious, and recovered individuals, respectively, at time $t$. 
 
-We assume that the contact rate is constant outside of the holiday period, and that it drops by 30% during the summer and 15% during the half-term. We have thus:
+We assume that the contact rate is constant outside of the holiday period, dropping by 30% during the summer and 15% during the half-term. To parameterise the model, we use the basic reproduction number $R_{0}$, which represents the average number of secondary infections caused by one infected individual in a fully susceptible population. Using the relationship $R_{0} = \beta / \gamma$ and interpreting $h(t)$ as a piecewise constant function equal to 0.7 during the summer, 0.85 during the half-term, and 1 otherwise, we define:
 
-$$\beta(t) = R_{0}*\sigma * h(t)$$
-
-with $h(t)$ a piece-wise constant function equal to 0.7 during the summer, 0.85 during the half-term and 1 otherwise.
+$$\beta(t) = R_{0} \cdot \gamma \cdot  h(t).$$
 
 To seed the model we assume that a small proportion of the population is infected - equally shared between the E and I compartments. The initial conditions are thus:
 $$
@@ -162,23 +160,23 @@ $$
 
 ### Observation model
 
-The fundamental component of our transmission model is the 'I' compartment tracking continuously the number of infectious people in our population (an infection prevalence). However, what we observe through our surveillance system is a fraction of the cumulative incidence, more precisely an estimate of the number of new cases in a period of 7 days (a week).
+The fundamental component of our transmission model is the 'I' compartment tracking continuously the number of infectious people in our population (an infection prevalence). However, what we observe through our surveillance system is a fraction of the weekly total incidence, more precisely an estimate of the number of new cases in a period of 7 days (a week).
 
 In our `odin` model we can track the weekly cumulative incidence $Z(t)$ by:
 
 1. adding a differential equation integrating the instantaneous incidence:
-$$\frac{dZ}{dt} = \gamma E$$
+$$\frac{dZ}{dt} = \sigma E$$
 
 2. resetting $Z(t) = 0$ at the beginning of each week to only account for the new cases from the current week.
 
 Then we get for each $t$ that is a multiple of 7 (i.e. when we change week):
 
-$$Z(t) = \int_{t-7}^{t} \gamma E(s) \ ds$$
+$$Z(t) = \int_{t-7}^{t} \sigma E(s) \ ds$$
 i.e. the cumulative incidence over a week.
 
 Finally, we need to account for the imperfection of the surveillance system, assuming that only a fraction $\rho$ of the infections are captured by the surveillance system and accounting for potential overdispersion we define the following observation model using a [negative binomial distribution](https://en.wikipedia.org/wiki/Negative_binomial_distribution) with mean $\mu = \rho Z(t)$ and size $\eta$:
 $$
-\text{cases(t)} \sim \text{NegativeBinomial}(\mu = \rho Z(t), \text{size} = \eta),
+\text{cases(t)} \sim \text{NegativeBinomial}(\text{size} = \eta, \mu = \rho Z(t)),
 $$
 where $\rho$ is the ascertainment probability, and $\eta$ is the dispersion parameter.
 
@@ -191,8 +189,8 @@ Even if the surveillance system was perfect we would expect a difference between
 A summary of the parameters of our model:
 
 - $R_{0}$, the basic reproduction number,
-- $\gamma$, the inverse of the mean incubation period set to 1 day,
-- $\sigma$, the recovery rate, the inverse of the mean recovery time assumed to be 1.25 days,
+- $\sigma$, the inverse of the mean incubation period set to 1 day,
+- $\gamma$, the recovery rate, the inverse of the mean recovery time assumed to be 1.25 days,
 - $h(t)$, the reduction of contact due to holidays, assumed piecewise constant,
 - $\rho$, the ascertainment probability i.e. the proportion of infections we expect to ascert as cases,
 - $\eta$, the size parameter of our Negative Binomial observation model,
@@ -206,7 +204,7 @@ library(dust2)
 library(monty)
 ```
 
-Below is the `odin` code for our model - the structure matches closely the mathematical formulation we derived in the previous section. Note the `cases <- data()` lines telling that `Cases` are observations though the model will compile and work even if not linked with any dataset. However providing data is essential to compute a likelihood with `dust` or derive a `monty` likelihood statistical model of our system.
+Below is the `odin` code for our model - the structure matches closely the mathematical formulation we derived in the previous section. Note the `cases <- data()` lines telling that `cases` are observations though the model will compile and work even if not linked with any dataset. However providing data is essential to compute a likelihood with `dust` or derive a `monty` likelihood statistical model of our system.
 
 The compilation step takes time. The model needs to be first transpiled (e.g. translated from one programming language to another) in order to create some C++ code and then that code is compiled and loaded in the R environnment. After this, a "fast" model can be called from the R environment and used to simulate scenarios or perform inference. 
 
@@ -221,10 +219,10 @@ seir <- odin2::odin({
   
   # equations
   deriv(S) <- - hol * beta * S * I / N
-  deriv(E) <- hol * beta * S * I / N - gamma * E
-  deriv(I) <- gamma * E - sigma * I
-  deriv(R) <- sigma * I
-  deriv(incidence) <- gamma * E
+  deriv(E) <- hol * beta * S * I / N - sigma * E
+  deriv(I) <- sigma * E - gamma * I
+  deriv(R) <- gamma * I
+  deriv(incidence) <- sigma * E
   
   # parameter values
   R_0 <- parameter(1.5)
@@ -241,7 +239,7 @@ seir <- odin2::odin({
   dim(h_values) <- length(h_times)
   gamma <- 1 / L
   sigma <- 1 / D
-  beta <- R_0 * sigma
+  beta <- R_0 * gamma
   
   # observation model
   rho <- parameter(0.1)
@@ -421,7 +419,7 @@ Finally we can get an idea of the fit of the samples by looking at 100 trajector
 ```{r}
 n_groups <- 1000
 i_rand <- sample(dim(samples$pars)[2], n_groups)
-list_par <- lapply(i_rand, FUN = function(i) packer$unpack(samples$pars[, i, sample(3,1)]))
+list_par <- lapply(i_rand, FUN = function(i) packer$unpack(samples$pars[, i, sample(3, 1)]))
 
 mod_mult <- dust_system_create(seir,
                           pars = list_par, n_groups = n_groups)
