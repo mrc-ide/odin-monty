@@ -43,8 +43,7 @@ We will fit our model to all cases aggregated so we need to load our data, add t
 
 ```{r}
 # Read the data
-original_data <- rowSums(read.csv(file = "data/andre_estimates_21_02.txt",
-                                  sep = "\t"))
+original_data <- rowSums(read.csv(file = "data/flu_2009.csv"))
 
 # Create the data frame and add days as time
 data <- data.frame(
@@ -76,7 +75,7 @@ plot(data$time, data$cases, pch = 19, col = "red",
      xlim = c(min(data$time), max(data$time)))
 
 # Add the holiday periods
-hol_t <- c(0, 38, 85, 140, 147) # Holiday timings
+hol_t <- c(0, 45, 92, 147, 154) # Holiday timings
 hol_v <- c(1, 0.70, 1, 0.85, 1) # Contact reduction
 
 # Summer holidays
