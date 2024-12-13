@@ -61,7 +61,7 @@ filter <- dust_filter_create(sir, time_start = 0, data = d, n_particles = 200)
 dust_likelihood_run(filter, list(beta = 0.3, gamma = 0.15, I0 = 50))
 ```
 
-## Running an MCMC
+## Running an MCMC {#sec-MCMC}
 
 Our aim is to fit the parameters `beta`, `gamma` and `I0` using MCMC (because this is an MCMC using a particle filter we might call this pMCMC).
 

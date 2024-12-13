@@ -42,8 +42,8 @@ prior$domain
 We can draw samples from the model if we provide a `monty_rng` object
 
 ```{r}
-rng <- monty_rng$new()
-theta <- prior$direct_sample(rng)
+rng <- monty_rng_create()
+theta <- monty_model_direct_sample(prior, rng)
 theta
 ```
 
