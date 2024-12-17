@@ -39,7 +39,7 @@ Data is the number of weekly cases of A/H1N1 pandemic cases from June 2009, and 
 
 The data file is taken from the supplement material in [@endo_introduction_2019] and can be found [here](https://github.com/akira-endo/Intro-PMCMC/blob/master/assets/andre_estimates_21_02.txt).
 
-We will fit our model to all cases aggregated so we need to load our data, add the age-group, and then build a dataframe (a table where each rows is an observations of certains variables in the columns) with 'Days' and 'cases'. We use the `dplyr` package, a popular R package for data handling, with the '%>%' ('pipe') operator but other methods are possible.  
+We will fit our model to all cases aggregated so we need to load our data, add the age-group using `rowSums`, and then build a dataframe (a table where each rows is an observations of certains variables in the columns) with 'days' and 'cases'.  
 
 ```{r}
 # Read the data
