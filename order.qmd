@@ -222,7 +222,7 @@ The series of updates ends with `time` being increased by `dt`.
 
 ## Comparison to data {#sec-order-comparison}
 
-The comparison to data follows on from the above series of updates, and as such you may find it is good practice to structure your `odin` code such that all equations relating to the comparison to data appear in a block at the end.
+The comparison to data follows on from the above series of updates, and as such it is common that all equations relating to the comparison to data appear in a block at the end.
 
 Equations relating to comparison to data are evaluated after the update of time to `t0 + dt` and will only be evaluated if you have any data at `time = t0 + dt`.
 
@@ -235,9 +235,11 @@ All variables will be read at their current values, which are the values corresp
 Any uses of `interpolate` that are used in the comparison to data will be evaluated using `time = t0 + dt` (not using `time = t0` as was used earlier in the "update" step). Compilation of `odin` code will detect which interpolations are used in the comparison to data.
 
 In our example we 
+
 ```r
 phi <- interpolate(phi_time, phi_value, "constant")
 ```
+
 where `phi` might represent a time-varying ascertainment rate of cases (which could be affected by e.g. whether schools are open, or day of the week effects).
 
 ### Evaluate assignments
