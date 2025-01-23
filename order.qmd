@@ -100,7 +100,7 @@ n_SI <- Binomial(S, p_SI)
 n_IR <- Binomial(I, p_IR)
 ```
 
-Equations be evaluated using the variables that were read in earlier (note that this is after any variables that use `zero_every` have been reset to 0). As with interpolation, any equations that use `time` (see @sec-interpolation-time) will use `time = t0`.
+Equations will be evaluated using the variables that were read in earlier (note that this is after any variables that use `zero_every` have been reset to 0). As with interpolation, any equations that use `time` (see @sec-interpolation-time) will use `time = t0`.
 
 ### Write out new values of state
 
@@ -120,6 +120,99 @@ update(S) <- S - n_SI
 ```
 
 it is telling us the value we will assign to `S` for `time = t0 + dt`, but on the right hand side it will use the value of `S` at `time = t0`.
+
+::: {.callout-warning}
+You should be careful to avoid introducing lags between state variables in your `update` equations.
+
+For example for this simple model
+
+\begin{gather*}
+X(t + dt) = X(t) + Normal(0, 1)\\
+Y(t + dt) = Y(t) + Normal(0, 1)\\
+Z(t) = X(t) + Y(t)
+\end{gather*}
+
+it would be incorrect to code this as
+
+```{r}
+m <- odin({
+  update(X) <- X + dX
+  update(Y) <- Y + dY
+  update(Z) <- X + Y
+  
+  dX <- Normal(0, 1)
+  dY <- Normal(0, 1)
+  
+  initial(X) <- 0
+  initial(Y) <- 0
+  initial(Z) <- 0
+})
+```
+
+as we can see that running this results in `Z` being lagged by a time-step relative to `X` and `Y`:
+
+```{r}
+sys <- dust_system_create(m, list(), seed = 1)
+dust_system_set_state_initial(sys)
+t <- seq(0, 5)
+y <- dust_system_simulate(sys, t)
+y <- dust_unpack_state(sys, y)
+
+y$X + y$Y
+
+y$Z
+```
+
+This is because
+
+```r
+update(Z) <- X + Y
+```
+
+corresponds to $Z(t + dt) = X(t) + Y(t)$ and not $Z(t) = X(t) + Y(t)$. Thus we need to account for the updates to X and Y on the right-hand side.
+
+A correct way to write it could be
+
+```r
+update(Z) <- X + dX + Y + dY
+```
+
+however in more complex models such an approach may become unwieldy, and further changes to updates for `X` and `Y` must be replicated in the update to `Z`.
+
+A safer approach is to introduce intermediate variables representing the updated values of `X` and `Y`
+
+```{r}
+m <- odin({
+  update(X) <- X_new
+  update(Y) <- Y_new
+  update(Z) <- X_new + Y_new
+  
+  dX <- Normal(0, 1)
+  X_new <- X + dX
+  dY <- Normal(0, 1)
+  Y_new <- Y + dY
+  
+  initial(X) <- 0
+  initial(Y) <- 0
+  initial(Z) <- 0
+})
+
+```
+
+which means that subsequent changes to how `X` updates are automatically factored into how `Z` updates. We can see this version no longer results in a lag:
+
+```{r}
+sys <- dust_system_create(m, list(), seed = 1)
+dust_system_set_state_initial(sys)
+t <- seq(0, 5)
+y <- dust_system_simulate(sys, t)
+y <- dust_unpack_state(sys, y)
+
+y$X + y$Y
+
+y$Z
+```
+:::
 
 
 ### Update time to t0 + dt
