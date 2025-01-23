@@ -244,7 +244,7 @@ where `phi` might represent a time-varying ascertainment rate of cases (which co
 
 ### Evaluate assignments
 
-As with interpolation, compliation of `odin` code will detect which assignments are used only in the comparison to data. For instance in our example this would be
+As with interpolation, compilation of `odin` code will detect which assignments are used only in the comparison to data. For instance in our example this would be
 
 ```r
 exp_noise <- Exponential(1e6)
