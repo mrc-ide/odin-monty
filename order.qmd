@@ -259,4 +259,4 @@ Finally we evaluate the density given by any relationship equations. In our exam
 cases ~ Poisson(phi * incidence + exp_noise)
 ```
 
-As with assigments in the comparison to data step, any use of variables in these equations on the right-hand side will be evaluated using their values at `time = t0 + dt`.
+As with assignments in the comparison to data step, any use of variables in relationship equations on the right-hand side will be evaluated using their values at `time = t0 + dt`. No actual assignment is done in relationship equations, but the density accumulates over all non-NA data entries.
