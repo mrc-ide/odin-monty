@@ -5,23 +5,192 @@
 source("common.R")
 ```
 
-Many quantities of interest in uncertain systems can be expressed as integrals that weight outcomes according to their probability. A common approach to computing these integrals is through Monte Carlo estimation, where we draw samples from our distribution of interest and take their mean as an approximation. This method, known as a 'Monte Carlo' estimate, has been central to probabilistic inference and has driven the development of sophisticated sampling algorithms since the advent of modern computing in the 1950s.
-
-The `monty` package offers a range of sampling algorithms tailored to different types of distributions and varying levels of available information. This flexibility allows users to select the most efficient sampler based on their distribution's characteristics and computational resources.
-
-## Samplers supported by `monty`
-
 ```{r}
 library(monty)
 ```
 
+Many quantities of interest in uncertain systems can be expressed as integrals that weight outcomes according to their probability. A common approach to computing these integrals is through Monte Carlo estimation, where we draw samples from our distribution of interest and take their mean as an approximation. This method, known as a 'Monte Carlo' estimate, has been central to probabilistic inference and has driven the development of sophisticated sampling algorithms since the advent of modern computing in the 1950s.
+
+The `monty` package offers a range of sampling algorithms tailored to different types of distributions and varying levels of available information. This flexibility allows users to select the most efficient sampler based on their distribution's characteristics and computational resources.
+
+## Sampling without `monty`
+
+For example, imagine that we have a simple 2D (bivariate) Gaussian model with some positive correlation:
+```{r}
+# Set up a simple 2D Gaussian model, with correlation
+VCV <- matrix(c(1, 0.8, 0.8, 1), 2, 2)
+m <- monty_example("gaussian", VCV)
+m
+```
+
+In that particularly simple case, we can visualise its density over a grid:
+```{r}
+a <- seq(-4, 4, length.out = 1000)
+b <- seq(-3, 3, length.out = 1000)
+
+z <- matrix(1,
+            nrow = length(a),
+            ncol = length(b))
+for(i in seq_along(a))
+  for(j in seq_along(b))
+    z[i,j] <- exp(monty_model_density(m, c(a[i], b[j])))
+# z <- outer(a, b, function(alpha, beta) {
+#   exp(Vectorize(monty_model_density)(m, c(alpha, beta)))
+# })
+image(a, b, z, xlab = "a", ylab = "b")
+```
+
+We can also use a trick to sample easily from this distribution, by using samples from a simple standard Normal and multiply them by the Cholevsky decomposition of the Variance-Covariance parameter matrix of our bivariate normal distribution:
+
+```{r}
+n_samples <- 1000
+standard_samples <- matrix(rnorm(2*n_samples), ncol = 2)
+samples <- standard_samples %*% chol(VCV)
+```
+
+These samples align well with the density
+```{r}
+image(a, b, z, xlab = "a", ylab = "b")
+points(samples, pch = 19, col = "#00000055")
+```
+
+They are i.i.d. and present no sign of autocorrelation, that can be visualised using the `acf()` function, successive samples (i.e. lagged by one) do not present any sign of correlation.
+
+```{r}
+acf(samples[,1])
+```
+
+## Samplers supported by `monty`
+
+However most of the time, in prractical situation such as Bayesian modelling, we are not able to sample using simple fucntions, and we have to use a MCMC sampler. `monty` samplers exploit the properties of the underlying `monty` model (e.g. availability of gradient) to draw samples. While they differ they have in common to be based on a chain of Monte Carlo draws and are thus characterised by their number of steps `n_steps`. Also they are built using a constructor of the form `monty_sampler_name()` and then samples are generated using the `monty_sample()` function.
+
 ### Randow-Walk Metropolis-Hastings
 
-### Adaptive Random Walk
+Random-Walk Metropolis-Hastings (RWMH) is one of the most straightforward Markov Chain Monte Carlo (MCMC) algorithms. At each iteration, RWMH proposes a new parameter vector by taking a random step - usually drawn from a symmetric distribution (e.g. multivariate normal with mean zero) - from the current parameter values. This new proposal is then accepted or rejected based on the Metropolis acceptance rule, which compares the density of the proposed point with that of the current point.
+
+The random-walk nature of the proposal means that tuning the step size and directionality (defined by a variance-covariance matrix in multiple dimensions) is crucial. If steps are too large, many proposals will be rejected; if they are too small, the chain will move slowly through parameter space, leading to high autocorrelation in the samples. RWMH can be a good starting point for problems where gradient information is unavailable or when simpler methods suffice.
+
+The `monty_sampler_random_walk()` function allow us to define a RWMH sampler by passing the Variance-Covariance matrix of the distribution as an argument.
+
+```{r}
+vcv_initial <- diag(2) * 0.1
+sampler_rw <- monty_sampler_random_walk(vcv = vcv_initial)
+```
+
+Once the sampler is built, the generic `monty_sample()` function can be used to generate samples:
+
+```{r}
+res_rw <- monty_sample(m, sampler_rw, n_steps = 1000)
+```
+
+This produces a chain of length `n_steps` that can be visualised
+```{r}
+plot(res_rw$pars[1,,1], type = "l")
+```
+
+Samples can also be visualised over the density:
+
+```{r}
+image(a, b, z, xlab = "a", ylab = "b")
+points(t(res_rw$pars[,,1]), pch = 19, col = "#00000055")
+```
+
+```{r}
+acf(res_rw$pars[1,,1], 200)
+```
+
+### Adaptive Metropolis-Hastings Sampler
+
+**Overview**  
+This sampler extends the basic (non-adaptive) random-walk Metropolis-Hastings algorithm by dynamically updating its proposal distribution as the chain progresses. In a standard random-walk MCMC, one must guess a single variance-covariance matrix (VCV) up front. If the target distribution is high-dimensional or has strong correlations, it can be challenging to find a VCV that allows the chain to explore efficiently.
+
+With this **adaptive** approach, the VCV and the overall scaling factor evolve according to the observed samples. The sampler “learns” the covariance structure of the target distribution on-the-fly, leading to (potentially) much lower autocorrelation, better mixing, and more efficient exploration. Formally, this adaptivity modifies the Markov property, so care must be taken to ensure the adaptation “diminishes” over time (as this code does).  
+
+**Main ideas**
+
+1. **Adaptive Covariance**  
+   - After each iteration, the algorithm updates an **empirical covariance** using the newly accepted parameter values.  
+   - Early samples are gradually *forgotten* (depending on `forget_rate` and `forget_end`) so that the empirical covariance primarily reflects the more recent part of the chain—helpful if the chain starts far from the posterior bulk.
+
+2. **Adaptive Scaling**  
+   - The sampler also updates a **global scaling factor** (multiplied by $2.38^2 / d$ in the proposal) to target a desired acceptance rate (`acceptance_target`).  
+   - If acceptance is too high, the sampler increases the step size. If acceptance is too low, it decreases it. Doing this in log-space is often more stable (`log_scaling_update = TRUE`).
+
+3. **Boundaries**  
+   - Proposals that fall outside the domain can be handled in one of three ways:  
+     - *Reflect*: Mirror them back into the domain (the default).  
+     - *Reject*: Assign $-\infty$ log-density and reject.  
+     - *Ignore*: Accept them anyway (if your model supports out-of-domain evaluations).
+
+4. **Adaptation Stopping**  
+   - Eventually, the sampler stops adapting (`adapt_end`), freezing the proposal distribution for the remainder of the run. This helps restore formal MCMC convergence properties, as purely adaptive samplers can break standard theory if they keep adapting indefinitely.
+
+**Citation**  
+This implementation is inspired by an “accelerated shaping” adaptive algorithm from Spencer (2021):
+
+> Spencer SEF (2021) Accelerating adaptation in the adaptive Metropolis–Hastings random walk algorithm. *Australian & New Zealand Journal of Statistics*, 63:468–484.
+
+---
+
+### Example: Adaptive vs. Non-adaptive Metropolis-Hastings
+
+Below is a simple demonstration showing how to use the adaptive sampler on a multivariate Gaussian example, comparing it against the basic random-walk approach. The target Gaussian has some correlation in its variance-covariance matrix, so the adaptive sampler’s ability to learn this correlation on the fly can be advantageous.
+
+```{r}
+# 2. Adaptive sampler:
+sampler_adaptive <- monty_sampler_adaptive(
+  initial_vcv       = vcv_initial,     # start from the same guess
+  initial_vcv_weight = 1000,           # weight for the initial guess
+  acceptance_target  = 0.234,          # desired acceptance rate
+  forget_rate        = 0.2,            # regularly forget oldest samples
+  adapt_end          = 300,            # stop adapting after 300 iterations
+  boundaries         = "reflect"       # default reflection at domain edges
+)
+
+# Run both samplers for 1,000 iterations
+res_adaptive <- monty_sample(m, sampler_adaptive, n_steps = 1000)
+
+# Compare the chain density traces
+plot(drop(res_rw$density), type = "l", col = 2,   xlab = "Iteration",
+     ylab = "Log density", main = "Comparison of RWMH vs. Adaptive M-H")
+lines(drop(res_adaptive$density), type = "l", col = 4)
+
+legend("bottomright", legend = c("Random-Walk", "Adaptive"),
+       col = c(2, 4), lty = 1, bty = "n")
+```
+
+In the above code:
+
+- **Random-Walk Metropolis** uses a fixed variance-covariance matrix (`vcv_initial`) throughout the chain. 
+- **Adaptive Metropolis-Hastings** starts with the same matrix but actively refines it. You should see that the adaptive sampler often converges to a better proposal distribution, leading to improved mixing and typically higher log densities (indicating that the chain is exploring the posterior more effectively).
+
+You can also inspect the final estimated variance-covariance matrix from the adaptive sampler:
+
+```{r}
+# Show the final estimate of the VCV from the adaptive sampler
+# (s_adaptive$details is updated after each chain)
+est_vcv <- sampler_adaptive$details[[1]]$vcv
+print(est_vcv)
+```
+
+Over many iterations, this matrix will reflect the empirical correlation structure of the target distribution—showing how the chain has “learned” the shape of the posterior.
+
+---
+
+**Summary**  
+- This **Adaptive Metropolis-Hastings** sampler is especially helpful in moderate to high dimensions or when the posterior exhibits nontrivial correlations.  
+- By updating the proposal’s scale and shape in real time, it can achieve more stable acceptance rates and faster convergence compared to a fixed random-walk approach.  
+- The user has fine-grained control via parameters like `acceptance_target`, `forget_rate`, and `adapt_end`, allowing adaptation to be tailored to the problem at hand.  
+
+Feel free to experiment with different settings—particularly the forgetting and adaptation window parameters—to see how they affect convergence and mixing for your particular model.
 
 ### Nested models
 
 ### Hamiltonian Monte Carlo
+
+Hamiltonian Monte Carlo (HMC) leverages gradient information of the log-density to make proposals in a more directed manner than random-walk approaches. By treating the parameters as positions in a physical system and introducing “momentum” variables, HMC simulates Hamiltonian dynamics to propose new states. This often allows the sampler to traverse the parameter space quickly, reducing random-walk behaviour and yielding lower autocorrelation.
+
+Tuning HMC involves setting parameters such as the step size (epsilon) and the number of leapfrog or integration steps. While initial tuning can be more involved than for simpler methods, modern approaches like the No-U-Turn Sampler (NUTS) automate many of these choices. HMC’s efficiency gains can be dramatic, especially for high-dimensional or highly correlated posteriors, and it is a popular default in many modern Bayesian libraries.
 
 ## A simple example: The bendy banana
 
