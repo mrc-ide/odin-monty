@@ -15,7 +15,9 @@ The `monty` package offers a range of sampling algorithms tailored to different 
 
 ## Sampling without `monty`
 
-For example, imagine that we have a simple 2D (bivariate) Gaussian model with some positive correlation:
+In this section we are going to see an example where we can sample from a `monty` model without using `monty`. The idea is then to compare this ideal situation with less favourable cases when we have to use Monte Carlo method to sample.
+
+Imagine that we have a simple 2D (bivariate) Gaussian `monty_model` model with some positive correlation:
 ```{r}
 # Set up a simple 2D Gaussian model, with correlation
 VCV <- matrix(c(1, 0.8, 0.8, 1), 2, 2)
@@ -23,7 +25,9 @@ m <- monty_example("gaussian", VCV)
 m
 ```
 
-In that particularly simple case, we can visualise its density over a grid:
+This `monty_model` is differentiable and can be directly sampled from (a very low level way of "sampling" that means different things depending on the situation e.g. could mean sampling from the prior distribution, we advise to use it very carefully).
+
+In that particularly simple case, we can even visualise its density over a grid:
 ```{r}
 a <- seq(-4, 4, length.out = 1000)
 b <- seq(-3, 3, length.out = 1000)
@@ -40,7 +44,7 @@ for(i in seq_along(a))
 image(a, b, z, xlab = "a", ylab = "b")
 ```
 
-We can also use a trick to sample easily from this distribution, by using samples from a simple standard Normal and multiply them by the Cholevsky decomposition of the Variance-Covariance parameter matrix of our bivariate normal distribution:
+As we are dealing with a [bivariate Normal distribution](https://en.wikipedia.org/wiki/Multivariate_normal_distribution), we can use a trick to sample easily from this distribution. We use samples from a simple standard Normal and multiply them by the [Cholevsky decomposition](https://en.wikipedia.org/wiki/Cholesky_decomposition) of the Variance-Covariance parameter matrix of our bivariate normal distribution:
 
 ```{r}
 n_samples <- 1000
@@ -62,7 +66,7 @@ acf(samples[,1])
 
 ## Samplers supported by `monty`
 
-However most of the time, in prractical situation such as Bayesian modelling, we are not able to sample using simple fucntions, and we have to use a MCMC sampler. `monty` samplers exploit the properties of the underlying `monty` model (e.g. availability of gradient) to draw samples. While they differ they have in common to be based on a chain of Monte Carlo draws and are thus characterised by their number of steps `n_steps`. Also they are built using a constructor of the form `monty_sampler_name()` and then samples are generated using the `monty_sample()` function.
+However most of the time, in practical situation such as Bayesian modelling, we are not able to sample using simple fucntions, and we have to use a MCMC sampler. `monty` samplers exploit the properties of the underlying `monty` model (e.g. availability of gradient) to draw samples. While they differ they have in common to be based on a chain of Monte Carlo draws and are thus characterised by their number of steps `n_steps`. Also they are built using a constructor of the form `monty_sampler_name()` and then samples are generated using the `monty_sample()` function.
 
 ### Randow-Walk Metropolis-Hastings
 
@@ -98,6 +102,8 @@ points(t(res_rw$pars[,,1]), pch = 19, col = "#00000055")
 ```{r}
 acf(res_rw$pars[1,,1], 200)
 ```
+
+This autocorrelation function can be interpreted that we have to wait almost 100 steps for the algorithm to produce a "new" (i.e. not correlated) sample, that means a lot of calculation is "wasted". Improving the number of uncorrelated samples is at the heart of many strategies to improve the efficiency of Monte Carlo sampling algorithm. In particular the adaptive Metropolis-Hastings sampler offers tools to automatically optimise the proposal distribution. 
 
 ### Adaptive Metropolis-Hastings Sampler
 
@@ -183,6 +189,10 @@ Over many iterations, this matrix will reflect the empirical correlation structu
 - The user has fine-grained control via parameters like `acceptance_target`, `forget_rate`, and `adapt_end`, allowing adaptation to be tailored to the problem at hand.  
 
 Feel free to experiment with different settings—particularly the forgetting and adaptation window parameters—to see how they affect convergence and mixing for your particular model.
+
+```{r}
+acf(res_adaptive$pars[1,,1], 200)
+```
 
 ### Nested models
 
