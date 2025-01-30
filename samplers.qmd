@@ -44,7 +44,7 @@ for(i in seq_along(a))
 image(a, b, z, xlab = "a", ylab = "b")
 ```
 
-As we are dealing with a [bivariate Normal distribution](https://en.wikipedia.org/wiki/Multivariate_normal_distribution), we can use a trick to sample easily from this distribution. We use samples from a simple standard Normal and multiply them by the [Cholevsky decomposition](https://en.wikipedia.org/wiki/Cholesky_decomposition) of the Variance-Covariance parameter matrix of our bivariate normal distribution:
+As we are dealing with a [bivariate normal distribution](https://en.wikipedia.org/wiki/Multivariate_normal_distribution), we can use a trick to sample easily from this distribution. We use samples from a simple standard normal distribution and multiply them by the [Cholevsky decomposition](https://en.wikipedia.org/wiki/Cholesky_decomposition) of the Variance-Covariance parameter matrix of our bivariate normal distribution:
 
 ```{r}
 n_samples <- 1000
