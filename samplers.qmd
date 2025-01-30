@@ -15,7 +15,7 @@ The `monty` package offers a range of sampling algorithms tailored to different 
 
 ## Sampling without `monty`
 
-In this section we are going to see an example where we can sample from a `monty` model without using `monty`. The idea is then to compare this ideal situation with less favourable cases when we have to use Monte Carlo method to sample.
+In this section we are going to see an example where we can sample from a `monty` model without using `monty`. The idea is then to compare this ideal situation with less favourable cases when we have to use Monte Carlo methods to sample.
 
 Imagine that we have a simple 2D (bivariate) Gaussian `monty_model` model with some positive correlation:
 ```{r}
