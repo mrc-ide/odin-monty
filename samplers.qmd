@@ -96,7 +96,7 @@ Samples can also be visualised over the density:
 
 ```{r}
 image(a, b, z, xlab = "a", ylab = "b")
-points(t(res_rw$pars[,,1]), pch = 19, col = "#00000055")
+points(t(res_rw$pars[, , 1]), pch = 19, col = "#00000055")
 ```
 
 ```{r}
