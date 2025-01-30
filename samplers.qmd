@@ -70,7 +70,7 @@ However most of the time, in practical situation such as Bayesian modelling, we 
 
 ### Randow-Walk Metropolis-Hastings
 
-Random-Walk Metropolis-Hastings (RWMH) is one of the most straightforward Markov Chain Monte Carlo (MCMC) algorithms. At each iteration, RWMH proposes a new parameter vector by taking a random step - usually drawn from a symmetric distribution (e.g. multivariate normal with mean zero) - from the current parameter values. This new proposal is then accepted or rejected based on the Metropolis acceptance rule, which compares the density of the proposed point with that of the current point.
+Random-Walk Metropolis-Hastings (RWMH) is one of the most straightforward Markov chain Monte Carlo (MCMC) algorithms. At each iteration, RWMH proposes a new parameter vector by taking a random step - usually drawn from a symmetric distribution (e.g. multivariate normal with mean zero) - from the current parameter values. This new proposal is then accepted or rejected based on the Metropolis acceptance rule, which compares the density of the proposed point with that of the current point.
 
 The random-walk nature of the proposal means that tuning the step size and directionality (defined by a variance-covariance matrix in multiple dimensions) is crucial. If steps are too large, many proposals will be rejected; if they are too small, the chain will move slowly through parameter space, leading to high autocorrelation in the samples. RWMH can be a good starting point for problems where gradient information is unavailable or when simpler methods suffice.
 
