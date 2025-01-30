@@ -89,7 +89,7 @@ res_rw <- monty_sample(m, sampler_rw, n_steps = 1000)
 
 This produces a chain of length `n_steps` that can be visualised
 ```{r}
-plot(res_rw$pars[1,,1], type = "l")
+plot(res_rw$pars[1, , 1], type = "l")
 ```
 
 Samples can also be visualised over the density:
