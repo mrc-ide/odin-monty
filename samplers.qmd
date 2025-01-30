@@ -61,7 +61,7 @@ points(samples, pch = 19, col = "#00000055")
 They are i.i.d. and present no sign of autocorrelation, which can be visualised using the `acf()` function - successive samples (i.e. lagged by one) in this case do not present any sign of correlation.
 
 ```{r}
-acf(samples[,1])
+acf(samples[, 1])
 ```
 
 ## Samplers supported by `monty`
