@@ -100,7 +100,7 @@ points(t(res_rw$pars[, , 1]), pch = 19, col = "#00000055")
 ```
 
 ```{r}
-acf(res_rw$pars[1,,1], 200)
+acf(res_rw$pars[1, , 1], 200)
 ```
 
 This autocorrelation function can be interpreted that we have to wait almost 100 steps for the algorithm to produce a "new" (i.e. not correlated) sample, that means a lot of calculation is "wasted". Improving the number of uncorrelated samples is at the heart of many strategies to improve the efficiency of Monte Carlo sampling algorithm. In particular the adaptive Metropolis-Hastings sampler offers tools to automatically optimise the proposal distribution. 
