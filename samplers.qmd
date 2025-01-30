@@ -77,8 +77,8 @@ The random-walk nature of the proposal means that tuning the step size and direc
 The `monty_sampler_random_walk()` function allow us to define a RWMH sampler by passing the Variance-Covariance matrix of the distribution as an argument.
 
 ```{r}
-vcv_initial <- diag(2) * 0.1
-sampler_rw <- monty_sampler_random_walk(vcv = vcv_initial)
+vcv <- diag(2) * 0.1
+sampler_rw <- monty_sampler_random_walk(vcv = vcv)
 ```
 
 Once the sampler is built, the generic `monty_sample()` function can be used to generate samples:
