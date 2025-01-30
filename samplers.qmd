@@ -66,7 +66,7 @@ acf(samples[,1])
 
 ## Samplers supported by `monty`
 
-However most of the time, in practical situation such as Bayesian modelling, we are not able to sample using simple fucntions, and we have to use a MCMC sampler. `monty` samplers exploit the properties of the underlying `monty` model (e.g. availability of gradient) to draw samples. While they differ they have in common to be based on a chain of Monte Carlo draws and are thus characterised by their number of steps `n_steps`. Also they are built using a constructor of the form `monty_sampler_name()` and then samples are generated using the `monty_sample()` function.
+However most of the time, in practical situation such as Bayesian modelling, we are not able to sample using simple functions, and we have to use a MCMC sampler. `monty` samplers exploit the properties of the underlying `monty` model (e.g. availability of gradient) to draw samples. While they differ, a key commonality is that they are based on a chain of Monte Carlo draws and are thus characterised by their number of steps in the chain, `n_steps`. Also they are built using a constructor of the form `monty_sampler_name()` and then samples are generated using the `monty_sample()` function.
 
 ### Randow-Walk Metropolis-Hastings
 
