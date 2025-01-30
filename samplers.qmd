@@ -38,9 +38,6 @@ z <- matrix(1,
 for(i in seq_along(a))
   for(j in seq_along(b))
     z[i,j] <- exp(monty_model_density(m, c(a[i], b[j])))
-# z <- outer(a, b, function(alpha, beta) {
-#   exp(Vectorize(monty_model_density)(m, c(alpha, beta)))
-# })
 image(a, b, z, xlab = "a", ylab = "b")
 ```
 
