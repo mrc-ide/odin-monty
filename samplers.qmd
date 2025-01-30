@@ -5,23 +5,112 @@
 source("common.R")
 ```
 
-Many quantities of interest in uncertain systems can be expressed as integrals that weight outcomes according to their probability. A common approach to computing these integrals is through Monte Carlo estimation, where we draw samples from our distribution of interest and take their mean as an approximation. This method, known as a 'Monte Carlo' estimate, has been central to probabilistic inference and has driven the development of sophisticated sampling algorithms since the advent of modern computing in the 1950s.
-
-The `monty` package offers a range of sampling algorithms tailored to different types of distributions and varying levels of available information. This flexibility allows users to select the most efficient sampler based on their distribution's characteristics and computational resources.
-
-## Samplers supported by `monty`
-
 ```{r}
 library(monty)
 ```
 
+Many quantities of interest in uncertain systems can be expressed as integrals that weight outcomes according to their probability. A common approach to computing these integrals is through Monte Carlo estimation, where we draw samples from our distribution of interest and take their mean as an approximation. This method, known as a 'Monte Carlo' estimate, has been central to probabilistic inference and has driven the development of sophisticated sampling algorithms since the advent of modern computing in the 1950s.
+
+The `monty` package offers a range of sampling algorithms tailored to different types of distributions and varying levels of available information. This flexibility allows users to select the most efficient sampler based on their distribution's characteristics and computational resources.
+
+## Sampling without `monty`
+
+In this section we are going to see an example where we can sample from a `monty` model without using `monty`. The idea is then to compare this ideal situation with less favourable cases when we have to use Monte Carlo methods to sample.
+
+Imagine that we have a simple 2D (bivariate) Gaussian `monty_model` model with some positive correlation:
+```{r}
+# Set up a simple 2D Gaussian model, with correlation
+VCV <- matrix(c(1, 0.8, 0.8, 1), 2, 2)
+m <- monty_example("gaussian", VCV)
+m
+```
+
+This `monty_model` is differentiable and can be directly sampled from (a very low level way of "sampling" that means different things depending on the situation e.g. could mean sampling from the prior distribution, we advise to use it very carefully).
+
+In that particularly simple case, we can even visualise its density over a grid:
+```{r}
+a <- seq(-4, 4, length.out = 1000)
+b <- seq(-3, 3, length.out = 1000)
+
+z <- matrix(1,
+            nrow = length(a),
+            ncol = length(b))
+for(i in seq_along(a))
+  for(j in seq_along(b))
+    z[i,j] <- exp(monty_model_density(m, c(a[i], b[j])))
+image(a, b, z, xlab = "a", ylab = "b")
+```
+
+As we are dealing with a [bivariate normal distribution](https://en.wikipedia.org/wiki/Multivariate_normal_distribution), we can use a trick to sample easily from this distribution. We use samples from a simple standard normal distribution and multiply them by the [Cholevsky decomposition](https://en.wikipedia.org/wiki/Cholesky_decomposition) of the Variance-Covariance parameter matrix of our bivariate normal distribution:
+
+```{r}
+n_samples <- 1000
+standard_samples <- matrix(rnorm(2 * n_samples), ncol = 2)
+samples <- standard_samples %*% chol(VCV)
+```
+
+These samples align well with the density
+```{r}
+image(a, b, z, xlab = "a", ylab = "b")
+points(samples, pch = 19, col = "#00000055")
+```
+
+They are i.i.d. and present no sign of autocorrelation, which can be visualised using the `acf()` function - successive samples (i.e. lagged by one) in this case do not present any sign of correlation.
+
+```{r}
+acf(samples[, 1])
+```
+
+## Samplers supported by `monty`
+
+However most of the time, in practical situation such as Bayesian modelling, we are not able to sample using simple functions, and we have to use a MCMC sampler. `monty` samplers exploit the properties of the underlying `monty` model (e.g. availability of gradient) to draw samples. While they differ, a key commonality is that they are based on a chain of Monte Carlo draws and are thus characterised by their number of steps in the chain, `n_steps`. Also they are built using a constructor of the form `monty_sampler_name()` and then samples are generated using the `monty_sample()` function.
+
 ### Randow-Walk Metropolis-Hastings
 
-### Adaptive Random Walk
+Random-Walk Metropolis-Hastings (RWMH) is one of the most straightforward Markov chain Monte Carlo (MCMC) algorithms. At each iteration, RWMH proposes a new parameter vector by taking a random step - usually drawn from a symmetric distribution (e.g. multivariate normal with mean zero) - from the current parameter values. This new proposal is then accepted or rejected based on the Metropolis acceptance rule, which compares the density of the proposed point with that of the current point.
+
+The random-walk nature of the proposal means that tuning the step size and directionality (defined by a variance-covariance matrix in multiple dimensions) is crucial. If steps are too large, many proposals will be rejected; if they are too small, the chain will move slowly through parameter space, leading to high autocorrelation in the samples. RWMH can be a good starting point for problems where gradient information is unavailable or when simpler methods suffice.
+
+The `monty_sampler_random_walk()` function allow us to define a RWMH sampler by passing the Variance-Covariance matrix of the distribution as an argument.
+
+```{r}
+vcv <- diag(2) * 0.1
+sampler_rw <- monty_sampler_random_walk(vcv = vcv)
+```
+
+Once the sampler is built, the generic `monty_sample()` function can be used to generate samples:
+
+```{r}
+res_rw <- monty_sample(m, sampler_rw, n_steps = 1000)
+```
+
+This produces a chain of length `n_steps` that can be visualised
+```{r}
+plot(res_rw$pars[1, , 1], type = "l")
+```
+
+Samples can also be visualised over the density:
+
+```{r}
+image(a, b, z, xlab = "a", ylab = "b")
+points(t(res_rw$pars[, , 1]), pch = 19, col = "#00000055")
+```
+
+```{r}
+acf(res_rw$pars[1, , 1], 200)
+```
+
+This autocorrelation function can be interpreted that we have to wait almost 100 steps for the algorithm to produce a "new" (i.e. not correlated) sample, that means a lot of calculation is "wasted". Improving the number of uncorrelated samples is at the heart of many strategies to improve the efficiency of Monte Carlo sampling algorithm. In particular the adaptive Metropolis-Hastings sampler offers tools to automatically optimise the proposal distribution. 
+
+### Adaptive Metropolis-Hastings Sampler
 
 ### Nested models
 
 ### Hamiltonian Monte Carlo
+
+Hamiltonian Monte Carlo (HMC) leverages gradient information of the log-density to make proposals in a more directed manner than random-walk approaches. By treating the parameters as positions in a physical system and introducing “momentum” variables, HMC simulates Hamiltonian dynamics to propose new states. This often allows the sampler to traverse the parameter space quickly, reducing random-walk behaviour and yielding lower autocorrelation.
+
+Tuning HMC involves setting parameters such as the step size (epsilon) and the number of leapfrog or integration steps. While initial tuning can be more involved than for simpler methods, modern approaches like the No-U-Turn Sampler (NUTS) automate many of these choices. HMC’s efficiency gains can be dramatic, especially for high-dimensional or highly correlated posteriors, and it is a popular default in many modern Bayesian libraries.
 
 ## A simple example: The bendy banana
 
