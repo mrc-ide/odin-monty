@@ -9,9 +9,17 @@ source("common.R")
 library(monty)
 ```
 
-Many quantities of interest in uncertain systems can be expressed as integrals that weight outcomes according to their probability. A common approach to computing these integrals is through Monte Carlo estimation, where we draw samples from our distribution of interest and take their mean as an approximation. This method, known as a 'Monte Carlo' estimate, has been central to probabilistic inference and has driven the development of sophisticated sampling algorithms since the advent of modern computing in the 1950s.
+Many quantities of interest in uncertain systems can be expressed as integrals that weight outcomes according to their probability. A common approach to computing these integrals is [Monte Carlo](https://en.wikipedia.org/wiki/Monte_Carlo_method) estimation, where we draw samples from our distribution of interest and take their mean as an approximation. This method has been central to probabilistic inference and has driven the development of sophisticated sampling algorithms since the advent of modern computing in the 1950s.
 
-The `monty` package offers a range of sampling algorithms tailored to different types of distributions and varying levels of available information. This flexibility allows users to select the most efficient sampler based on their distribution's characteristics and computational resources.
+The `monty` package supports several sampling algorithms designed to handle a variety of target distributions and leverage any available information (such as gradients). At the moment, `monty` provides the following samplers:
+
+1. **Random-Walk Metropolis-Hastings (RWMH)** – a simple and robust MCMC sampler which does not require gradient information.  
+2. **Adaptive Metropolis-Hastings** – an extension of RWMH that can adapt its proposal distribution on the fly, improving efficiency over time.  
+3. **Hamiltonian Monte Carlo (HMC)** – a gradient-based sampler that can drastically reduce autocorrelation in the chain, particularly for high-dimensional or strongly correlated targets.  
+4. **Parallel Tempering** – a technique for tackling multimodal or complex distributions by running multiple “tempered” chains and exchanging states between them.  
+5. **Nested Models** – an interface for combining samplers or applying hierarchical structures (though typically not a “sampler” in the strict sense, monty provides mechanisms to nest or combine models in more complex ways).
+
+These samplers can all be accessed via constructors (e.g. `monty_sampler_random_walk()`, `monty_sampler_hmc()`, etc.) and used with the general-purpose function `monty_sample()`. By choosing the sampler that best suits your distribution - whether it is unimodal or multimodal, gradient-accessible or not - you can often achieve more efficient exploration of your parameter space.
 
 ## Sampling without `monty`
 
@@ -41,7 +49,7 @@ for(i in seq_along(a))
 image(a, b, z, xlab = "a", ylab = "b")
 ```
 
-As we are dealing with a [bivariate normal distribution](https://en.wikipedia.org/wiki/Multivariate_normal_distribution), we can use a trick to sample easily from this distribution. We use samples from a simple standard normal distribution and multiply them by the [Cholevsky decomposition](https://en.wikipedia.org/wiki/Cholesky_decomposition) of the Variance-Covariance parameter matrix of our bivariate normal distribution:
+As we are dealing with a [bivariate normal distribution](https://en.wikipedia.org/wiki/Multivariate_normal_distribution), we can use a trick to sample easily from this distribution. We use samples from a simple standard normal distribution and multiply them by the [Cholesky decomposition](https://en.wikipedia.org/wiki/Cholesky_decomposition) of the Variance-Covariance parameter matrix of our bivariate normal distribution:
 
 ```{r}
 n_samples <- 1000
@@ -49,7 +57,7 @@ standard_samples <- matrix(rnorm(2 * n_samples), ncol = 2)
 samples <- standard_samples %*% chol(VCV)
 ```
 
-These samples align well with the density
+These samples align well with the density:
 ```{r}
 image(a, b, z, xlab = "a", ylab = "b")
 points(samples, pch = 19, col = "#00000055")
@@ -63,7 +71,7 @@ acf(samples[, 1])
 
 ## Samplers supported by `monty`
 
-However most of the time, in practical situation such as Bayesian modelling, we are not able to sample using simple functions, and we have to use a MCMC sampler. `monty` samplers exploit the properties of the underlying `monty` model (e.g. availability of gradient) to draw samples. While they differ, a key commonality is that they are based on a chain of Monte Carlo draws and are thus characterised by their number of steps in the chain, `n_steps`. Also they are built using a constructor of the form `monty_sampler_name()` and then samples are generated using the `monty_sample()` function.
+However most of the time, in practical situations such as Bayesian modelling, we are not able to sample using simple functions, and we have to use an MCMC sampler. `monty` samplers exploit the properties of the underlying `monty` model (e.g. availability of gradient) to draw samples. While they differ, a key commonality is that they are based on a chain of Monte Carlo draws and are thus characterised by their number of steps in the chain, `n_steps`. Also, they are built using a constructor of the form `monty_sampler_name()` and then samples are generated using the `monty_sample()` function.
 
 ### Randow-Walk Metropolis-Hastings
 
@@ -71,7 +79,7 @@ Random-Walk Metropolis-Hastings (RWMH) is one of the most straightforward Markov
 
 The random-walk nature of the proposal means that tuning the step size and directionality (defined by a variance-covariance matrix in multiple dimensions) is crucial. If steps are too large, many proposals will be rejected; if they are too small, the chain will move slowly through parameter space, leading to high autocorrelation in the samples. RWMH can be a good starting point for problems where gradient information is unavailable or when simpler methods suffice.
 
-The `monty_sampler_random_walk()` function allow us to define a RWMH sampler by passing the Variance-Covariance matrix of the distribution as an argument.
+The `monty_sampler_random_walk()` function allows us to define an RWMH sampler by passing the Variance-Covariance matrix of the distribution as an argument.
 
 ```{r}
 vcv <- diag(2) * 0.1
@@ -84,7 +92,7 @@ Once the sampler is built, the generic `monty_sample()` function can be used to 
 res_rw <- monty_sample(m, sampler_rw, n_steps = 1000)
 ```
 
-This produces a chain of length `n_steps` that can be visualised
+This produces a chain of length `n_steps` that can be visualised:
 ```{r}
 plot(res_rw$pars[1, , 1], type = "l")
 ```
@@ -100,30 +108,40 @@ points(t(res_rw$pars[, , 1]), pch = 19, col = "#00000055")
 acf(res_rw$pars[1, , 1], 200)
 ```
 
-This autocorrelation function can be interpreted that we have to wait almost 100 steps for the algorithm to produce a "new" (i.e. not correlated) sample, that means a lot of calculation is "wasted". Improving the number of uncorrelated samples is at the heart of many strategies to improve the efficiency of Monte Carlo sampling algorithm. In particular the adaptive Metropolis-Hastings sampler offers tools to automatically optimise the proposal distribution. 
+We can see from the autocorrelation function that we have to wait almost 100 steps for the algorithm to produce a “new” (i.e. not correlated) sample, meaning a lot of calculation is “wasted.” Improving the number of uncorrelated samples is at the heart of many strategies to improve the efficiency of Monte Carlo sampling algorithms. In particular, the adaptive Metropolis-Hastings sampler offers tools to automatically optimise the proposal distribution. 
 
 ### Adaptive Metropolis-Hastings Sampler
 
+TODO: Content about the adaptive Metropolis-Hastings sampler to be placed here.
+
 ### Nested models
+
+TODO: Content about nested models to be placed here.
 
 ### Hamiltonian Monte Carlo
 
-Hamiltonian Monte Carlo (HMC) leverages gradient information of the log-density to make proposals in a more directed manner than random-walk approaches. By treating the parameters as positions in a physical system and introducing “momentum” variables, HMC simulates Hamiltonian dynamics to propose new states. This often allows the sampler to traverse the parameter space quickly, reducing random-walk behaviour and yielding lower autocorrelation.
+Hamiltonian Monte Carlo (HMC) leverages gradient information of the log-density to make proposals in a more directed manner than random-walk approaches. By treating the parameters as positions in a physical system and introducing “momentum” variables, HMC uses gradient information to simulate Hamiltonian dynamics to propose new states. This often allows the sampler to traverse the parameter space quickly, reducing random-walk behaviour and yielding lower autocorrelation.
 
-Tuning HMC involves setting parameters such as the step size (epsilon) and the number of leapfrog or integration steps. While initial tuning can be more involved than for simpler methods, modern approaches like the No-U-Turn Sampler (NUTS) automate many of these choices. HMC’s efficiency gains can be dramatic, especially for high-dimensional or highly correlated posteriors, and it is a popular default in many modern Bayesian libraries.
+Under the hood, HMC introduces auxiliary “momentum” variables that share the same dimensionality as the parameters. At each iteration, the momentum is drawn from a suitable distribution (typically multivariate normal) that decides the initial (random) direction of the move. The algorithm then performs a series of leapfrog steps that evolve both the parameter and momentum variables forward in “fictitious time.” These leapfrog steps use the gradient of the log-posterior to move through parameter space in a way that avoids the random, diffusive behaviour of simpler samplers. Crucially, at the end of these steps, a Metropolis-style acceptance step ensures that the correct target distribution is preserved. For a more complete introduction, you can see [@neal_mcmc_2011].
 
-## A simple example: The bendy banana
+Tuning HMC involves setting parameters such as the step size (often denoted $\epsilon$) and the number of leapfrog (or integration) steps. A small step size improves accuracy of the leapfrog integrator but increases computational cost, whereas too large a step size risks poor exploration and lower acceptance rates. Similarly, the number of leapfrog steps determines how far the chain moves in parameter space before proposing a new sample. Balancing these factors can initially be more involved than tuning simpler methods like random-walk Metropolis. However, modern approaches - such as the No-U-Turn Sampler (NUTS) - dynamically adjust these tuning parameters, making HMC more user-friendly and reducing the need for extensive manual calibration.
 
-This example shows HMC outperforming a random walk on a two dimensional banana-shaped function.  Our model takes two parameters `alpha` and `beta`, and is based on two successive simple draws, with the one conditional on the other, so $\beta \sim Normal(1,0)$ and $\alpha \sim Normal(\beta^2, \sigma)$, with $\sigma$ the standard deviation of the conditional draw.
+By leveraging gradient information, HMC is often able to navigate complex, high-dimensional, or strongly correlated posteriors far more efficiently than random-walk-based approaches. It typically exhibits much lower autocorrelation in the resulting chains, meaning fewer samples are needed to achieve a given level of accuracy in posterior estimates. As a result, HMC has become a popular default in many modern Bayesian libraries, including Stan, PyMC, and others. Nevertheless, its reliance on smooth gradient information limits its application to models where the target density is differentiable - discontinuous distributions can present challenges. Additionally, while HMC can significantly reduce random-walk behaviour, the additional computations required to evaluate gradients and integrate Hamiltonian dynamics means that it is not always faster in absolute wall-clock terms, especially for models with expensive gradient evaluations.
 
-We include this example within the package; here we create a model with $\sigma = 0.5$
+Overall, HMC provides a powerful framework for exploring complex posterior surfaces. When combined with robust tuning strategies or adaptive methods like NUTS [@hoffman_no-u-turn_2014], it is a leading choice for many real-world Bayesian inference problems, frequently outperforming more traditional MCMC algorithms in efficiency and scalability.
+
+#### An Illustrative Example: The Bendy Banana
+
+To see HMC in action, we can compare it against a random-walk Metropolis sampler on a two-dimensional “banana”-shaped function. Our model takes two parameters `alpha` and `beta`, and is based on two successive simple draws, with one conditional on the other, so $\beta \sim Normal(1,0)$ and $\alpha \sim Normal(\beta^2, \sigma)$, with $\sigma$ the standard deviation of the conditional draw.
+
+We include this example within the package; here we create a model with $\sigma = 0.5$:
 
 ```{r}
 m <- monty_example("banana", sigma = 0.5)
 m
 ```
 
-We can plot a visualisation of its density by computing the density over a grid.  Normally this is not possible of course:
+We can plot a visualisation of its density by computing the density over a grid. Normally this is not possible, but here it's small enough to illustrate:
 
 ```{r}
 a <- seq(-2, 6, length.out = 1000)
@@ -134,7 +152,7 @@ z <- outer(a, b, function(alpha, beta) {
 image(a, b, z, xlab = "alpha", ylab = "beta")
 ```
 
-In this particular case we can also easily generate samples, so we know what a good sampler will produce:
+In this particular case we can also easily generate samples directly from the model, so we know what a good sampler should produce:
 
 ```{r}
 rng <- monty_rng_create()
@@ -143,7 +161,7 @@ image(a, b, z, xlab = "alpha", ylab = "beta")
 points(s[1, ], s[2, ], pch = 19, col = "#00000055")
 ```
 
-It is also possible to compute the 95% confidence interval of the distribution using the relationship between the standard bivariate normal distribution and the banana shaped distribution as defined above. We can check that roughly 10 samples (out of 200) are out of this 95% CI contour.
+It is also possible to compute the 95% confidence interval of the distribution using the relationship between the standard bivariate normal distribution and the banana-shaped distribution as defined above. We can check that roughly 10 samples (out of 200) are out of this 95% CI contour:
 
 ```{r}
 theta <- seq(0, 2 * pi, length.out = 10000)
@@ -159,11 +177,11 @@ lines(z95[, 1], z95[, 2])
 points(s[1, ], s[2, ], pch = 19, col = "#00000055")
 ```
 
-## Sampling with other samplers
+##### Random-Walk Metropolis on the Banana
 
-It is not generally possible to directly sample from a density (otherwise MCMC and similar methods would not exist!).  In these cases we need to use a sampler based on the density and if available possibly the gradient of the density.
+It is not generally possible to directly sample from a density (otherwise MCMC and similar methods would not exist!). In these cases, we need to use a sampler based on the density and—if available—the gradient of the density.
 
-We can start with a basic random-walk sampler:
+We can start with a basic random-walk sampler to see how it performs on the banana distribution:
 
 ```{r RW_sampling}
 sampler_rw <- monty_sampler_random_walk(vcv = diag(2) * 0.01)
@@ -173,16 +191,19 @@ plot(t(drop(res_rw$pars)), type = "l", col = "#0000ff66",
 lines(z95[, 1], z95[, 2])
 ```
 
-As we can see this is not great, exhibiting strong random walk behaviour as it slowly explores the surface (this is over 1,000 steps).  Another way to view this is the parameters varying over steps:
+As we can see, this is not great, exhibiting strong random-walk behaviour as it slowly explores the surface (this is over 1,000 steps).
 
+Another way to view this is by plotting parameters over steps:
 ```
 matplot(t(drop(res_rw$pars)), lty = 1, type = "l", col = c(2, 4),
         xlab = "Step", ylab = "Value")
 ```
 
-We can probably improve the samples here by finding a better variance covariance matrix (VCV), but a single VCV will not hold well over the whole surface because it is not very similar to a multivariate normal (that is, the appropriate VCV will change depending on the position in parameter space)
+We could try improving the samples here by finding a better variance-covariance matrix (VCV), but the banana shape means a single VCV will not be ideal across the whole space.
 
-Let's try the Hamiltonian Monte Carlo (HMC) sampler, which uses the gradient to move efficiently in parameter space:
+##### Hamiltonian Monte Carlo on the Banana
+
+Now let's try the Hamiltonian Monte Carlo (HMC) sampler, which uses gradient information to move more efficiently in parameter space:
 
 ```{r HMC_sampling}
 sampler_hmc <- monty_sampler_hmc(epsilon = 0.1, n_integration_steps = 10)
@@ -192,11 +213,101 @@ plot(t(drop(res_hmc$pars)), type = "l", col = "#0000ff33",
 lines(z95[, 1], z95[, 2])
 ```
 
-or viewed over steps:
+Or viewed over steps:
 
 ```{r}
 matplot(t(drop(res_hmc$pars)), lty = 1, type = "l", col = c(2, 4),
         xlab = "Step", ylab = "Value")
 ```
 
-Clearly better!
+Clearly, HMC outperforms the random walk, rapidly exploring the full banana-shaped region with far less random wander.
+
+### Parallel Tempering Sampler
+
+[Parallel tempering](https://en.wikipedia.org/wiki/Parallel_tempering) (also known as replica exchange MCMC) is a technique designed to improve the mixing of Markov chain Monte Carlo methods, particularly in situations where the posterior distribution is multimodal or somehow challenging to explore.
+
+Let's for example define a simple Bayesian model where the likelihood is a mixture model:
+```{r}
+ex_mixture <- function(){
+  fn <- function(x) {
+    log(dnorm(x, mean = 5)/2 + dnorm(x, mean = -5)/2)
+  }
+  monty_model_function(fn,
+                       allow_multiple_parameters = TRUE)
+}
+likelihood <- ex_mixture()
+```
+
+the prior a normal distribution with a wider variance
+
+```{r}
+prior <- monty_dsl({
+  x ~ Normal(0, 10)
+})
+```
+
+And the posterior simply the product of the two (or the sum if working with log-densities)
+```{r}
+posterior <- likelihood + prior
+```
+
+```{r}
+x <- seq(-10, 10, length.out = 1001)
+y <- exp(posterior$density(rbind(x)))
+plot(x, y / sum(y) / diff(x)[[1]], col = "red", type = 'l')
+```
+
+```{r}
+vcv <- matrix(0.1)
+sampler_rw <- monty_sampler_random_walk(vcv = vcv)
+```
+
+Once the sampler is built, the generic `monty_sample()` function can be used to generate samples:
+
+```{r}
+res_rw <- monty_sample(posterior, sampler_rw, n_steps = 1000)
+```
+
+```{r}
+plot(res_rw$pars[1,,])
+```
+
+As we can see, the RW sampler does not manage to move outside of the mode where it is initially locked. MCMC theory tells us that it will eventually reach the other side of the distribution, whether with a low probability large move or by accepting many small disadvantageous steps in the right direction. It practices it can mean that the second mode is never explored in finite time.
+
+The core idea behind parallel tempering is to run multiple chains at different “temperatures” - where the posterior is effectively flattened or softened at higher temperatures - allowing the "hot" chains to move more freely across parameter space. Periodically, the states of the chains are swapped according to an acceptance rule that preserves the correct stationary distribution. The hope is that the higher-temperature chains will quickly explore multiple modes, and then swap states with the lower-temperature chains, thereby transferring information about other modes and improving overall exploration.
+
+This can also be beneficial if your model can efficiently evaluate multiple points in parallel (via parallelisation or vectorisation). Even though parallel tempering runs multiple chains, the computational cost can be partly offset by improved mixing or by leveraging multiple CPU cores.
+
+In `monty`, parallel tempering is implemented in the function `monty_sampler_parallel_tempering()`. Currently, this sampler uses a random-walk Metropolis step (`monty_sampler_random_walk`) within each chain, but we plan to allow other samplers in future releases.
+
+```{r}
+s <- monty_sampler_parallel_tempering(n_rungs = 10, vcv = matrix(.1))
+```
+
+Here, `n_rungs` specifies the number of additional chains (beyond the base chain) to run at different temperatures (so total chains = `n_rungs + 1`). The argument `vcv` is the variance-covariance matrix that will be passed to the underlying random-walk sampler. An optional `base` argument can be used to specify a “reference” model if your original model cannot be automatically decomposed into prior and posterior components, or if you want an alternative easy-to-sample-from distribution for the hottest rung.
+
+```{r}
+res_pt <- monty_sample(posterior, s, 1000, n_chains = 1)
+```
+
+```{r}
+plot(res_pt$pars[1,,])
+```
+
+```{r}
+hist(c(res_pt$pars), freq = FALSE)
+x <- seq(min(res_pt$pars), max(res_pt$pars), length.out = 1001)
+y <- exp(posterior$density(rbind(x)))
+lines(x, y / sum(y) / diff(x)[[1]], col = "red")
+```
+
+::: {.callout-note}
+
+A parallel tempering sampler performs more total computations than a single-chain sampler because it runs multiple chains simultaneously (e.g. `n_rungs + 1` chains) with only the "coldest" chain targeting the distribution of interest. However, there are scenarios where this additional cost pays off:
+
+1. **Parallelisation**: If your model can be efficiently evaluated across multiple cores, the wall-clock time may not be much larger than for a single chain—though CPU usage will naturally be higher.
+
+2. **Vectorisation**: In R, if the density calculations can be vectorised, then evaluating multiple chains in one go (in a vectorised manner) may not cost significantly more than evaluating a single chain.
+
+3. **Multimodality**: In models with multiple distinct modes, standard samplers often get “stuck” in a single mode. Parallel tempering can swap states between chains at different temperatures, making it more likely to fully explore all modes, thereby improving posterior exploration and reducing the risk of biased inference.
+:::
