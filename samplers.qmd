@@ -135,7 +135,7 @@ Under the hood, HMC introduces auxiliary “momentum” variables that share the
 
 Tuning HMC involves setting parameters such as the step size (often denoted $\epsilon$) and the number of leapfrog (or integration) steps. A small step size improves the accuracy of the leapfrog integrator but increases computational cost, whereas too large a step size risks poor exploration and lower acceptance rates. Likewise, the number of leapfrog steps determines how far the chain moves in parameter space before proposing a new sample. Balancing these factors can initially be more involved than tuning simpler methods like random-walk Metropolis. However, modern approaches - such as the No-U-Turn Sampler (NUTS) [@hoffman_no-u-turn_2014] - dynamically adjust these tuning parameters, making HMC more user-friendly and reducing the need for extensive manual calibration. Although NUTS is not yet available in `monty`, it is a high priority on our development roadmap.
 
-By leveraging gradient information, HMC is often able to navigate complex, high-dimensional, or strongly correlated posteriors far more efficiently than random-walk-based approaches. Typically, it exhibits substantially lower autocorrelation in the resulting chains, meaning fewer samples are needed to achieve a given level of accuracy in posterior estimates. As a result, HMC has become a default choice in many modern Bayesian libraries (e.g. Stan, PyMC). Nevertheless, HMC’s reliance on smooth gradient information limits its applicability to models where the target density is differentiable - discontinuities can pose significant challenges. Moreover, while HMC can drastically reduce random-walk behaviour, the additional computations required for gradient evaluations and Hamiltonian integration mean that it is not always faster in absolute wall-clock terms, particularly for models with costly gradient functions.
+By leveraging gradient information, HMC is often able to navigate complex, high-dimensional, or strongly correlated posteriors far more efficiently than random-walk-based approaches. Typically, it exhibits substantially lower autocorrelation in the resulting chains, meaning fewer samples are needed to achieve a given level of accuracy in posterior estimates. As a result, HMC has become a default choice in many modern Bayesian libraries (e.g. [Stan](https://mc-stan.org/), [PyMC](https://www.pymc.io/)). Nevertheless, HMC’s reliance on smooth gradient information limits its applicability to models where the target density is differentiable - discontinuities can pose significant challenges. Moreover, while HMC can drastically reduce random-walk behaviour, the additional computations required for gradient evaluations and Hamiltonian integration mean that it is not always faster in absolute wall-clock terms, particularly for models with costly gradient functions.
 
 #### An Illustrative Example: The Bendy Banana
 
@@ -201,7 +201,7 @@ lines(z95[, 1], z95[, 2])
 As we can see, this is not great, exhibiting strong random-walk behaviour as it slowly explores the surface (this is over 1,000 steps).
 
 Another way to view this is by plotting parameters over steps:
-```
+```{r}
 matplot(t(drop(res_rw$pars)), lty = 1, type = "l", col = c(2, 4),
         xlab = "Step", ylab = "Value")
 ```
@@ -261,7 +261,7 @@ posterior <- likelihood + prior
 ```{r}
 x <- seq(-10, 10, length.out = 1001)
 y <- exp(posterior$density(rbind(x)))
-plot(x, y / sum(y) / diff(x)[[1]], col = "red", type = 'l')
+plot(x, y / sum(y) / diff(x)[[1]], col = "red", type = 'l', ylab = "density")
 ```
 
 ```{r}
@@ -276,16 +276,21 @@ res_rw <- monty_sample(posterior, sampler_rw, n_steps = 1000)
 ```
 
 ```{r}
-plot(res_rw$pars[1,,])
+plot(res_rw$pars[1,,],
+     ylim = c(-8, 8),
+     ylab = "Value",
+     main = "RW samples")
+abline(h = -5, lty = 3, col = "red")
+abline(h = 5, lty = 3, col = "red")
 ```
 
-As we can see, the RW sampler does not manage to move outside of the mode where it is initially locked. MCMC theory tells us that it will eventually reach the other side of the distribution, whether with a low probability large move or by accepting many small disadvantageous steps in the right direction. It practices it can mean that the second mode is never explored in finite time.
+As we can see, the RW sampler does not manage to move outside of the mode where it is initially locked. MCMC theory tells us that it will eventually reach the other side of the distribution, whether with a (low probability) large jump or by accepting several consecutive small disadvantageous steps in the right direction. In practice, it can mean that the second mode might never be explored in the finite amount of time allowed for sampling.
 
 The core idea behind parallel tempering is to run multiple chains at different “temperatures” - where the posterior is effectively flattened or softened at higher temperatures - allowing the "hot" chains to move more freely across parameter space. Periodically, the states of the chains are swapped according to an acceptance rule that preserves the correct stationary distribution. The hope is that the higher-temperature chains will quickly explore multiple modes, and then swap states with the lower-temperature chains, thereby transferring information about other modes and improving overall exploration.
 
 This can also be beneficial if your model can efficiently evaluate multiple points in parallel (via parallelisation or vectorisation). Even though parallel tempering runs multiple chains, the computational cost can be partly offset by improved mixing or by leveraging multiple CPU cores.
 
-In `monty`, parallel tempering is implemented in the function `monty_sampler_parallel_tempering()` based on the non-reversible swap approach [@syed_non-reversible_2022]. Currently, this sampler uses a random-walk Metropolis step (`monty_sampler_random_walk`) within each chain for local exploration, but we plan to allow other samplers in future releases.
+In `monty`, parallel tempering is implemented in the function `monty_sampler_parallel_tempering()` based on the non-reversible swap approach [@syed_non-reversible_2022]. Currently, this sampler uses a random-walk Metropolis step (the same as in `monty_sampler_random_walk()`) within each chain for local exploration, but we plan to allow other samplers for local exploration in future releases.
 
 ```{r}
 s <- monty_sampler_parallel_tempering(n_rungs = 10, vcv = matrix(.1))
@@ -298,7 +303,12 @@ res_pt <- monty_sample(posterior, s, 1000, n_chains = 1)
 ```
 
 ```{r}
-plot(res_pt$pars[1,,])
+plot(res_pt$pars[1,,],
+     ylim = c(-8, 8),
+     ylab = "Value",
+     main = "PT samples")
+abline(h = -5, lty = 3, col = "red")
+abline(h = 5, lty = 3, col = "red")
 ```
 
 ```{r}
