@@ -245,7 +245,7 @@ ex_mixture <- function(){
 likelihood <- ex_mixture()
 ```
 
-the prior a normal distribution with a wider variance
+and the prior is a normal distribution with a wider variance:
 
 ```{r}
 prior <- monty_dsl({
