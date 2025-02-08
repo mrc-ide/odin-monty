@@ -247,7 +247,7 @@ prior <- monty_dsl({
 })
 ```
 
-And the posterior simply the product of the two (or the sum if working with log-densities)
+and the posterior is simply the product of the two (or the sum if working with log-densities)
 ```{r}
 posterior <- likelihood + prior
 ```
