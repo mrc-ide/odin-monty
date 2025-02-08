@@ -235,14 +235,8 @@ Clearly, HMC outperforms the random walk, rapidly exploring the full banana-shap
 
 Let's for example define a simple Bayesian model where the likelihood is a mixture model:
 ```{r}
-ex_mixture <- function(){
-  fn <- function(x) {
-    log(dnorm(x, mean = 5)/2 + dnorm(x, mean = -5)/2)
-  }
-  monty_model_function(fn,
-                       allow_multiple_parameters = TRUE)
-}
-likelihood <- ex_mixture()
+ex_mixture <- function(x) log(dnorm(x, mean = 5) / 2 + dnorm(x, mean = -5) / 2)
+likelihood <- monty_model_function(ex_mixture, allow_multiple_parameters = TRUE)
 ```
 
 and the prior is a normal distribution with a wider variance:
