@@ -278,7 +278,7 @@ abline(h = -5, lty = 3, col = "red")
 abline(h = 5, lty = 3, col = "red")
 ```
 
-As we can see, the RW sampler does not manage to move outside of the mode where it is initially locked. MCMC theory tells us that it will eventually reach the other side of the distribution, whether with a (low probability) large jump or by accepting several consecutive small disadvantageous steps in the right direction. In practice, it can mean that the second mode might never be explored in the finite amount of time allowed for sampling.
+As we can see, the RW sampler does not manage to move outside of the mode that it starts from. MCMC theory tells us that it will eventually reach the other side of the distribution, whether with a (low probability) large jump or by accepting several consecutive small disadvantageous steps in the right direction. In practice, it can mean that the second mode might never be explored in the finite amount of time allowed for sampling.
 
 The core idea behind parallel tempering is to run multiple chains at different “temperatures” - where the posterior is effectively flattened or softened at higher temperatures - allowing the "hot" chains to move more freely across parameter space. Periodically, the states of the chains are swapped according to an acceptance rule that preserves the correct stationary distribution. The hope is that the higher-temperature chains will quickly explore multiple modes, and then swap states with the lower-temperature chains, thereby transferring information about other modes and improving overall exploration.
 
