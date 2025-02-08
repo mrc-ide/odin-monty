@@ -270,7 +270,7 @@ res_rw <- monty_sample(posterior, sampler_rw, n_steps = 1000)
 ```
 
 ```{r}
-plot(res_rw$pars[1,,],
+plot(res_rw$pars[1, , ],
      ylim = c(-8, 8),
      ylab = "Value",
      main = "RW samples")
