@@ -271,6 +271,7 @@ res_rw <- monty_sample(posterior, sampler_rw, n_steps = 1000)
 
 ```{r}
 plot(res_rw$pars[1, , ],
+     col = "black",
      ylim = c(-8, 8),
      ylab = "Value",
      main = "RW samples")
@@ -279,6 +280,22 @@ abline(h = 5, lty = 3, col = "red")
 ```
 
 As we can see, the RW sampler does not manage to move outside of the mode that it starts from. MCMC theory tells us that it will eventually reach the other side of the distribution, whether with a (low probability) large jump or by accepting several consecutive small disadvantageous steps in the right direction. In practice, it can mean that the second mode might never be explored in the finite amount of time allowed for sampling.
+
+One might think that running multiple chains from different initial values might solve the problem. Suppose then that we run three chains, starting at values -5, 0 and 5:
+
+```{r}
+res_rw3 <- monty_sample(posterior, sampler_rw, n_steps = 1000, n_chains = 3,
+                        initial = rbind(c(-5, 0, 5)))
+```
+```{r}
+matplot(res_rw3$pars[1, , ], type = "p", pch = 21,
+        col = c("blue", "green", "purple"),
+        ylim = c(-8, 8), ylab = "Value", main = "RW samples")
+abline(h = -5, lty = 3, col = "red")
+abline(h = 5, lty = 3, col = "red")
+```
+
+We can see that of our three chains, one is only exploring the mode around $x = 5$, while the other two are only exploring the mode around $x = -5$. So $\frac{1}{3}$ of our samples are from one mode and $\frac{2}{3}$ the other, which we know is not representative of the true distribution! So even if running multiple chains manages to help identify and explore more than one local mode, they cannot tell you anything about the relative densities of those modes if each chain ends up exploring a single mode. We need a better way to make use of multiple chains, and that's where parallel tempering comes in.
 
 The core idea behind parallel tempering is to run multiple chains at different “temperatures” - where the posterior is effectively flattened or softened at higher temperatures - allowing the "hot" chains to move more freely across parameter space. Periodically, the states of the chains are swapped according to an acceptance rule that preserves the correct stationary distribution. The hope is that the higher-temperature chains will quickly explore multiple modes, and then swap states with the lower-temperature chains, thereby transferring information about other modes and improving overall exploration.
 
@@ -313,8 +330,6 @@ x <- seq(min(res_pt$pars), max(res_pt$pars), length.out = 1001)
 y <- exp(posterior$density(rbind(x)))
 lines(x, y / sum(y) / diff(x)[[1]], col = "red")
 ```
-
-TODO: Difference between PT sampler and running multiple RW chains on the target distribution
 
 ::: {.callout-note}
 
