@@ -259,7 +259,7 @@ plot(x, y / sum(y) / diff(x)[[1]], col = "red", type = 'l', ylab = "density")
 ```
 
 ```{r}
-vcv <- matrix(0.1)
+vcv <- matrix(1.5)
 sampler_rw <- monty_sampler_random_walk(vcv = vcv)
 ```
 
@@ -287,7 +287,7 @@ This can also be beneficial if your model can efficiently evaluate multiple poin
 In `monty`, parallel tempering is implemented in the function `monty_sampler_parallel_tempering()` based on the non-reversible swap approach [@syed_non-reversible_2022]. Currently, this sampler uses a random-walk Metropolis step (the same as in `monty_sampler_random_walk()`) within each chain for local exploration, but we plan to allow other samplers for local exploration in future releases.
 
 ```{r}
-s <- monty_sampler_parallel_tempering(n_rungs = 10, vcv = matrix(.1))
+s <- monty_sampler_parallel_tempering(n_rungs = 10, vcv = matrix(1.5))
 ```
 
 Here, `n_rungs` specifies the number of additional chains (beyond the base chain) to run at different temperatures (so total chains = `n_rungs + 1`). The argument `vcv` is the variance-covariance matrix that will be passed to the underlying random-walk sampler. An optional `base` argument can be used to specify a “reference” model if your original model cannot be automatically decomposed into prior and posterior components, or if you want an alternative easy-to-sample-from distribution for the hottest rung.
@@ -306,11 +306,15 @@ abline(h = 5, lty = 3, col = "red")
 ```
 
 ```{r}
-hist(c(res_pt$pars), freq = FALSE)
+hist(c(res_pt$pars), freq = FALSE,
+     xlab = "Values of samples",
+     main = "Parallel tempering samples")
 x <- seq(min(res_pt$pars), max(res_pt$pars), length.out = 1001)
 y <- exp(posterior$density(rbind(x)))
 lines(x, y / sum(y) / diff(x)[[1]], col = "red")
 ```
+
+TODO: Difference between PT sampler and running multiple RW chains on the target distribution
 
 ::: {.callout-note}
 
