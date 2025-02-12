@@ -134,8 +134,8 @@ With this **adaptive** approach, the VCV and the overall scaling factor evolve a
    - In the proposal kernel, the empirical VCV is weighted according to its sample size against an initial estimate of the VCV, `initial_vcv`, with weight `initial_vcv_weight`.
 
 2. **Adaptive Scaling**  
-   - The sampler also updates a **global scaling factor** (multiplied by $2.38^2 / d$ in the proposal, where $d$ is the number of parameters) to target a desired acceptance rate (`acceptance_target`).  
-   - If acceptance is too high, the sampler increases the step size. If acceptance is too low, it decreases it. Doing this in log-space is often more stable (`log_scaling_update = TRUE`).
+   - The sampler also updates a **global scaling factor** (which is squared and multiplied by $2.38^2 / d$ in the proposal, where $d$ is the number of parameters) to target a desired acceptance rate (`acceptance_target`). The optimal scaling factor should be 1 in a Gaussian target space when using the true underlying VCV.
+   - If acceptance is too high, the sampler increases the scaling factor. If acceptance is too low, it decreases it. Doing this in log-space is often more stable (`log_scaling_update = TRUE`).
 
 3. **Adaptation Stopping**  
    - Eventually, the sampler stops adapting (`adapt_end`), freezing the proposal distribution for the remainder of the run. This helps restore formal MCMC convergence properties, as purely adaptive samplers can break standard theory if they keep adapting indefinitely.
