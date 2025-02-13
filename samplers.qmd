@@ -140,16 +140,13 @@ With this **adaptive** approach, the VCV and the overall scaling factor evolve a
 3. **Adaptation Stopping**  
    - Eventually, the sampler stops adapting (`adapt_end`), freezing the proposal distribution for the remainder of the run. This helps restore formal MCMC convergence properties, as purely adaptive samplers can break standard theory if they keep adapting indefinitely.
 
-**Citation**  
-This implementation is inspired by an “accelerated shaping” adaptive algorithm from Spencer (2021):
-
-> Spencer SEF (2021) Accelerating adaptation in the adaptive Metropolis–Hastings random walk algorithm. *Australian & New Zealand Journal of Statistics*, 63:468–484.
+This implementation is inspired by an “accelerated shaping” adaptive algorithm from @spencer-2021.
 
 ---
 
-::: {.callout-note}
+::: {.callout-note collapse="true"}
 
-## Details of the adaptive algorithm
+## Expand for technical details of the adaptive algorithm
 
 At iteration $i$, we propose our new parameter set $Y_{i+1}$ given current parameter set $X_i$ ($d$ is the number of fitted parameters):
 
@@ -229,7 +226,7 @@ So when the acceptance probability is larger than `acceptance_target` the scalin
 
 :::
 
-### Example: Adaptive vs. Non-adaptive Metropolis-Hastings
+#### Example: Adaptive vs. Non-adaptive Metropolis-Hastings
 
 Below is a simple demonstration showing how to use the adaptive sampler on a multivariate Gaussian example, comparing it against the basic random-walk approach. The target Gaussian has some correlation in its variance-covariance matrix, so the adaptive sampler’s ability to learn this correlation on the fly can be advantageous.
 
