@@ -119,6 +119,59 @@ acf(res_rw$pars[1, , 1], 200,
 
 We can see from the autocorrelation function that we have to wait almost 100 steps for the algorithm to produce a “new” (i.e. not correlated) sample, meaning a lot of calculation is “wasted” just trying to move away from previous samples. Improving the number of uncorrelated samples is at the heart of many strategies to improve the efficiency of Monte Carlo sampling algorithms. In particular, the adaptive Metropolis-Hastings sampler offers tools to automatically optimise the proposal distribution. 
 
+#### Boundaries
+
+There is a boundaries argument to `monty_sampler_random_walk` (and some other samplers too), which controls what happens when your domain is bounded in one or more dimensions and the Gaussian proposal results in proposed parameter set out of bounds. There are three options:
+
+- `"reflect"` - where an out-of-bounds proposal is reflected back into bounds to ensure a valid proposed parameter set, where the density is then calculated in order to potentially accept or reject.
+- `"reject"` - where an out-of-bounds proposal results in an automatic rejection (without density calculation) at that step in the MCMC chain, and the current parameter set is retained.
+- `"ignore"` - where the density is calculated for the out-of-bounds parameter set. This option is to be used carefully as it may result in accepting samples out-of-bounds, or perhaps might result in an error.
+
+Let's look at a bounded model, where we have parameters `a` and `b` that are bounded below at `0`.
+
+```{r}
+m <- monty_dsl({
+  a ~ TruncatedNormal(0, 1, min = 0, max = Inf)  
+  b ~ TruncatedNormal(0, 1, min = 0, max = Inf)
+}, gradient = FALSE)
+```
+
+Suppose the Gaussian proposal resulted in $a = -1, b = 2$, which is out-of-bounds. With the `"reject"` option we would just reject and move onto the next step. With the `"reflect"`option, we would reflect about $a = 0$ to give $a = 1, b = 2$ as our proposed parameter set and calculate the density there. With the `"ignore"` option we would keep $a = -1, b = 2$ as the proposed parameter set and calculate the density for it (safely in this example as the log-density is defined as `-Inf` when out of bounds of the truncated-normal distribution).
+
+Let's run the sampler with `boundaries = "reject"`
+
+```{r}
+vcv <- diag(2)
+
+sampler_reject <- monty_sampler_random_walk(vcv = vcv, boundaries = "reject")
+res_reject <- monty_sample(m, sampler_reject, 
+                           n_steps = 1000, initial = c(1, 1))
+```
+
+and with `boundaries = "reflect"`
+
+```{r}
+sampler_reflect <- monty_sampler_random_walk(vcv = vcv, boundaries = "reflect")
+res_reflect <- monty_sample(m, sampler_reflect, 
+                            n_steps = 1000, initial = c(1, 1))
+```
+
+we see that the acceptance rate by reflecting at boundaries is higher due to always proposing a valid parameter set
+
+```{r}
+sum(diff(c(res_reject$initial[1], res_reject$pars[1, , 1])) != 0) / 1000
+sum(diff(c(res_reflect$initial[1], res_reflect$pars[1, , 1])) != 0) / 1000
+```
+
+and it has also resulted in higher effective sample size (ESS)
+
+```{r}
+posterior::summarise_draws(posterior::as_draws_df(res_reject))
+posterior::summarise_draws(posterior::as_draws_df(res_reflect))
+```
+
+We have `boundaries = "reflect"` as the default as we expect this is what users will want in most cases, though there may be situations in which `boundaries = "reject"` is more useful and quicker per MCMC step (due to skipping a number of density calculations), although you may then need more steps to achieve the same effective sample size as with `boundaries = "reflect"`. In situations where you are unlikely to propose out-of-bounds, there will be little difference between the options. 
+
 ### Adaptive Metropolis-Hastings Sampler
 
 TODO: Content about the adaptive Metropolis-Hastings sampler to be placed here.
