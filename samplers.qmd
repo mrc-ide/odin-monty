@@ -170,7 +170,7 @@ posterior::summarise_draws(posterior::as_draws_df(res_reject))
 posterior::summarise_draws(posterior::as_draws_df(res_reflect))
 ```
 
-We have `boundaries = "reflect"` as the default as we expect this is what users will want in most cases, though there may be situations in which `boundaries = "reject"` is more useful (and quicker, by its nature of skipping a number of density calculations). In situations where you are unlikely to propose out-of-bounds, there will be little difference between the options. 
+We have `boundaries = "reflect"` as the default as we expect this is what users will want in most cases, though there may be situations in which `boundaries = "reject"` is more useful and quicker per MCMC step (due to skipping a number of density calculations), although you may then need more steps to achieve the same effective sample size as with `boundaries = "reflect"`. In situations where you are unlikely to propose out-of-bounds, there will be little difference between the options. 
 
 ### Adaptive Metropolis-Hastings Sampler
 
