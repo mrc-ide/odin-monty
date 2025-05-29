@@ -124,7 +124,7 @@ pars <- lapply(seq_len(200), function(i) packer$unpack(pars[, i]))
 We create a dust system using our compiled odin model and these parameters, to start at `time = 150` (the final timepoint in the data time series). We set `n_particles = 1` to run once per parameter set.
 
 ```{r}
-sys <- dust_system_create(sis, pars, time = 200, n_particles = 1,
+sys <- dust_system_create(sis, pars, time = 150, n_particles = 1,
                           n_groups = length(pars), dt = dt)
 ```
 
