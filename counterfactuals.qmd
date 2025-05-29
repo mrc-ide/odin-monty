@@ -243,7 +243,7 @@ f <- function(p) {
   p$schools_open <- c(1, 0, 1, 0, 1)
   p
 }
-pars <- lapply(seq_len(200), f)
+pars <- lapply(pars, f)
 ```
 
 We create a dust system setting the time to the start time of our counterfactual, set the state of the system using our snapshot (reshaping to remove the chains dimension first) and simulate.
