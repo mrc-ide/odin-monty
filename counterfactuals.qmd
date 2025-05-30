@@ -8,7 +8,7 @@ source("common.R")
 options(monty.progress = FALSE)
 ```
 
-# Introduction
+## Introduction
 
 ```{r}
 library(odin2)
@@ -99,7 +99,7 @@ sampler <- monty_sampler_random_walk(vcv)
 ```
 
 
-# Projections
+## Projections
 
 We want to run projections from the state of the model at the end of the time series. This is not saved by default so in order to do this we need to specify `save_state = TRUE` when setting up our dust likelihood object. After obtaining our samples we will thin them, resulting in a sample size of 200 in this case.
 
@@ -152,7 +152,7 @@ points(data, pch = 19, col = "red")
 ```
 
 
-# Counterfactuals
+## Counterfactuals
 
 Counterfactuals are used to examine what would have happened if certain parameters (fitted or fixed) had been different. Broadly there are two types of counterfactuals
 
@@ -160,7 +160,7 @@ Counterfactuals are used to examine what would have happened if certain paramete
 2. Counterfactuals run from a timepoint in the data timeseries - when a change of parameters would result in the counterfactual diverging from the fitted trajectories only from that given timepoint onwards, and everything before that should be the same as the fitted trajectories.
 
 
-## Running counterfactuals from the beginning
+### Running counterfactuals from the beginning
 
 Suppose we want to examine what would happen if the infection rate was reduced by 20%. This would affect the model from the beginning - we can just run a simulation from the start time. There is nothing that we are required to save while fitting in order to do this.
 
@@ -215,7 +215,7 @@ points(data, pch = 19, col = "red")
 ```
 
 
-## Running counterfactuals from a timepoint in the data time series
+### Running counterfactuals from a timepoint in the data time series
 
 Suppose now we want to examine what would have happened if schools had not opened at `time = 60` (as they had in our fitting) and had instead stayed closed until `time = 130`. This counterfactual would diverge from the fitted trajectories at `time = 60`. To implement this counterfactual we need to save a "snapshot" of the state at `time = 60`.
 
