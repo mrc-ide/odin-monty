@@ -21,7 +21,9 @@ We have seen how to fit `odin` models with `monty` to produce estimates of fitte
 1. **Projections** - running the model forward from the end of fitted time series to estimate what would happen under given choices of parameters.
 2. **Counterfactuals** - estimating what would have happened had parameters been different from those estimated from or assumed in the fits. This could be run from the initial time used in fitting, or from a point in the data time series.
 
-We'll illustrate both of these methods with an example of an SIS model incorporating school opening and closing.
+Generally, both of these require that you configure your likelihood object created with `dust_likelihood_monty` to save additional information about the filtering process, via the `save_state` or `save_snapshots` inputs. As with saving fitted trajectories via the `save_trajectories` input, the outputs can only be extracted after running your sampler if you specified to save them when setting up the likelihood object.
+
+In the following we'll illustrate how to correctly setup the likelihood object and then how to use the sampled output from fitting to run both projections and counterfactuals. We begin with some basic setup for an example of an SIS model incorporating school opening and closing, before moving onto the specific implementation for projections and then counterfactuals.
 
 ```{r}
 sis <- odin({
@@ -162,7 +164,7 @@ Counterfactuals are used to examine what would have happened if certain paramete
 
 ### Running counterfactuals from the beginning
 
-Suppose we want to examine what would happen if the infection rate was reduced by 20%. This would affect the model from the beginning - we can just run a simulation from the start time. There is nothing that we are required to save while fitting in order to do this.
+Suppose we want to examine what would happen if the infection rate was reduced by 20%. This would affect the model from the beginning - we can just run a simulation from the start time. There is nothing that we are required to save while fitting in order to do this (although we will save trajectories from fitting to compare those to the counterfactual trajectories).
 
 ```{r}
 likelihood <- dust_likelihood_monty(filter, packer, save_trajectories = TRUE)
@@ -214,6 +216,8 @@ matplot(data$time, incidence_fit, type = "l", col = "#00000044", lty = 1,
 matlines(t, t(traj_counterfactual$incidence), col = "blue")
 points(data, pch = 19, col = "red")
 ```
+
+Note that the trajectories from fitting are produced by filtering to the data, whereas the counterfactual trajectories are produced from unfiltered simulation. This is why we see much more variance in the counterfactual trajectories.
 
 
 ### Running counterfactuals from a timepoint in the data time series
