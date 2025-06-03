@@ -183,7 +183,7 @@ dust_likelihood_run(filter, list())
 ```
 
 ::: {.callout-note}
-A value of `NA` in the data time series for a given datastream at a given timepoint will indicate missing data for that datastream at that timepoint and the filter will simply ignore that datastream at that timepoint.
+A value of `NA` in the data time series for a given datastream at a given timepoint will indicate missing data and the filter will simply ignore that datastream at that timepoint.
 :::
 
 Each time we run the filter, we'll get a different answer though.
