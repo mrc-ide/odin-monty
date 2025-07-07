@@ -413,7 +413,7 @@ We will thin the samples, removing the first 2000 iterations from each chain and
 samples <- monty_samples_thin(samples, thinning_factor = 32, burnin = 2000)
 ```
 
-We can use the `posterior` package to summarise the fitted parameters and provide convergence diagnostics and `bayesplot` to for pairs plots:
+We can use the `posterior` package to summarise the fitted parameters and provide convergence diagnostics and `bayesplot` for pairs plots:
 
 ```{r}
 samples_df <- posterior::as_draws_df(samples)
