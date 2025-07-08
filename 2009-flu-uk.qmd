@@ -330,7 +330,7 @@ packer <- monty_packer(c("alpha", "R_0", "rho", "eta"),
 Now building the `monty` model for the likelihood of the model is very easy:
 
 ```{r}
-likelihood <- dust_likelihood_monty(filter, packer)
+likelihood <- dust_likelihood_monty(filter, packer, save_trajectories = TRUE)
 ```
 
 ### Setting up the prior distribution
@@ -377,11 +377,11 @@ posterior <- likelihood + prior
 
 ### Chosing the sampler
 
-Next, we define a sampler; as, we have little information about the scale and structure of our posterior, we'll use an adaptive sampler with a simple and fairly arbitrary variance-covariance matrix to generate the initial random walk:
+Next, we define a sampler; as, we have little information about the scale and structure of our posterior, we'll use an adaptive sampler with a simple and fairly arbitrary variance-covariance matrix with a low weight to generate the initial random walk:
 
 ```{r}
 vcv <- diag(c(5e-10, 5e-5, 1e-5, 1))
-sampler <- monty_sampler_adaptive(vcv, initial_vcv_weight = 100)
+sampler <- monty_sampler_adaptive(vcv, initial_vcv_weight = 10)
 ```
 
 We start this off, using explicit initial conditions based on the value we tested earlier:
@@ -392,7 +392,7 @@ samples <- monty_sample(posterior,
                         sampler,
                         10000,
                         initial = packer$pack(pars),
-                        n_chains = 3)
+                        n_chains = 4)
 ```
 
 ::: {.callout-note}
@@ -406,6 +406,15 @@ matplot(samples$density, type = "l", lty = 1,
         xlab = "Sample", ylab = "Log posterior probability density")
 length(unique(samples$density)) / length(samples$density)
 ```
+
+We will thin the samples, removing the first 2000 iterations from each chain and then thinning by a factor of 32 to produce a sample size of 1000.
+
+```{r}
+samples <- monty_samples_thin(samples, thinning_factor = 32, burnin = 2000)
+```
+
+We can use the `posterior` package to summarise the fitted parameters and provide convergence diagnostics and `bayesplot` for pairs plots:
+
 ```{r}
 samples_df <- posterior::as_draws_df(samples)
 posterior::summarise_draws(samples_df)
@@ -415,23 +424,20 @@ posterior::summarise_draws(samples_df)
 bayesplot::mcmc_pairs(samples_df)
 ```
 
-Finally we can get an idea of the fit of the samples by looking at 100 trajectories from the samples.
+Finally we can get an idea of the fit of the samples by producing a plot comparing the fitted trajectories to the data.
 
 ```{r}
-n_groups <- 1000
-i_rand <- sample(dim(samples$pars)[2], n_groups)
-list_par <- lapply(i_rand, FUN = function(i) packer$unpack(samples$pars[, i, sample(3, 1)]))
+y <- dust_unpack_state(filter, samples$observations$trajectories)
 
-mod_mult <- dust_system_create(seir,
-                          pars = list_par, n_groups = n_groups)
+## Resize the array to remove the chains dimension
+incidence <- array(y$incidence, c(nrow(data), 1000))
 
-t <- c(0, data$time)
-dust_system_set_state_initial(mod_mult)
-y <- dust_system_simulate(mod_mult, t)
-y <- dust_unpack_state(mod_mult, y)
+## Multiply incidence by fitted value of rho to give modelled cases
+rho <- c(samples$pars["rho", , ])
+cases_modelled <- t(incidence) * rho
 
-matplot(t, t(y$incidence), type = "l", lty = 1, col = "#00008822",
-        xlab = "Time", ylab = "Infected population")
-points(data$time, data$cases / mean(samples$pars["rho", , ]), pch = 19, col = "red")
+matplot(data$time, t(cases_modelled), type = "l", lty = 1, col = "#00008822",
+        xlab = "Time", ylab = "Cases")
+points(data$time, data$cases, pch = 19, col = "red")
 ```
 
