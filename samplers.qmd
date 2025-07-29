@@ -283,6 +283,15 @@ So when the acceptance probability is larger than `acceptance_target` the scalin
 
 Below is a simple demonstration showing how to use the adaptive sampler on a multivariate Gaussian example, comparing it against the basic random-walk approach. The target Gaussian has some correlation in its variance-covariance matrix, so the adaptive sampler’s ability to learn this correlation on the fly can be advantageous.
 
+We return to our a simple 2D (bivariate) Gaussian `monty_model` model:
+
+```{r}
+# Set up a simple 2D Gaussian model, with correlation
+VCV <- matrix(c(1, 0.8, 0.8, 1), 2, 2)
+m <- monty_example("gaussian", VCV)
+m
+```
+
 We'll start both samplers from the same initial value, away from the target space.
 
 ```{r}
