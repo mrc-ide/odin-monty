@@ -29,6 +29,7 @@ book:
     - part: "Odin & Monty"
       chapters:
       - inference.qmd
+      - counterfactuals.qmd
       - differentiability.qmd
       - 2009-flu-uk.qmd
     - references.qmd
