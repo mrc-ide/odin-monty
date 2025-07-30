@@ -17,6 +17,7 @@ book:
       - stochasticity.qmd
       - arrays.qmd
       - interpolation.qmd
+      - delays.qmd
       - data.qmd
       - order.qmd
       - packaging.qmd
