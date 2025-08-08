@@ -128,6 +128,7 @@ head(d)
 ```
 
 We will setup our packer, prior and sampler
+
 ```{r}
 packer <- monty::monty_packer(scalar = c("beta", "gamma"),
                               fixed = list(I0 = 10, N = 1000))
