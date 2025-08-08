@@ -33,6 +33,7 @@ book:
       - counterfactuals.qmd
       - differentiability.qmd
       - 2009-flu-uk.qmd
+      - parallel.qmd
     - references.qmd
   appendices:
     - installation.qmd
