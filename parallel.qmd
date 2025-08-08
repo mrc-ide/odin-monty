@@ -91,5 +91,145 @@ library(odin2)
 library(dust2)
 ```
 
+Let's consider the following discrete-time, stochastic SIR model
+
+```{r}
+sir <- odin({
+  update(S) <- S - n_SI
+  update(I) <- I + n_SI - n_IR
+  update(R) <- R + n_IR
+  update(incidence) <- incidence + n_SI
+  
+  p_SI <- 1 - exp(-beta * I / N * dt)
+  p_IR <- 1 - exp(-gamma * dt)
+  n_SI <- Binomial(S, p_SI)
+  n_IR <- Binomial(I, p_IR)
+  
+  initial(S) <- N - I0
+  initial(I) <- I0
+  initial(R) <- 0
+  initial(incidence, zero_every = 1) <- 0
+  
+  N <- parameter(1000)
+  I0 <- parameter(10)
+  beta <- parameter(0.2)
+  gamma <- parameter(0.1)
+  
+  cases <- data()
+  cases ~ Poisson(incidence)
+})
+```
+
+Which we will fit to the (synthetic) data set [`data/incidence.csv`](data/incidence.csv).
+
+```{r}
+d <- read.csv("data/incidence.csv")
+head(d)
+```
+
+We will setup our packer, prior and sampler
+```{r}
+packer <- monty::monty_packer(scalar = c("beta", "gamma"),
+                              fixed = list(I0 = 10, N = 1000))
+
+prior <- monty::monty_dsl({
+  beta ~ Exponential(mean = 0.3)
+  gamma ~ Exponential(mean = 0.1)
+})
+
+vcv <- diag(2) * 0.01
+sampler <- monty::monty_sampler_random_walk(vcv)
+```
+
+and then we will setup our likelihood using a filter with 100 particles and then run 4 chains without any parallelisation
+
+```{r}
+filter <- dust_filter_create(sir, time_start = 0,
+                             data = d, dt = 0.25,
+                             n_particles = 200)
+
+likelihood <- dust_likelihood_monty(filter, packer,
+                                    save_trajectories = TRUE)
+
+posterior <- likelihood + prior
+
+samples <- monty_sample(posterior, sampler, n_steps = 1000,
+                        initial = c(0.3, 0.1),
+                        n_chains = 4)
+```
+
+An input to `dust_filter_create` that we have not specified is `n_threads`, which has a default value of 1. Threads can be used in the filter to run particles forward in parallel. Suppose we have two available cores and we want to use these for threads in the filter, then we would set `n_threads = 2`
+
+```{r}
+filter <- dust_filter_create(sir, time_start = 0,
+                             data = d, dt = 0.25,
+                             n_particles = 200, 
+                             n_threads = 2)
+
+likelihood <- dust_likelihood_monty(filter, packer,
+                                    save_trajectories = TRUE)
+
+posterior <- likelihood + prior
+
+samples <- monty_sample(posterior, sampler, n_steps = 1000,
+                        initial = c(0.3, 0.1),
+                        n_chains = 4)
+```
+
+and we can see this is quicker than without parallelisation. As with workers and chains, generally the number of threads should be an even divisor of the number of particles.
+
+You can use workers in combination with threads. To illustrate how to prioritise workers vs threads, let's instead use our 2 cores for workers.
+
+```{r}
+filter <- dust_filter_create(sir, time_start = 0,
+                             data = d, dt = 0.25,
+                             n_particles = 200, 
+                             n_threads = 1)
+
+likelihood <- dust_likelihood_monty(filter, packer,
+                                    save_trajectories = TRUE)
+
+posterior <- likelihood + prior
+
+runner <- monty_runner_callr(n_workers = 2)
+
+samples <- monty_sample(posterior, sampler, n_steps = 1000,
+                        initial = c(0.3, 0.1),
+                        n_chains = 4,
+                        runner = runner)
+```
+
+We see that this was quicker - this is because there is no communication between workers while the chains run, but there is regular communication between threads during while the filter runs. Thus it is better to prioritise workers over threads. Suppose you have 32 cores available and are running 4 chains. Ideally you would set `n_workers = 4` in `monty_runner_callr` to ensure all 4 chains run at the same time, and then set `n_threads = 8` (`n_threads` represents the number of threads per worker) to use all 32 cores, and choose `n_particles` to be a multiple of 8.
 
 ## Using manual scheduling to parallelise between chains
+
+Suppose you have access to an HPC system with multiple nodes of e.g. 32 cores. Efficient combination of workers and threads on a single 32-core node is already beneficial. Manual scheduling with `monty` enables running chains on different nodes, essentially increasing the number of cores available. For example, instead of running 4 chains with 4 workers on a 32-core node resulting in 8 threads per chain/worker, you could run 4 chains on 4 32-core nodes using 32 cores per chain (using 128 cores in total).
+
+Instead of using `monty_sample`, first we would need to prepare the chains
+
+```r
+monty_sample_manual_prepare(posterior, sampler, n_steps = 1000,
+                            path = "mypath",
+                            initial = c(0.3, 0.1),
+                            n_chains = 4)
+```
+
+where here `"mypath"` is the location for writing outputs to. Cluster jobs are submitted for each chain, running the chain with
+
+```r
+monty_sample_manual_run(1, path = "mypath")
+```
+
+for chain 1,
+
+```r
+monty_sample_manual_run(2, path = "mypath")
+```
+
+for chain 2, and so on.
+
+Once all chains have been run, results from the chains can be collected together
+
+```r
+samples <- monty_sample_manual_collect("mypath")
+```
