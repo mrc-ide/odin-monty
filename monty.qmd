@@ -16,7 +16,7 @@ The `monty` R package is designed for modular work with statistical distribution
 
 The most basic method to define a `monty` model is through a simple R function, as shown in this chapter. More advanced examples are covered in the @sec-monty-models in particular in the context of Bayesian statistics. @sec-monty-dsl introduces the monty DSL for more versatile model building using a small probabilistic DSL similar to BUGs. The last part of this book starting from @sec-inference demonstrates how to incorporate `odin` models into `monty` workflows.
 
-## A simple example
+## A simple example {#sec-monty-simple-example}
 
 ```{r}
 library(monty)

@@ -1,0 +1,95 @@
+# Parallelisation  
+
+```{r}
+#| include: false
+source("common.R")
+```
+
+Both `dust2` and `monty` have built-in support that makes running in parallel relatively simple when you have multiple cores available. There are two main ways to parallelise:
+
+1. Using workers to parallelise between chains. This is useful to anyone running multiple chains for a sampler with `monty` irrespective of whether your model is deterministic or stochastic, written in `odin2` or not.
+2. Using threads to parallelise between particles in a filter. is useful to anyone who has a stochastic model written in `odin2` and is using the filter to estimate the marginal likelihood. Using threads cans can be done in combination with using workers.
+
+The parallelisation is implemented in such a way that ensures that results will be identical to running in serial.
+
+There is a third way to parallelise via manual scheduling of chains, which is of use if you want to distribute chains over, for example, the nodes of an HPC system.
+
+We illustrate how to implement the three ways to parallelise below.
+
+## Using workers to parallelise between chains
+
+```{r}
+library(monty)
+```
+
+Let's revisit the simple Gaussian mixture model example from @sec-monty-simple-example, and sample 4 chains of length 1000.
+
+```{r}
+fn <- function(l, p, m1, m2) {
+  log(p * dnorm(l, mean = m1) + (1 - p) * dnorm(l, mean = m2))
+}
+
+mixture_model <- monty_model_function(fn,
+                                      fixed = list(p = 0.75, m1 = 3, m2 = 7),
+                                      allow_multiple_parameters = TRUE)
+
+sampler <- monty_sampler_random_walk(matrix(2))
+
+set.seed(1)
+samples <- monty_sample(mixture_model, sampler, 1000, initial = 3, n_chains = 4)
+```
+
+One of the inputs to `monty_sample` we have not specified is `runner`. The runner determines how the chains are run, and these can be setup with functions in `monty`. If `runner` is not specified then as a default the samples will be run with the simplest runner which is constructed with `monty_runner_serial`. With this runner, chains are run in series (one after another).
+
+However if we have multiple cores available, we may want to run chains in parallel using workers. In this case we can construct a runner with `monty_runner_callr`. This runner uses the `callr` package to distribute your chains over a number of worker processes on the same machine.
+
+Suppose we have 2 cores, then we will setup the runner setting `n_workers = 2`.
+
+```{r}
+runner <- monty_runner_callr(n_workers = 2)
+```
+
+This indicates that we can run 2 chains in parallel. Running 4 chains in our example will mean that each worker process will run 2 chains in sequence. Ideally if you have sufficiently many cores available, you will set `n_workers` equal to the number of chains. Otherwise typically you want `n_workers` to be an even divisor of the number of chains - for 4 chains using 3 workers is not likely to be much faster than using 2 workers, as one of the workers would still need to run 2 chains in sequence.
+
+We can run chains in parallel by using our runner 
+
+```{r}
+set.seed(1)
+samples2 <- monty_sample(mixture_model, sampler, 1000, initial = 3, n_chains = 4,
+                         runner = runner)
+```
+
+We have set the seed before running in serial and before running in parallel so we can compare the output, and we can see that they produce identical results.
+
+```{r}
+identical(samples, samples2)
+```
+
+Notice that it has actually taken longer to run in parallel! This is because there is a cost to forking across the cores that outweighs the benefit of running in parallel in this case. If we run longer chains,
+in serial
+
+```{r}
+set.seed(1)
+samples <- monty_sample(mixture_model, sampler, 100000, initial = 3, n_chains = 4)
+```
+
+and then in parallel
+
+```{r}
+runner <- monty_runner_callr(2)
+set.seed(1)
+samples2 <- monty_sample(mixture_model, sampler, 100000, initial = 3, n_chains = 4,
+                         runner = runner)
+```
+
+we now see that we are running quicker in parallel! In general, the longer each chain takes to run and the fewer chains you need to run per worker, the greater the benefit of running in parallel.
+
+## Using threads to parallelise among particles in the filter
+
+```{r}
+library(odin2)
+library(dust2)
+```
+
+
+## Using manual scheduling to parallelise between chains
