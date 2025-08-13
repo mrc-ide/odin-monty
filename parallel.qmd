@@ -8,7 +8,7 @@ source("common.R")
 Both `dust2` and `monty` have built-in support that makes running in parallel relatively simple when you have multiple cores available. There are two main ways to parallelise:
 
 1. Using workers to parallelise between chains. This is useful to anyone running multiple chains for a sampler with `monty` irrespective of whether your model is deterministic or stochastic, written in `odin2` or not.
-2. Using threads to parallelise between particles in a filter. is useful to anyone who has a stochastic model written in `odin2` and is using the filter to estimate the marginal likelihood. Using threads cans can be done in combination with using workers.
+2. Using threads to parallelise between particles in a filter. This is useful to anyone who has a stochastic model written in `odin2` and is using the filter to estimate the marginal likelihood. Using threads cans can be done in combination with using workers.
 
 The parallelisation is implemented in such a way that ensures that results will be identical to running in serial.
 
