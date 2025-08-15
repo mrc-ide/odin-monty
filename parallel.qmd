@@ -5,18 +5,18 @@
 source("common.R")
 ```
 
-Both `dust2` and `monty` have built-in support for parallelisation, making it straightforward to take advantage of have multiple cores available. There are three main ways to parallelise, depending on what part of the computation you want to speed up:
+Both `dust2` and `monty` have built-in support for parallelisation, making it straightforward to take advantage of having multiple cores available. There are three main ways to parallelise, depending on what part of the computation you want to speed up:
 
 1. **Using workers to parallelise between chains**
    This runs each MCMC chain in its own process. It is useful whenever you are running multiple chains, regardless of whether your model is deterministic or stochastic, or whether it is written in `odin2` or not.
 
 2. **Using threads to parallelise between particles in a filter**
-   This runs different particles in a particle filter in parallel, within a single process. It is useful when you have a stochastic model written in `odin2` and are using the filter to estimate the marginal likelihood. Using threads can be combined with using workers.
+   This runs different set of particles from a particle filter in parallel, within a single process. It is useful when you have a stochastic model written in `odin2` and are using the filter to estimate the marginal likelihood. Using threads can be combined with using workers.
 
 The parallelisation in both cases is implemented so that results will be identical to running in serial.
 
 3. **Manual scheduling of chains**
-   This is a fully manual way of distributing chains — for example, across the nodes of an HPC system — rather than letting `monty` manage the workers automatically.
+   This is a fully manual way of distributing chains - for example, across the nodes of an HPC system - rather than letting `monty` manage the workers automatically.
 
 We illustrate how to implement all three methods below.
 
@@ -43,7 +43,7 @@ set.seed(1)
 samples <- monty_sample(mixture_model, sampler, 1000, initial = 3, n_chains = 4)
 ```
 
-One of the inputs to `monty_sample` we have not specified is `runner`. The runner determines how the chains are run, and these can be setup with functions in `monty`. If `runner` is not specified then as a default the samples will be run with the simplest runner which is constructed with `monty_runner_serial`. With this runner, chains are run in series (one after another).
+One of the available inputs to `monty_sample` we have not specified is `runner`. The runner determines how the chains are run, and these can be setup with functions in `monty`. If `runner` is not specified then as a default the samples will be run with the simplest runner which is constructed with `monty_runner_serial`. With this runner, chains are run in series (one after another).
 
 However if we have multiple cores available, we may want to run chains in parallel using workers. In this case we can construct a runner with `monty_runner_callr`. This runner uses the `callr` package to distribute your chains over a number of worker processes on the same machine.
 
