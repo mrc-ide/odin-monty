@@ -16,8 +16,7 @@ The `monty` package supports several sampling algorithms designed to handle a va
 1. **Random-Walk Metropolis-Hastings (RWMH)** – a simple and robust MCMC sampler which does not require gradient information.  
 2. **Adaptive Metropolis-Hastings** – an extension of RWMH that can adapt its proposal distribution on the fly, improving efficiency over time.  
 3. **Hamiltonian Monte Carlo (HMC)** – a gradient-based sampler that can drastically reduce autocorrelation in the chain, particularly for high-dimensional or strongly correlated targets.  
-4. **Parallel Tempering** – a technique for tackling multimodal or complex distributions by running multiple “tempered” chains and exchanging states between them.  
-5. **Nested Models** – an interface for combining samplers or applying hierarchical structures (though typically not a “sampler” in the strict sense, monty provides mechanisms to nest or combine models in more complex ways).
+4. **Parallel Tempering** – a technique for tackling multimodal or complex distributions by running multiple “tempered” chains and exchanging states between them.
 
 These samplers can all be accessed via constructors (e.g. `monty_sampler_random_walk()`, `monty_sampler_hmc()`, etc.) and used with the general-purpose function `monty_sample()`. By choosing the sampler that best suits your distribution - whether it is unimodal or multimodal, gradient-accessible or not - you can often achieve more efficient exploration of your parameter space.
 
@@ -391,9 +390,6 @@ plot(res_adaptive$details$scaling_history, type = "l", xlab = "Iteration",
 
 Feel free to experiment with different settings—particularly the forgetting and adaptation window parameters—to see how they affect convergence and mixing for your particular model.
 
-### Nested models
-
-TODO: Content about nested models to be placed here.
 
 ### Hamiltonian Monte Carlo
 
