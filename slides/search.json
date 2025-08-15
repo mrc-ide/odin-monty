@@ -1,0 +1,331 @@
+[
+  {
+    "objectID": "fitting.html#previously-on-introduction-to-odin",
+    "href": "fitting.html#previously-on-introduction-to-odin",
+    "title": "Fitting odin models with monty",
+    "section": "Previously, on “Introduction to odin”",
+    "text": "Previously, on “Introduction to odin”\n\nWe created some simple compartmental models\nWe ran these and observed trajectories over time\nWe saw that stochastic models produce a family of trajectories"
+  },
+  {
+    "objectID": "fitting.html#our-model",
+    "href": "fitting.html#our-model",
+    "title": "Fitting odin models with monty",
+    "section": "Our model",
+    "text": "Our model\nupdate(S) &lt;- S - n_SI\nupdate(I) &lt;- I + n_SI - n_IR\nupdate(R) &lt;- R + n_IR\nupdate(incidence) &lt;- incidence + n_SI\n\ninitial(S) &lt;- N - I0\ninitial(I) &lt;- I0\ninitial(R) &lt;- 0\ninitial(incidence, zero_every = 1) &lt;- 0\n\np_SI &lt;- 1 - exp(-beta * I / N * dt)\np_IR &lt;- 1 - exp(-gamma * dt)\nn_SI &lt;- Binomial(S, p_SI)\nn_IR &lt;- Binomial(I, p_IR)\n\nN &lt;- parameter(1000)\nI0 &lt;- parameter(10)\nbeta &lt;- parameter(0.2)\ngamma &lt;- parameter(0.1)"
+  },
+  {
+    "objectID": "fitting.html#example-output",
+    "href": "fitting.html#example-output",
+    "title": "Fitting odin models with monty",
+    "section": "Example output",
+    "text": "Example output\n\nsys &lt;- dust_system_create(sir, n_particles = 30)\ndust_system_set_state_initial(sys)\nt &lt;- seq(0, 100)\ny &lt;- dust_system_simulate(sys, t)\nincidence &lt;- dust_unpack_state(sys, y)$incidence\nmatplot(t, t(incidence), type = \"l\", lty = 1, col = \"#00000033\",\n        xlab = \"Time\", ylab = \"Incidence\")"
+  },
+  {
+    "objectID": "fitting.html#how-do-we-fit-this-to-data",
+    "href": "fitting.html#how-do-we-fit-this-to-data",
+    "title": "Fitting odin models with monty",
+    "section": "How do we fit this to data?",
+    "text": "How do we fit this to data?\nWe need:\n\na data set\n\ntime series of observed data (incidence? prevalence? something else?)\n\na measure of goodness of fit\n\nhow do we cope with stochasticity?\n\nto know what parameters we are trying to fit"
+  },
+  {
+    "objectID": "fitting.html#the-data",
+    "href": "fitting.html#the-data",
+    "title": "Fitting odin models with monty",
+    "section": "The data",
+    "text": "The data\nYou should download incidence.csv\n\ndata &lt;- read.csv(\"data/incidence.csv\")\nhead(data)\n#&gt;   time cases\n#&gt; 1    1    12\n#&gt; 2    2    23\n#&gt; 3    3    25\n#&gt; 4    4    36\n#&gt; 5    5    30\n#&gt; 6    6    57\n\nWe will fit cases here to incidence in our model."
+  },
+  {
+    "objectID": "fitting.html#the-data-1",
+    "href": "fitting.html#the-data-1",
+    "title": "Fitting odin models with monty",
+    "section": "The data",
+    "text": "The data\n\nplot(data, pch = 19, col = \"red\")"
+  },
+  {
+    "objectID": "fitting.html#measuring-goodness-of-fit",
+    "href": "fitting.html#measuring-goodness-of-fit",
+    "title": "Fitting odin models with monty",
+    "section": "Measuring goodness of fit",
+    "text": "Measuring goodness of fit\nRun the system with beta = 0.4 and gamma = 0.2\n\nsys &lt;- dust_system_create(sir, list(beta = 0.4, gamma = 0.2))\ndust_system_set_state_initial(sys)\nidx &lt;- dust_unpack_index(sys)$incidence\nt &lt;- data$time\ny &lt;- dust_system_simulate(sys, t, index_state = idx)"
+  },
+  {
+    "objectID": "fitting.html#measuring-goodness-of-fit-1",
+    "href": "fitting.html#measuring-goodness-of-fit-1",
+    "title": "Fitting odin models with monty",
+    "section": "Measuring goodness of fit",
+    "text": "Measuring goodness of fit\n\nplot(data, col = \"red\", pch = 19, ylim = c(0, max(data$cases)))\npoints(t, drop(y), col = \"blue\", pch = 19)\nsegments(data$time, data$cases, y1 = drop(y))"
+  },
+  {
+    "objectID": "fitting.html#measuring-goodness-of-fit-2",
+    "href": "fitting.html#measuring-goodness-of-fit-2",
+    "title": "Fitting odin models with monty",
+    "section": "Measuring goodness of fit",
+    "text": "Measuring goodness of fit\n\\[\n\\Pr(\\mathrm{data} | \\mathrm{model})\n\\]\nperhaps:\n\\[\n\\Pr(\\mathrm{observed\\ cases}) \\sim \\mathrm{Poisson}(\\mathrm{modelled\\ cases})\n\\]\n\ndpois(data$cases, drop(y), log = TRUE)\n#&gt;  [1]  -9.803867 -23.721905 -10.438978 -14.713631 -17.741499 -29.644658\n#&gt;  [7] -27.785625 -29.105791 -14.710168 -11.086202  -6.193345  -3.321445\n#&gt; [13]  -3.700024  -9.251175  -3.802527  -8.749915 -16.469650 -14.699104\n#&gt; [19] -25.252226 -21.880230"
+  },
+  {
+    "objectID": "fitting.html#adding-goodness-of-fit-to-the-model",
+    "href": "fitting.html#adding-goodness-of-fit-to-the-model",
+    "title": "Fitting odin models with monty",
+    "section": "Adding goodness-of-fit to the model",
+    "text": "Adding goodness-of-fit to the model\nupdate(S) &lt;- S - n_SI\nupdate(I) &lt;- I + n_SI - n_IR\nupdate(R) &lt;- R + n_IR\nupdate(incidence) &lt;- incidence + n_SI\n\ninitial(S) &lt;- N - I0\ninitial(I) &lt;- I0\ninitial(R) &lt;- 0\ninitial(incidence, zero_every = 1) &lt;- 0\n\np_SI &lt;- 1 - exp(-beta * I / N * dt)\np_IR &lt;- 1 - exp(-gamma * dt)\nn_SI &lt;- Binomial(S, p_SI)\nn_IR &lt;- Binomial(I, p_IR)\n\nN &lt;- parameter(1000)\nI0 &lt;- parameter(10)\nbeta &lt;- parameter(0.2)\ngamma &lt;- parameter(0.1)\n\ncases &lt;- data()\ncases ~ Poisson(incidence)"
+  },
+  {
+    "objectID": "fitting.html#measuring-goodness-of-fit-3",
+    "href": "fitting.html#measuring-goodness-of-fit-3",
+    "title": "Fitting odin models with monty",
+    "section": "Measuring goodness-of-fit",
+    "text": "Measuring goodness-of-fit\n\nfilter &lt;- dust_filter_create(sir, data = data, time_start = 0,\n                             n_particles = 200)\ndust_likelihood_run(filter, list(beta = 0.4, gamma = 0.2))\n#&gt; [1] -108.9682\n\n\nThe system runs stochastically, and the likelihood is different each time:\n\ndust_likelihood_run(filter, list(beta = 0.4, gamma = 0.2))\n#&gt; [1] -103.6037\ndust_likelihood_run(filter, list(beta = 0.4, gamma = 0.2))\n#&gt; [1] -109.4995"
+  },
+  {
+    "objectID": "fitting.html#filtered-trajectories",
+    "href": "fitting.html#filtered-trajectories",
+    "title": "Fitting odin models with monty",
+    "section": "Filtered trajectories",
+    "text": "Filtered trajectories\n\ndust_likelihood_run(filter, list(beta = 0.4, gamma = 0.2),\n                    save_trajectories = TRUE, index_state = idx)\n#&gt; [1] -115.1948\ny &lt;- dust_likelihood_last_trajectories(filter)\nmatplot(data$time, t(drop(y)), type = \"l\", col = \"#00000033\", lty = 1,\n        xlab = \"Time\", ylab = \"Incidence\")\npoints(data, pch = 19, col = \"red\")"
+  },
+  {
+    "objectID": "fitting.html#what-is-it",
+    "href": "fitting.html#what-is-it",
+    "title": "Fitting odin models with monty",
+    "section": "What is it?",
+    "text": "What is it?\n\nA state space model (SSM) is a mathematical framework for modelling a dynamical system.\nIt is built around two processes:\n\nstate equations that describes the evolution of some latent variables (also referred as “hidden” states) over time\nobservation equations that relates the observations to the latent variables."
+  },
+  {
+    "objectID": "fitting.html#can-you-be-more-precise",
+    "href": "fitting.html#can-you-be-more-precise",
+    "title": "Fitting odin models with monty",
+    "section": "Can you be more precise?",
+    "text": "Can you be more precise?\n\n\n\\(x_{t, 1 \\leq t \\leq T}\\) the hidden states of the system\n\\(y_{t, 1 \\leq t \\leq T}\\) the observations\n\\(f_{\\theta}\\) the state transition function\n\\(g_{\\theta}\\) the observation function\n\\(t\\) is often time\n\\(\\theta\\) defines the model"
+  },
+  {
+    "objectID": "fitting.html#two-common-problems",
+    "href": "fitting.html#two-common-problems",
+    "title": "Fitting odin models with monty",
+    "section": "Two common problems",
+    "text": "Two common problems\n\n\nTwo common needs\n\n“Filtering” i.e. estimate the hidden states \\(x_{t}\\) from the observations \\(y_t\\)\n“Inference” i.e. estimate the \\(\\theta\\)’s compatible with the observations \\(y_{t}\\)"
+  },
+  {
+    "objectID": "fitting.html#the-filter-in-action",
+    "href": "fitting.html#the-filter-in-action",
+    "title": "Fitting odin models with monty",
+    "section": "The filter in action",
+    "text": "The filter in action"
+  },
+  {
+    "objectID": "fitting.html#what-is-particle-mcmc",
+    "href": "fitting.html#what-is-particle-mcmc",
+    "title": "Fitting odin models with monty",
+    "section": "What is Particle MCMC?",
+    "text": "What is Particle MCMC?\n\nPMCMC is an algorithm which performs “filtering” and “inference”\nA Markov Chain Monte Carlo (MCMC) method for estimating target distributions\nMCMC explores the parameter space by moving randomly making jumps from one value to the next\nProbability of going from point to the other is determined by the proposal distribution and the ratio of the likelihood\nCompared with “traditional” MCMC, in PMCMC, the likelihood estimation is approximated using a “particle filter”\nThe filter generates a set of “particles” i.e. trajectories compatible with the observation\nIt uses these trajectories to compute a (marginal) likelihood that can be use by the PMCMC"
+  },
+  {
+    "objectID": "fitting.html#core-algorithm",
+    "href": "fitting.html#core-algorithm",
+    "title": "Fitting odin models with monty",
+    "section": "Core algorithm",
+    "text": "Core algorithm\n\nInitialisation Start with a value \\(\\theta_{0}\\) from the parameter space\nInitial SMC Use sequential Monte Carlo to do the “filtering” and samples of potential \\(\\{X_{t}\\}_{1..N}\\). Calculate the (marginal) likelihood from this using a MC estimator\nProposal Propose a new parameter value \\(\\theta ^*\\)\nSMC Calculate marginal likelihood of proposal\nMetropolis-Hastings Accept with probability \\(\\min(1, \\alpha)\\) with \\(\\alpha = \\frac{p(\\theta ^*)}{p(\\theta_{t})} \\cdot \\frac{q(\\theta_{t})}{q(\\theta ^*)}\\)\nLoop Redo (3) until the number of steps is reached"
+  },
+  {
+    "objectID": "fitting.html#design-philosophy",
+    "href": "fitting.html#design-philosophy",
+    "title": "Fitting odin models with monty",
+    "section": "Design philosophy",
+    "text": "Design philosophy\n\nMore complex structures are built up from simpler objects\n\nFilter {data, model, n_particles}\nPMCMC {parameters, filter}\n\nProvides you with low-level tools, and little hand-holding\nPretty fast though"
+  },
+  {
+    "objectID": "fitting.html#parameters",
+    "href": "fitting.html#parameters",
+    "title": "Fitting odin models with monty",
+    "section": "“Parameters”",
+    "text": "“Parameters”\n\nOur filter takes a list of beta and gamma, pars\n\nit could take all sorts of other things, not all of which are to be estimated\nsome of the inputs might be vectors or matrices\n\nOur MCMC takes an unstructured vector \\(\\theta\\)\n\nwe propose a new \\(\\theta^*\\) via some kernel, say a multivariate normal requiring a matrix of parameters corresponding to \\(\\theta\\)\nwe need a prior over \\(\\theta\\), but not necessarily every element of pars\n\nSmoothing this over is a massive nuisance\n\nsome way of mapping from \\(\\theta\\) to pars (and back again)"
+  },
+  {
+    "objectID": "fitting.html#parameter-packers",
+    "href": "fitting.html#parameter-packers",
+    "title": "Fitting odin models with monty",
+    "section": "Parameter packers",
+    "text": "Parameter packers\nOur solution, “packers”\n\npacker &lt;- monty_packer(c(\"beta\", \"gamma\"))\npacker\n#&gt; \n#&gt; ── &lt;monty_packer&gt; ──────────────────────────────────────────────────────────────\n#&gt; ℹ Packing 2 parameters: 'beta' and 'gamma'\n#&gt; ℹ Use '$pack()' to convert from a list to a vector\n#&gt; ℹ Use '$unpack()' to convert from a vector to a list\n#&gt; ℹ See `?monty_packer()` for more information\n\n\nWe can transform from \\(\\theta\\) to a named list:\n\npacker$unpack(c(0.2, 0.1))\n#&gt; $beta\n#&gt; [1] 0.2\n#&gt; \n#&gt; $gamma\n#&gt; [1] 0.1\n\n\n\nand back the other way:\n\npacker$pack(c(beta = 0.2, gamma = 0.1))\n#&gt; [1] 0.2 0.1"
+  },
+  {
+    "objectID": "fitting.html#parameter-packers-1",
+    "href": "fitting.html#parameter-packers-1",
+    "title": "Fitting odin models with monty",
+    "section": "Parameter packers",
+    "text": "Parameter packers\nBind additional data\n\npacker &lt;- monty_packer(c(\"beta\", \"gamma\"), fixed = list(I0 = 5))\npacker$unpack(c(0.2, 0.1))\n#&gt; $beta\n#&gt; [1] 0.2\n#&gt; \n#&gt; $gamma\n#&gt; [1] 0.1\n#&gt; \n#&gt; $I0\n#&gt; [1] 5"
+  },
+  {
+    "objectID": "fitting.html#parameter-packers-2",
+    "href": "fitting.html#parameter-packers-2",
+    "title": "Fitting odin models with monty",
+    "section": "Parameter packers",
+    "text": "Parameter packers\nCope with vector-valued parameters in \\(\\theta\\)\n\npacker &lt;- monty_packer(array = c(beta = 3, gamma = 3))\npacker\n#&gt; \n#&gt; ── &lt;monty_packer&gt; ──────────────────────────────────────────────────────────────\n#&gt; ℹ Packing 6 parameters: 'beta[1]', 'beta[2]', 'beta[3]', 'gamma[1]', 'gamma[2]', and 'gamma[3]'\n#&gt; ℹ Use '$pack()' to convert from a list to a vector\n#&gt; ℹ Use '$unpack()' to convert from a vector to a list\n#&gt; ℹ See `?monty_packer()` for more information\npacker$unpack(c(0.2, 0.21, 0.22, 0.1, 0.11, 0.12))\n#&gt; $beta\n#&gt; [1] 0.20 0.21 0.22\n#&gt; \n#&gt; $gamma\n#&gt; [1] 0.10 0.11 0.12"
+  },
+  {
+    "objectID": "fitting.html#priors",
+    "href": "fitting.html#priors",
+    "title": "Fitting odin models with monty",
+    "section": "Priors",
+    "text": "Priors\nAnother DSL, similar to odin’s:\n\nprior &lt;- monty_dsl({\n  beta ~ Exponential(mean = 0.5)\n  gamma ~ Exponential(mean = 0.3)\n})\nprior\n#&gt; \n#&gt; ── &lt;monty_model&gt; ───────────────────────────────────────────────────────────────\n#&gt; ℹ Model has 2 parameters: 'beta' and 'gamma'\n#&gt; ℹ This model:\n#&gt; • can compute gradients\n#&gt; • can be directly sampled from\n#&gt; • accepts multiple parameters\n#&gt; ℹ See `?monty_model()` for more information\n\nThis is a “monty model”\n\nmonty_model_density(prior, c(0.2, 0.1))\n#&gt; [1] 1.163787\n\ncompute this density manually:\n\ndexp(0.2, 1 / 0.5, log = TRUE) + dexp(0.1, 1 / 0.3, log = TRUE)\n#&gt; [1] 1.163787"
+  },
+  {
+    "objectID": "fitting.html#from-a-dust-filters-to-a-monty-model",
+    "href": "fitting.html#from-a-dust-filters-to-a-monty-model",
+    "title": "Fitting odin models with monty",
+    "section": "From a dust filters to a monty model",
+    "text": "From a dust filters to a monty model\n\nfilter\n#&gt; \n#&gt; ── &lt;dust_likelihood (odin_system)&gt; ─────────────────────────────────────────────\n#&gt; ℹ 4 state x 200 particles\n#&gt; ℹ The likelihood is stochastic\n#&gt; ℹ This system runs in discrete time with dt = 1\n#&gt; ℹ Use coef() (`?stats::coef()`) to get more information on parameters\n\n\nCombine a filter and a packer\n\npacker &lt;- monty_packer(c(\"beta\", \"gamma\"))\nlikelihood &lt;- dust_likelihood_monty(filter, packer)\nlikelihood\n#&gt; \n#&gt; ── &lt;monty_model&gt; ───────────────────────────────────────────────────────────────\n#&gt; ℹ Model has 2 parameters: 'beta' and 'gamma'\n#&gt; ℹ This model:\n#&gt; • is stochastic\n#&gt; ℹ See `?monty_model()` for more information"
+  },
+  {
+    "objectID": "fitting.html#posterior-from-likelihood-and-prior",
+    "href": "fitting.html#posterior-from-likelihood-and-prior",
+    "title": "Fitting odin models with monty",
+    "section": "Posterior from likelihood and prior",
+    "text": "Posterior from likelihood and prior\nCombine a likelihood and a prior to make a posterior\n\\[\n\\underbrace{\\Pr(\\theta | \\mathrm{data})}_{\\mathrm{posterior}} \\propto \\underbrace{\\Pr(\\mathrm{data} | \\theta)}_\\mathrm{likelihood} \\times \\underbrace{P(\\theta)}_{\\mathrm{prior}}\n\\]\n\n\nposterior &lt;- likelihood + prior\nposterior\n#&gt; \n#&gt; ── &lt;monty_model&gt; ───────────────────────────────────────────────────────────────\n#&gt; ℹ Model has 2 parameters: 'beta' and 'gamma'\n#&gt; ℹ This model:\n#&gt; • can be directly sampled from\n#&gt; • is stochastic\n#&gt; ℹ See `?monty_model()` for more information\n\n(remember that addition is multiplication on a log scale)"
+  },
+  {
+    "objectID": "fitting.html#create-a-sampler",
+    "href": "fitting.html#create-a-sampler",
+    "title": "Fitting odin models with monty",
+    "section": "Create a sampler",
+    "text": "Create a sampler\nA diagonal variance-covariance matrix (uncorrelated parameters)\n\nvcv &lt;- diag(2) * 0.2\nvcv\n#&gt;      [,1] [,2]\n#&gt; [1,]  0.2  0.0\n#&gt; [2,]  0.0  0.2\n\nUse this to create a “random walk” sampler:\n\nsampler &lt;- monty_sampler_random_walk(vcv)\nsampler\n#&gt; \n#&gt; ── &lt;monty_sampler: Random walk (monty_random_walk)&gt; ────────────────────────────\n#&gt; ℹ Use `?monty_sample()` to use this sampler\n#&gt; ℹ See `?monty_random_walk()` for more information"
+  },
+  {
+    "objectID": "fitting.html#lets-sample",
+    "href": "fitting.html#lets-sample",
+    "title": "Fitting odin models with monty",
+    "section": "Let’s sample!",
+    "text": "Let’s sample!\n\nsamples &lt;- monty_sample(posterior, sampler, 1000, n_chains = 3)\nsamples\n#&gt; \n#&gt; ── &lt;monty_samples: 2 parameters x 1000 samples x 3 chains&gt; ─────────────────────\n#&gt; ℹ Parameters: 'beta' and 'gamma'\n#&gt; ℹ Conversion to other types is possible:\n#&gt; → ! posterior::as_draws_array() [package installed, but not loaded]\n#&gt; → ! posterior::as_draws_df() [package installed, but not loaded]\n#&gt; → ! coda::as.mcmc.list() [package installed, but not loaded]\n#&gt; ℹ See `?monty_sample()` and `vignette(\"samples\")` for more information"
+  },
+  {
+    "objectID": "fitting.html#the-result-diagnostics",
+    "href": "fitting.html#the-result-diagnostics",
+    "title": "Fitting odin models with monty",
+    "section": "The result: diagnostics",
+    "text": "The result: diagnostics\nDiagnostics can be used from the posterior package\n\n## Note: as_draws_df converts samples$pars, and drops anything else in samples\nsamples_df &lt;- posterior::as_draws_df(samples)\nposterior::summarise_draws(samples_df)\n#&gt; # A tibble: 2 × 10\n#&gt;   variable  mean median    sd   mad    q5   q95  rhat ess_bulk ess_tail\n#&gt;   &lt;chr&gt;    &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;\n#&gt; 1 beta     0.904  0.902 0.126 0.110 0.679  1.14  1.04     84.6     36.8\n#&gt; 2 gamma    0.796  0.765 0.203 0.147 0.480  1.17  1.03     87.5     34.1"
+  },
+  {
+    "objectID": "fitting.html#the-results-parameters",
+    "href": "fitting.html#the-results-parameters",
+    "title": "Fitting odin models with monty",
+    "section": "The results: parameters",
+    "text": "The results: parameters\nYou can use the posterior package in conjunction with bayesplot (and then also ggplot2)\n\nbayesplot::mcmc_scatter(samples_df)"
+  },
+  {
+    "objectID": "fitting.html#the-result-traceplots",
+    "href": "fitting.html#the-result-traceplots",
+    "title": "Fitting odin models with monty",
+    "section": "The result: traceplots",
+    "text": "The result: traceplots\n\nbayesplot::mcmc_trace(samples_df)"
+  },
+  {
+    "objectID": "fitting.html#the-result-density-over-time",
+    "href": "fitting.html#the-result-density-over-time",
+    "title": "Fitting odin models with monty",
+    "section": "The result: density over time",
+    "text": "The result: density over time\n\nmatplot(drop(samples$density), type = \"l\", lty = 1)"
+  },
+  {
+    "objectID": "fitting.html#the-result-density-over-time-1",
+    "href": "fitting.html#the-result-density-over-time-1",
+    "title": "Fitting odin models with monty",
+    "section": "The result: density over time",
+    "text": "The result: density over time\n\nmatplot(drop(samples$density[-(1:100), ]), type = \"l\", lty = 1)"
+  },
+  {
+    "objectID": "fitting.html#better-mixing",
+    "href": "fitting.html#better-mixing",
+    "title": "Fitting odin models with monty",
+    "section": "Better mixing",
+    "text": "Better mixing\n\nvcv &lt;- matrix(c(0.01, 0.005, 0.005, 0.005), 2, 2)\nsampler &lt;- monty_sampler_random_walk(vcv)\nsamples &lt;- monty_sample(posterior, sampler, 5000, initial = samples,\n                        n_chains = 4)\nmatplot(samples$density, type = \"l\", lty = 1)"
+  },
+  {
+    "objectID": "fitting.html#better-mixing-the-results",
+    "href": "fitting.html#better-mixing-the-results",
+    "title": "Fitting odin models with monty",
+    "section": "Better mixing: the results",
+    "text": "Better mixing: the results\n\nsamples_df &lt;- posterior::as_draws_df(samples)\nposterior::summarise_draws(samples_df)\n#&gt; # A tibble: 2 × 10\n#&gt;   variable  mean median    sd   mad    q5   q95  rhat ess_bulk ess_tail\n#&gt;   &lt;chr&gt;    &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;\n#&gt; 1 beta     0.928  0.920 0.121 0.120 0.747  1.14  1.01     299.     404.\n#&gt; 2 gamma    0.834  0.801 0.202 0.185 0.567  1.21  1.02     239.     293."
+  },
+  {
+    "objectID": "fitting.html#better-mixing-the-results-1",
+    "href": "fitting.html#better-mixing-the-results-1",
+    "title": "Fitting odin models with monty",
+    "section": "Better mixing: the results",
+    "text": "Better mixing: the results\n\nbayesplot::mcmc_scatter(samples_df)"
+  },
+  {
+    "objectID": "fitting.html#better-mixing-the-results-2",
+    "href": "fitting.html#better-mixing-the-results-2",
+    "title": "Fitting odin models with monty",
+    "section": "Better mixing: the results",
+    "text": "Better mixing: the results\n\nbayesplot::mcmc_trace(samples_df)"
+  },
+  {
+    "objectID": "fitting.html#configure-the-filter",
+    "href": "fitting.html#configure-the-filter",
+    "title": "Fitting odin models with monty",
+    "section": "Configure the filter",
+    "text": "Configure the filter\nUse the n_threads argument, here for 4 threads\n\nfilter &lt;- dust_filter_create(sir, data = data, time_start = 0,\n                             n_particles = 200, n_threads = 4)\n\nrequires that you have OpenMP; this is very annoying on macOS"
+  },
+  {
+    "objectID": "fitting.html#configure-a-parallel-runner",
+    "href": "fitting.html#configure-a-parallel-runner",
+    "title": "Fitting odin models with monty",
+    "section": "Configure a parallel runner",
+    "text": "Configure a parallel runner\nUse monty_runner_callr, here for 2 workers\n\nrunner &lt;- monty_runner_callr(2)\n\nPass runner through to monty_sample:\n\nsamples &lt;- monty_sample(posterior, sampler, 1000,\n                        runner = runner, n_chains = 4)\n\n\n(sorry, this is broken unless your model is in a package!)"
+  },
+  {
+    "objectID": "fitting.html#run-chains-on-different-cluster-nodes",
+    "href": "fitting.html#run-chains-on-different-cluster-nodes",
+    "title": "Fitting odin models with monty",
+    "section": "Run chains on different cluster nodes",
+    "text": "Run chains on different cluster nodes\nmonty_sample_manual_prepare(posterior, sampler, 10000, \"mypath\",\n                            n_chains = 10)\nThen queue these up on a cluster, e.g., using hipercow:\nhipercow::task_create_bulk_call(\n  monty_sample_manual_run, 1:10, args = list(\"mypath\"))\nAnd retrieve the result\nsamples &lt;- monty_sample_manual_collect(\"mypath\")\n\n(sorry, also broken unless your model is in a package!)"
+  },
+  {
+    "objectID": "fitting.html#autocorrelation",
+    "href": "fitting.html#autocorrelation",
+    "title": "Fitting odin models with monty",
+    "section": "Autocorrelation",
+    "text": "Autocorrelation\n\nNotion from time series, which translates for (P)MCMC in term of the steps of the chains\nAutocorrelation refers to the correlation between the values of a time series at different points in time. In MCMC, this means correlation between successive samples.\nIn the context of MCMC, autocorrelation can most of the time be substituted instead of “bad mixing”\nA signature of random-walk MCMC\nLikely to bias estimate (wrong mean) and reduce variance compared with the true posterior distribution\nLinked with the notion of Effective Sample Size, roughly speaking ESS gives the equivalent in i.i.d. samples"
+  },
+  {
+    "objectID": "fitting.html#autocorrelation-in-practice-faq",
+    "href": "fitting.html#autocorrelation-in-practice-faq",
+    "title": "Fitting odin models with monty",
+    "section": "Autocorrelation in practice FAQ",
+    "text": "Autocorrelation in practice FAQ\n\nWhy is Autocorrelation a Problem? For optimal performance, we want the samples to be independent and identically distributed (i.i.d.) samples from the target distribution.\nHow to Detect Autocorrelation? We can calculate the autocorrelation function (ACF), which measures the correlation between the samples and their lagged values.\nHow to Reduce Autocorrelation? To mitigate the problem of autocorrelation, there’s a number of strategies, including: using a longer chain, adapting the proposal distribution, using thinning or subsampling techniques. By reducing autocorrelation, we can obtain better estimates of the target distribution and improve the accuracy of our Bayesian inference."
+  },
+  {
+    "objectID": "fitting.html#thinning-the-chain",
+    "href": "fitting.html#thinning-the-chain",
+    "title": "Fitting odin models with monty",
+    "section": "Thinning the chain",
+    "text": "Thinning the chain\n\nEither before or after fit\nFaster and less memory to thin before\nMore flexible to thin later\nNo real difference if trajectories not saved\n\nThis is useful because most of your chain is not interesting due to the autocorrelation."
+  },
+  {
+    "objectID": "fitting.html#thinning-the-chain-1",
+    "href": "fitting.html#thinning-the-chain-1",
+    "title": "Fitting odin models with monty",
+    "section": "Thinning the chain",
+    "text": "Thinning the chain\nWhile running\nsamples &lt;- monty_sample(...,\n                        burnin = 100,\n                        thinning_factor = 4)\nAfter running\nsamples_thin &lt;- monty_samples_thin(samples,\n                                   burnin = 100,\n                                   thinning_factor = 4)"
+  },
+  {
+    "objectID": "fitting.html#saving-history",
+    "href": "fitting.html#saving-history",
+    "title": "Fitting odin models with monty",
+    "section": "Saving history",
+    "text": "Saving history\n\nSave your trajectories at every collected sample\nSave the final state at every sample (for onward simulation)"
+  },
+  {
+    "objectID": "fitting.html#trajectories",
+    "href": "fitting.html#trajectories",
+    "title": "Fitting odin models with monty",
+    "section": "Trajectories",
+    "text": "Trajectories\n\nlikelihood &lt;- dust_likelihood_monty(filter, packer, save_trajectories = TRUE)\nposterior &lt;- likelihood + prior\nsamples2 &lt;- monty_sample(posterior, sampler, 100, initial = samples)\ndim(samples2$observations$trajectories)\n#&gt; [1]   4  20 100   1"
+  },
+  {
+    "objectID": "fitting.html#trajectories-1",
+    "href": "fitting.html#trajectories-1",
+    "title": "Fitting odin models with monty",
+    "section": "Trajectories",
+    "text": "Trajectories\n\ntrajectories &lt;- dust_unpack_state(filter,\n                                  samples2$observations$trajectories)\nmatplot(data$time, drop(trajectories$incidence),\n        type = \"l\", lty = 1, col = \"#00000033\")\npoints(data, pch = 19, col = \"red\")"
+  }
+]
