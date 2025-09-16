@@ -43,7 +43,7 @@ set.seed(1)
 samples <- monty_sample(mixture_model, sampler, 1000, initial = 3, n_chains = 4)
 ```
 
-One of the available inputs to `monty_sample` we have not specified is `runner`. The runner determines how the chains are run, and these can be setup with functions in `monty`. If `runner` is not specified then as a default the samples will be run with the simplest runner which is constructed with `monty_runner_serial`. With this runner, chains are run in series (one after another).
+One of the available inputs to `monty_sample` that we have not specified is `runner`. The runner determines how the chains are run, and these can be setup with functions in `monty`. If `runner` is not specified then as a default the samples will be run with the simplest runner which is constructed with `monty_runner_serial`. With this runner, chains are run in series (one after another).
 
 However if we have multiple cores available, we may want to run chains in parallel using workers. In this case we can construct a runner with `monty_runner_callr`. This runner uses the `callr` package to distribute your chains over a number of worker processes on the same machine.
 
