@@ -13,12 +13,10 @@ Both `dust2` and `monty` have built-in support for parallelisation, making it st
 2. **Using threads to parallelise between particles in a filter**
    This runs different set of particles from a particle filter in parallel, within a single process. It is useful when you have a stochastic model written in `odin2` and are using the filter to estimate the marginal likelihood. Using threads can be combined with using workers.
 
-The parallelisation in both cases is implemented so that results will be identical to running in serial.
-
 3. **Manual scheduling of chains**
    This is a fully manual way of distributing chains - for example, across the nodes of an HPC system - rather than letting `monty` manage the workers automatically.
 
-We illustrate how to implement all three methods below.
+We illustrate how to implement all three methods below. Note that all the three parallelisation methods are implemented so that results will be identical to running in serial.
 
 ## Using workers to parallelise between chains
 
