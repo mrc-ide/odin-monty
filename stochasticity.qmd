@@ -146,7 +146,7 @@ plot(t, y$incidence, type = "p", xlab = "Time", ylab = "Incidence")
 
 We have already seen use of Binomial draws, and we support other distributions. Support for the distributions includes both random draws and density calculations (more on that later). The support for these functions comes from `monty` and all the distributions are available for use in the both the `odin` DSL and the `monty` DSL (more on that also later).
 
-Some distributions have several parameterisations; these are distinguished by the arguments to the functions. These distributions have a default parameterisation. For example, the Gamma distribution defaults to a `shape` and `rate` parameterisation so:
+Some distributions have several parametrisations; these are distinguished by the arguments to the functions. These distributions have a default parametrisation. For example, the Gamma distribution defaults to a `shape` and `rate` parametrisation so:
 
 ```r
 a <- Gamma(2, 0.1)
@@ -162,7 +162,7 @@ a <- Gamma(shape = 2, scale = 10)
 
 draw from a Gamma distribution with a shape of 2 and a **scale** of 10. You may find it is good practice to specify your arguments with such distributions whether using the default parameterisation or not.
 
-Other supported distributions include the Normal, Uniform, Exponential, Beta and Poisson distributions. A full list of supported distributions and their parameterisations can be found [here](https://mrc-ide.github.io/odin2/articles/functions.html#distribution-functions).
+Other supported distributions include the Normal, Uniform, Exponential, Beta and Poisson distributions. A full list of supported distributions and their parametrisations can be found [here](https://mrc-ide.github.io/odin2/articles/functions.html#distribution-functions).
 
 ## More sections to add:
 

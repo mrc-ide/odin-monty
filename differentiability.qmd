@@ -1,8 +1,0 @@
-# Differentiability
-
-```{r}
-#| include: false
-source("common.R")
-```
-
-Random walk suppression and other uses

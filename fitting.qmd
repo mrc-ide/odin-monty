@@ -1,0 +1,624 @@
+---
+title: "Fitting odin models with monty"
+format:
+  revealjs:
+    preview-links: auto
+    footer: "[mrc-ide/odin-monty](.)"
+execute:
+  echo: true
+  message: true
+  output: true
+  warning: true
+---
+
+```{r}
+#| include: false
+#| cache: false
+set.seed(1)
+source("common.R")
+options(monty.progress = FALSE)
+```
+# A pragmatic introduction
+
+```{r}
+library(odin2)
+library(dust2)
+library(monty)
+```
+
+## Previously, on "Introduction to odin"
+
+* We created some simple compartmental models
+* We ran these and observed trajectories over time
+* We saw that stochastic models produce a family of trajectories
+
+## Our model {.smaller}
+
+```{r}
+#| echo: false
+#| results: "asis"
+r_output(readLines("models/sir-basic.R"))
+```
+
+## Example output {.smaller}
+
+```{r}
+#| include: false
+sir <- odin("models/sir-basic.R")
+```
+
+```{r}
+sys <- dust_system_create(sir, n_particles = 30)
+dust_system_set_state_initial(sys)
+t <- seq(0, 100)
+y <- dust_system_simulate(sys, t)
+incidence <- dust_unpack_state(sys, y)$incidence
+matplot(t, t(incidence), type = "l", lty = 1, col = "#00000033",
+        xlab = "Time", ylab = "Incidence")
+```
+
+## How do we fit this to data?
+
+We need:
+
+* a data set
+  - time series of observed data (incidence? prevalence? something else?)
+* a measure of goodness of fit
+  - how do we cope with stochasticity?
+* to know what parameters we are trying to fit
+
+## The data {.smaller}
+
+You should download [incidence.csv](data/incidence.csv)
+
+```{r}
+data <- read.csv("data/incidence.csv")
+head(data)
+```
+
+We will fit **`cases`** here to **`incidence`** in our model.
+
+## The data {.smaller}
+
+```{r}
+plot(data, pch = 19, col = "red")
+```
+
+## Measuring goodness of fit {.smaller}
+
+Run the system with `beta = 0.4` and `gamma = 0.2`
+
+```{r}
+sys <- dust_system_create(sir, list(beta = 0.4, gamma = 0.2))
+dust_system_set_state_initial(sys)
+idx <- dust_unpack_index(sys)$incidence
+t <- data$time
+y <- dust_system_simulate(sys, t, index_state = idx)
+```
+
+## Measuring goodness of fit {.smaller}
+
+```{r}
+plot(data, col = "red", pch = 19, ylim = c(0, max(data$cases)))
+points(t, drop(y), col = "blue", pch = 19)
+segments(data$time, data$cases, y1 = drop(y))
+```
+
+## Measuring goodness of fit {.smaller}
+
+$$
+\Pr(\mathrm{data} | \mathrm{model})
+$$
+
+perhaps:
+
+$$
+\Pr(\mathrm{observed\ cases}) \sim \mathrm{Poisson}(\mathrm{modelled\ cases})
+$$
+
+```{r}
+dpois(data$cases, drop(y), log = TRUE)
+```
+
+## Adding goodness-of-fit to the model {.smaller}
+
+```{r}
+#| echo: false
+#| results: "asis"
+r_output(readLines("models/sir-compare.R"))
+```
+
+```{r}
+#| include: false
+sir <- odin("models/sir-compare.R")
+```
+
+## Measuring goodness-of-fit {.smaller}
+
+```{r}
+filter <- dust_filter_create(sir, data = data, time_start = 0,
+                             n_particles = 200)
+dust_likelihood_run(filter, list(beta = 0.4, gamma = 0.2))
+```
+
+. . .
+
+The system runs stochastically, and the likelihood is different each time:
+
+```{r}
+dust_likelihood_run(filter, list(beta = 0.4, gamma = 0.2))
+dust_likelihood_run(filter, list(beta = 0.4, gamma = 0.2))
+```
+
+## Filtered trajectories {.smaller}
+
+```{r}
+dust_likelihood_run(filter, list(beta = 0.4, gamma = 0.2),
+                    save_trajectories = TRUE, index_state = idx)
+y <- dust_likelihood_last_trajectories(filter)
+matplot(data$time, t(drop(y)), type = "l", col = "#00000033", lty = 1,
+        xlab = "Time", ylab = "Incidence")
+points(data, pch = 19, col = "red")
+```
+
+# State space models
+
+
+(aka, what is really going on here?)
+
+## What is it?
+
+- A state space model (SSM) is a mathematical framework for modelling a dynamical system.
+- It is built around two processes:
+    - **state equations** that describes the evolution of some latent variables (also referred as "hidden" states) over time
+    - **observation equations** that relates the observations to the latent variables.
+
+## Can you be more precise?
+
+![](images/SSM.jpg)
+
+- $x_{t, 1 \leq t \leq T}$ the hidden states of the system
+- $y_{t, 1 \leq t \leq T}$ the observations
+- $f_{\theta}$ the state transition function
+- $g_{\theta}$ the observation function
+- $t$ is often time
+- $\theta$ defines the model
+
+## Two common problems
+
+![](images/SSM.jpg)
+
+- Two common needs
+  - "Filtering" i.e. estimate the hidden states $x_{t}$ from the observations $y_t$
+  - "Inference" i.e. estimate the $\theta$'s compatible with the observations $y_{t}$
+
+# (Bootstrap) Sequential Monte Carlo {.smaller}
+
+AKA, the particle filter
+
+- Assuming a given $\theta$, at each time step $t$, BSSMC:
+  1. generates $X_{t+1}^N$ by using $f_{\theta}(X_{t+1}^N|X_{t}^N)$ (the $N$ particles)
+  2. calculates weights for the newly generated states based on $g_{\theta}(Y_{t+1}|X_{t+1})$
+  3. resamples the states to keep only the good ones
+
+- Allow to explores efficiently the state space by progressively integrating the data points
+
+- Produces a MC approximation of $p(Y_{1:T}|\theta)$ the marginal likelihood
+
+## The filter in action
+
+![](images/filter.gif)
+
+# Particle MCMC
+
+## What is Particle MCMC? {.smaller}
+
+- PMCMC is an algorithm which performs "filtering" and "inference"
+- A Markov Chain Monte Carlo (MCMC) method for estimating target distributions
+- MCMC explores the parameter space by moving randomly making jumps from one value to the next
+- Probability of going from point to the other is determined by the proposal distribution and the ratio of the likelihood
+- Compared with "traditional" MCMC, in PMCMC, the likelihood estimation is approximated using a "particle filter"
+- The filter generates a set of "particles" i.e. trajectories compatible with the observation
+- It uses these trajectories to compute a (marginal) likelihood that can be use by the PMCMC
+
+## Core algorithm
+
+1. **Initialisation** Start with a value $\theta_{0}$ from the parameter space
+2. **Initial SMC** Use sequential Monte Carlo to do the "filtering" and samples of potential $\{X_{t}\}_{1..N}$. Calculate the (marginal) likelihood from this using a MC estimator
+3. **Proposal** Propose a new parameter value $\theta ^*$
+4. **SMC** Calculate marginal likelihood of proposal
+5. **Metropolis-Hastings** Accept with probability $\min(1, \alpha)$ with $\alpha = \frac{p(\theta ^*)}{p(\theta_{t})} \cdot \frac{q(\theta_{t})}{q(\theta ^*)}$
+6. **Loop** Redo (3) until the number of steps is reached
+
+# monty & dust2 {.smaller}
+
+- `dust2`
+  - implements bootstrap particle filter
+  - can run models in parallel
+
+- `monty`
+  - implements MCMC with support for stochastic probability densities
+  - we are adding additional samplers (adaptive MCMC, HMC, but most can't be used with stochastic densities)
+
+- `mcstate`
+  - used to contain all of this (plus SMC^2, IF)
+  - Inference tooling for the Centre's UK COVID model & other diseases
+
+## Design philosophy
+
+- More complex structures are built up from simpler objects
+  - Filter {data, model, n_particles}
+  - PMCMC {parameters, filter}
+- Provides you with low-level tools, and little hand-holding
+- Pretty fast though
+
+# PMCMC {.smaller}
+
+We have a marginal likelihood estimator from our particle filter:
+
+```{r}
+dust_likelihood_run(filter, list(beta = 0.4, gamma = 0.2))
+```
+
+. . .
+
+How do we sample from `beta` and `gamma`?
+
+. . .
+
+We need:
+
+* to tidy up our parameters
+* to create a prior
+* to create a posterior
+* to create a sampler
+
+## "Parameters" {.smaller}
+
+* Our filter takes a **list** of `beta` and `gamma`, `pars`
+  - it could take all sorts of other things, not all of which are to be estimated
+  - some of the inputs might be vectors or matrices
+* Our MCMC takes an **unstructured vector** $\theta$
+  - we propose a new $\theta^*$ via some kernel, say a multivariate normal requiring a matrix of parameters corresponding to $\theta$
+  - we need a prior over $\theta$, but not necessarily every element of `pars`
+* Smoothing this over is a massive nuisance
+  - some way of mapping from $\theta$ to `pars` (and back again)
+
+## Parameter packers {.smaller}
+
+Our solution, "packers"
+
+```{r}
+packer <- monty_packer(c("beta", "gamma"))
+packer
+```
+
+. . .
+
+We can transform from $\theta$ to a named list:
+
+```{r}
+packer$unpack(c(0.2, 0.1))
+```
+
+. . .
+
+and back the other way:
+
+```{r}
+packer$pack(c(beta = 0.2, gamma = 0.1))
+```
+
+## Parameter packers {.smaller}
+
+Bind additional data
+
+```{r}
+packer <- monty_packer(c("beta", "gamma"), fixed = list(I0 = 5))
+packer$unpack(c(0.2, 0.1))
+```
+
+## Parameter packers {.smaller}
+
+Cope with vector-valued parameters in $\theta$
+
+```{r}
+packer <- monty_packer(array = c(beta = 3, gamma = 3))
+packer
+packer$unpack(c(0.2, 0.21, 0.22, 0.1, 0.11, 0.12))
+```
+
+## Priors {.smaller}
+
+Another DSL, similar to odin's:
+
+```{r}
+prior <- monty_dsl({
+  beta ~ Exponential(mean = 0.5)
+  gamma ~ Exponential(mean = 0.3)
+})
+prior
+```
+
+This is a "monty model"
+
+```{r}
+monty_model_density(prior, c(0.2, 0.1))
+```
+
+compute this density manually:
+
+```{r}
+dexp(0.2, 1 / 0.5, log = TRUE) + dexp(0.1, 1 / 0.3, log = TRUE)
+```
+
+## From a dust filters to a monty model {.smaller}
+
+```{r}
+filter
+```
+
+. . .
+
+Combine a filter and a packer
+
+```{r}
+packer <- monty_packer(c("beta", "gamma"))
+likelihood <- dust_likelihood_monty(filter, packer)
+likelihood
+```
+
+## Posterior from likelihood and prior {.smaller}
+
+Combine a likelihood and a prior to make a posterior
+
+$$
+\underbrace{\Pr(\theta | \mathrm{data})}_{\mathrm{posterior}} \propto \underbrace{\Pr(\mathrm{data} | \theta)}_\mathrm{likelihood} \times \underbrace{P(\theta)}_{\mathrm{prior}}
+$$
+
+. . .
+
+```{r}
+posterior <- likelihood + prior
+posterior
+```
+
+(remember that addition is multiplication on a log scale)
+
+## Create a sampler
+
+A diagonal variance-covariance matrix (uncorrelated parameters)
+
+```{r}
+vcv <- diag(2) * 0.2
+vcv
+```
+
+Use this to create a "random walk" sampler:
+
+```{r}
+sampler <- monty_sampler_random_walk(vcv)
+sampler
+```
+
+## Let's sample!
+
+```{r, cache = TRUE}
+samples <- monty_sample(posterior, sampler, 1000, n_chains = 3)
+samples
+```
+
+## The result: diagnostics
+
+Diagnostics can be used from the `posterior` package
+
+```{r}
+## Note: as_draws_df converts samples$pars, and drops anything else in samples
+samples_df <- posterior::as_draws_df(samples)
+posterior::summarise_draws(samples_df)
+```
+
+## The results: parameters
+
+You can use the `posterior` package in conjunction with `bayesplot` (and then also `ggplot2`)
+
+```{r}
+bayesplot::mcmc_scatter(samples_df)
+```
+## The result: traceplots
+
+```{r}
+bayesplot::mcmc_trace(samples_df)
+```
+
+## The result: density over time
+
+```{r}
+matplot(drop(samples$density), type = "l", lty = 1)
+```
+
+## The result: density over time
+
+```{r}
+matplot(drop(samples$density[-(1:100), ]), type = "l", lty = 1)
+```
+
+## Better mixing {.smaller}
+
+```{r, cache = TRUE}
+vcv <- matrix(c(0.01, 0.005, 0.005, 0.005), 2, 2)
+sampler <- monty_sampler_random_walk(vcv)
+samples <- monty_sample(posterior, sampler, 5000, initial = samples,
+                        n_chains = 4)
+matplot(samples$density, type = "l", lty = 1)
+```
+
+## Better mixing: the results
+
+```{r}
+samples_df <- posterior::as_draws_df(samples)
+posterior::summarise_draws(samples_df)
+```
+
+## Better mixing: the results
+
+```{r}
+bayesplot::mcmc_scatter(samples_df)
+```
+
+## Better mixing: the results
+
+```{r}
+bayesplot::mcmc_trace(samples_df)
+```
+
+# Parallelism
+
+Two places to parallelise
+
+* among particles in your filter
+* between chains in the sample
+
+e.g., 4 threads per filter x 2 workers = 8 total cores in use
+
+## Configure the filter
+
+Use the `n_threads` argument, here for 4 threads
+
+```{r}
+filter <- dust_filter_create(sir, data = data, time_start = 0,
+                             n_particles = 200, n_threads = 4)
+```
+
+requires that you have OpenMP; this is very annoying on macOS
+
+## Configure a parallel runner
+
+Use `monty_runner_callr`, here for 2 workers
+
+```{r}
+runner <- monty_runner_callr(2)
+```
+
+Pass `runner` through to `monty_sample`:
+
+```{r, eval = FALSE}
+samples <- monty_sample(posterior, sampler, 1000,
+                        runner = runner, n_chains = 4)
+```
+
+. . .
+
+(sorry, this is broken unless your model is in a package!)
+
+## Run chains on different cluster nodes
+
+```r
+monty_sample_manual_prepare(posterior, sampler, 10000, "mypath",
+                            n_chains = 10)
+```
+
+Then queue these up on a cluster, e.g., using `hipercow`:
+
+```r
+hipercow::task_create_bulk_call(
+  monty_sample_manual_run, 1:10, args = list("mypath"))
+```
+
+And retrieve the result
+
+```r
+samples <- monty_sample_manual_collect("mypath")
+```
+
+. . .
+
+(sorry, also broken unless your model is in a package!)
+
+## Autocorrelation {.smaller}
+
+* Notion from time series, which translates for (P)MCMC in term of the steps of the chains
+* Autocorrelation refers to the correlation between the values of a time series at different points in time. In MCMC, this means correlation between successive samples.
+* In the context of MCMC, autocorrelation can most of the time be substituted instead of "bad mixing"
+* A signature of random-walk MCMC
+* Likely to bias estimate (wrong mean) and reduce variance compared with the true posterior distribution
+* Linked with the notion of Effective Sample Size, roughly speaking ESS gives the equivalent in i.i.d. samples
+
+## Autocorrelation in practice FAQ  {.smaller}
+
+* **Why is Autocorrelation a Problem?** For optimal performance, we want the samples to be independent and identically distributed (i.i.d.) samples from the target distribution.
+* **How to Detect Autocorrelation?** We can calculate the **autocorrelation function (ACF)**, which measures the correlation between the samples and their lagged values.
+* **How to Reduce Autocorrelation?** To mitigate the problem of autocorrelation, there's a number of strategies, including: using a longer chain, adapting the proposal distribution, using thinning or subsampling techniques. By reducing autocorrelation, we can obtain better estimates of the target distribution and improve the accuracy of our Bayesian inference.
+
+## Thinning the chain
+
+* Either before or after fit
+* Faster and less memory to thin before
+* More flexible to thin later
+* No real difference if trajectories not saved
+
+This is useful because most of your chain is not interesting due to the autocorrelation.
+
+## Thinning the chain
+
+While running
+
+```r
+samples <- monty_sample(...,
+                        burnin = 100,
+                        thinning_factor = 4)
+```
+
+After running
+
+```r
+samples_thin <- monty_samples_thin(samples,
+                                   burnin = 100,
+                                   thinning_factor = 4)
+```
+
+## Saving history
+
+* Save your trajectories at every collected sample
+* Save the final state at every sample (for onward simulation)
+
+## Trajectories
+
+```{r}
+likelihood <- dust_likelihood_monty(filter, packer, save_trajectories = TRUE)
+posterior <- likelihood + prior
+samples2 <- monty_sample(posterior, sampler, 100, initial = samples)
+dim(samples2$observations$trajectories)
+```
+
+## Trajectories
+
+```{r}
+trajectories <- dust_unpack_state(filter,
+                                  samples2$observations$trajectories)
+matplot(data$time, drop(trajectories$incidence),
+        type = "l", lty = 1, col = "#00000033")
+points(data, pch = 19, col = "red")
+```
+
+# Next steps
+
+* forward time predictions
+* posterior predictive checks
+* rerun filter in MCMC
+* multi-parameter models
+* deterministic (expectation) models as starting points
+* adaptive fitting (deterministic models only)
+* HMC
+
+# 2025 Roadmap {.smaller}
+
+* Some missing features from mcstate/dust1
+  - multi-stage filters
+  - restarting filters
+  - GPU-accelerated fitting
+  - SMC^2 and IF (perhaps)
+* Some almost-ready features
+  - Parallel tempering (exploit parallelism, cope with multiple modes)
+  - Automatic differentiation
+  - NUTS and HMC algorithms

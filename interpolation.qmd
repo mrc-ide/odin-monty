@@ -12,7 +12,7 @@ library(odin2)
 library(dust2)
 ```
 
-## Using `time` within equations
+## Using `time` within equations {#sec-interpolation-time}
 
 The simplest way to make a model time-dependent is simply to refer to `time` as a variable.  For example, suppose we have a continuous-time logistic growth model (see @sec-time-logistic)
 
@@ -183,7 +183,7 @@ dust_system_state(sys)
 
 With this approach we can ensure that even very small periods of discontinuity are found by the solver.
 
-## Using interpolation functions
+## Using interpolation functions {#sec-interpolation-functions}
 
 Sometimes, you will want the time-varying functions of your model to be driven by data.  So rather than having the model driven by seasonal change use some approximation of dynamics as we did with a `sin` wave above, you might want to use actual temperature or rainfall data.  To do this, you can use odin's "interpolation" functions, which take some series of time points and data and create a continuous function with respect to time.  There are several different modes of interpolation available, which you can use to model different sorts of processes.
 
@@ -368,8 +368,3 @@ daily_doses <- interpolate(daily_doses_time, daily_doses_value, "constant")
 does not differ whether are interpolating a scalar quantity or an array quantity.
 
 In this example we have interpolated a vector quantity. You can interpolate higher-dimensional arrays. Just always make sure that the last dimension of your "value" array corresponds to your "time" vector.
-
-
-## Additional topics not yet covered
-
-* order of events in interpolation with discrete time models

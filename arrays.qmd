@@ -99,7 +99,7 @@ so there is an implicit indexing by `i` on the LHS in that equation of the odin 
 
 We can see in our first example that it is necessary to declare the dimensions of all arrays within your `odin` code using a `dim` equation.
 
-Dimensions can be hardcoded:
+Dimensions can be hard-coded:
 ```r
 dim(S) <- 2
 ```

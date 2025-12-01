@@ -22,6 +22,12 @@ quarto preview
 
 which will open the site in a browser.  Then edit the `.qmd` pages; changes will rebuild automatically.
 
+If you are working on slides, you will need to run
+
+```
+quarto preview --profile slides
+```
+
 The site will build when pushed to GitHub, so failures will show on a PR.  It will push to `gh-pages` automatically when merged.
 
 Documentation for quarto is [here](https://quarto.org/docs/guide/) and for books specifically [here](https://quarto.org/docs/books/)

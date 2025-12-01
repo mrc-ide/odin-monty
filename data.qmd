@@ -182,6 +182,10 @@ Here, we've created a filter where the time series starts at 0, using our data s
 dust_likelihood_run(filter, list())
 ```
 
+::: {.callout-note}
+A value of `NA` in the data time series for a given datastream at a given timepoint will indicate missing data and the filter will simply ignore that datastream at that timepoint.
+:::
+
 Each time we run the filter, we'll get a different answer though.
 
 ```{r}
@@ -220,6 +224,10 @@ The trajectories will be an array with 3 dimensions representing (in turn) state
 ```{r}
 dim(h)
 ```
+
+::: {.callout-note}
+Trajectories will only be saved at the timepoints found in the data time series. If you want to output trajectories at timepoints where you do not have any data, you can do this by including the timepoints in the data time series with `NA` values in all of the datastreams. Doing so will have no impact on the filtering process. This can be useful if e.g. you want to output the trajectories between `time_start` and your first data timepoint; or you have weekly data but you want to output daily trajectories.
+:::
 
 We can plot the trajectories of our incidence here:
 

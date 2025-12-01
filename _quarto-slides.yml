@@ -1,0 +1,7 @@
+project:
+  type: website
+  output-dir: _slides
+  render:
+    - fitting.qmd
+
+format: revealjs

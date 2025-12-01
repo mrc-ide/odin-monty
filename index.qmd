@@ -11,6 +11,10 @@ This is a book about writing models in the [`odin`](https://mrc-ide.github.io/od
 
 Originally, we designed odin around describing and solving systems of differential equations, with a small amount of support for working with discrete-time stochastic systems.  Over time, and particularly during the COVID-19 response, we expanded the stochastic support and introduced the ability to fit these models using particle filters and other sequential Monte Carlo algorithms.  You may have used `odin.dust` and `mcstate` through this period.  As of 2024 we have rationalised our tools into a new set of packages which are currently called `odin2`, `dust2` and `monty`
 
+## Slide decks
+
+* [Fitting odin models with monty](slides/fitting.html)
+
 ## Installation
 
 You can install these packages in one go from our R-universe:
