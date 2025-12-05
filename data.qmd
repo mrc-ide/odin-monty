@@ -357,7 +357,7 @@ d <- data.frame(time = c(1, 2, 3, 4),
 d
 ```
 
-to make a list-column for `cases` we pass in a *list* with the same number of elements as there are rows, and with the same number of elements *per list element* as there are age groups.  We then have to wrap this with `I()`, for example with 2 age groups
+while to make a list-column for `cases` as a vector datastream we pass in a *list* with the same number of elements as there are rows, and with the same number of elements *per list element* as there are age groups.  We then have to wrap this with `I()`, for example with 2 age groups
 
 ```{r}
 d <- data.frame(time = c(1, 2, 3, 4),
