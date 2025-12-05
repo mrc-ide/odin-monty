@@ -261,3 +261,102 @@ var(ll)
 ```
 
 Moving from the poor-fitting parameters to the better fitting ones is the process of **inference**, which will be the focus of most of the rest of this book.
+
+
+## Comparing against vectors (or arrays) of data
+
+Above, we were comparing against a single point of data (per interval), but in some cases you will have vectors or higher-dimensional objects of data.  Let's revisit our age-structured SIR model from @sec-stochastic-age and assume that now we have at each timepoint `cases` data as a vector corresponding to each age group
+
+```{r}
+sir_age <- odin({
+  # Equations for transitions between compartments by age group
+  update(S[]) <- S[i] - n_SI[i]
+  update(I[]) <- I[i] + n_SI[i] - n_IR[i]
+  update(R[]) <- R[i] + n_IR[i]
+  update(incidence) <- incidence + sum(n_SI)
+  
+  # Individual probabilities of transition:
+  p_SI[] <- 1 - exp(-lambda[i] * dt) # S to I
+  p_IR <- 1 - exp(-gamma * dt) # I to R
+  
+  # Calculate force of infection
+  
+  # age-structured contact matrix: m[i, j] is mean number of contacts an
+  # individual in group i has with an individual in group j per time unit
+  
+  m <- parameter()
+  
+  # here s_ij[i, j] gives the mean number of contacts and individual in group
+  # i will have with the currently infectious individuals of group j
+  s_ij[, ] <- m[i, j] * I[j]
+  
+  # lambda[i] is the total force of infection on an individual in group i 
+  lambda[] <- beta * sum(s_ij[i, ])
+  
+  # Draws from binomial distributions for numbers changing between
+  # compartments:
+  n_SI[] <- Binomial(S[i], p_SI[i])
+  n_IR[] <- Binomial(I[i], p_IR)
+  
+  initial(S[]) <- S0[i]
+  initial(I[]) <- I0[i]
+  initial(R[]) <- 0
+  initial(incidence, zero_every = 1) <- 0
+  
+  # User defined parameters - default in parentheses:
+  S0 <- parameter()
+  I0 <- parameter()
+  beta <- parameter(0.0165)
+  gamma <- parameter(0.1)
+  
+  # Dimensions of arrays
+  n_age <- parameter()
+  dim(S, S0, n_SI, p_SI) <- n_age
+  dim(I, I0, n_IR) <- n_age
+  dim(R) <- n_age
+  dim(m, s_ij) <- c(n_age, n_age)
+  dim(lambda) <- n_age
+  
+  cases <- data()
+  dim(cases) <- n_age
+  cases[] ~ Poisson(incidence[i])
+})
+```
+
+We can see that while before for the model without age-structuring we had
+
+```r
+  cases <- data()
+  cases ~ Poisson(incidence)
+```
+
+now we have
+
+```r
+  cases <- data()
+  dim(cases) <- n_age
+  cases[] ~ Poisson(incidence[i])
+```
+
+where the syntax generalises our approach to handling arrays for the rest of the odin code:
+
+* `cases` is still defined as coming as data
+* We add a `dim()` equation to say that `cases` has `n_age` elements
+* The actual comparison is now processed element-wise over all age groups, with observed cases per age group being compared to the corresponding modelled `incidence` value.
+
+Missing data will be handled elementwise, so this calculation is applied to every age group that has data.
+
+Passing this data into the system is a bit awkward as we no longer have a nice time-by-datastream variable.  The way we support this is by "list columns", which you may have seen in tidyverse packages (for example [`tidyr::nest`](https://tidyr.tidyverse.org/reference/nest.html) and [its vignette](https://tidyr.tidyverse.org/articles/nest.html)).
+
+Normally, you might make a time-by-incidence `data.frame` by writing:
+
+```{r}
+data.frame(time = c(1, 2, 3, 4), incidence = c(0, 4, 6, 10))
+```
+
+to make a list-column for incidence we pass in a *list* with the same number of elements as they are rows, and with the same number of elements *per list element* as there are age groups.  We then have to wrap this with `I()`, for example:
+
+```{r}
+data.frame(time = c(1, 2, 3, 4),
+           incidence = I(list(c(0, 1), c(4, 3), c(6, 7), c(10, 11))))
+```
