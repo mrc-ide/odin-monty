@@ -349,15 +349,18 @@ Missing data will be handled elementwise, so this calculation is applied to ever
 
 Passing this data into the system is a bit awkward as we no longer have a nice time-by-datastream variable.  The way we support this is by "list columns", which you may have seen in tidyverse packages (for example [`tidyr::nest`](https://tidyr.tidyverse.org/reference/nest.html) and [its vignette](https://tidyr.tidyverse.org/articles/nest.html)).
 
-Normally, you might make a time-by-incidence `data.frame` by writing:
+Normally, if we had `cases` as a scalar datastream an example `data.frame` could be setup by writing
 
 ```{r}
-data.frame(time = c(1, 2, 3, 4), incidence = c(0, 4, 6, 10))
+d <- data.frame(time = c(1, 2, 3, 4),
+                cases = c(0, 4, 6, 10))
+d
 ```
 
-to make a list-column for incidence we pass in a *list* with the same number of elements as they are rows, and with the same number of elements *per list element* as there are age groups.  We then have to wrap this with `I()`, for example:
+to make a list-column for `cases` we pass in a *list* with the same number of elements as there are rows, and with the same number of elements *per list element* as there are age groups.  We then have to wrap this with `I()`, for example with 2 age groups
 
 ```{r}
-data.frame(time = c(1, 2, 3, 4),
-           incidence = I(list(c(0, 1), c(4, 3), c(6, 7), c(10, 11))))
+d <- data.frame(time = c(1, 2, 3, 4),
+                cases = I(list(c(0, 1), c(4, 3), c(6, 7), c(10, 11))))
+d
 ```
