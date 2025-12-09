@@ -232,7 +232,7 @@ sir <- odin({
   beta <- parameter(0.2)
   gamma <- parameter(0.1)
   
-  print("S + I: {S + I}, R: {R}, when = S + I + R > N && time > 5")
+  print("S + I: {S + I}, R: {R}", when = S + I + R > N && time > 5)
 })
 
 sys <- dust_system_create(sir)
