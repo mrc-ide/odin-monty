@@ -3,126 +3,298 @@
 ```{r}
 #| include: false
 source("common.R")
+set.seed(1)
 ```
 
-Odin provides some special functionality to help you debug your model:-
-* You can `print()` the values of variables in your model as it runs
-* You can use the `browser()` function in the same way as you would in R.
-* You can examine the code generated from your model with `odin_show()`.
+There is functionality in `odin2` to help with debugging, including
 
+* Compilation error messages to help you when compilation of your model code has failed
+* Debugging tools to help you when your model code successfully compiles but you believe it contains bugs
 
 ```{r}
 library(odin2)
 library(dust2)
 ```
 
-## Using `print()`
+## Compilation error messages
 
-In the code below, we can print out the value of `x` as we go.
+Compilation error messages in `odin2` are designed to help you identify why compilation of your model code with `odin()` has failed.
 
+Let's revisit the simple stochastic SIR model from @sec-stochastic-sir:
 
 ```{r}
-gen <- odin({
-  update(x) <- Normal(x, 1)
-  initial(x) <- 1
-  print("x: {x}")
+sir <- odin({
+  update(S) <- S - n_SI
+  update(I) <- I + n_SI - n_IR
+  update(R) <- R + n_IR
+  update(incidence) <- incidence + n_SI
+
+  p_SI <- 1 - exp(-beta * I / N * dt)
+  p_IR <- 1 - exp(-gamma * dt)
+  n_SI <- Binomial(S, p_SI)
+  n_IR <- Binomial(I, p_IR)
+
+  initial(S) <- N - I0
+  initial(I) <- I0
+  initial(R) <- 0
+  initial(incidence, zero_every = 1) <- 0
+
+  N <- parameter(1000)
+  I0 <- parameter(10)
+  beta <- parameter(0.2)
+  gamma <- parameter(0.1)
 })
-sys <- dust_system_create(gen())
+
+sir
+```
+
+We can see that this model successfully compiled.  Now let's suppose we omitted the `initial(R) <- 0` expression:
+
+```{r}
+#| error: true
+
+sir <- odin({
+  update(S) <- S - n_SI
+  update(I) <- I + n_SI - n_IR
+  update(R) <- R + n_IR
+  update(incidence) <- incidence + n_SI
+
+  p_SI <- 1 - exp(-beta * I / N * dt)
+  p_IR <- 1 - exp(-gamma * dt)
+  n_SI <- Binomial(S, p_SI)
+  n_IR <- Binomial(I, p_IR)
+
+  initial(S) <- N - I0
+  initial(I) <- I0
+  initial(incidence, zero_every = 1) <- 0
+
+  N <- parameter(1000)
+  I0 <- parameter(10)
+  beta <- parameter(0.2)
+  gamma <- parameter(0.1)
+})
+```
+
+Here the error message is telling us that we need an `initial()` call for `R` as we have an `update()` call for it.  All error messages include a prompt to run `odin2::odin_error_explain("Exxxx")` for more information where `Exxxx` will be the error code for the specific type of error (the full list of error codes can be found [here](https://mrc-ide.github.io/odin2/articles/errors.html)).  Running in this case gives
+
+```{r}
+odin_error_explain("E2003")
+```
+
+## Debugging tools
+
+Revisiting the the simple stochastic SIR model from @sec-stochastic-sir again, let's suppose that instead of
+
+```r
+update(I) <- I + n_SI - n_IR
+```
+
+we write
+
+```r
+update(I) <- I + n_SI
+```
+
+In this case we have a model that successfully compiles but it contains a bug
+
+```{r}
+sir <- odin({
+  update(S) <- S - n_SI
+  update(I) <- I + n_SI
+  update(R) <- R + n_IR
+  update(incidence) <- incidence + n_SI
+
+  p_SI <- 1 - exp(-beta * I / N * dt)
+  p_IR <- 1 - exp(-gamma * dt)
+  n_SI <- Binomial(S, p_SI)
+  n_IR <- Binomial(I, p_IR)
+
+  initial(S) <- N - I0
+  initial(I) <- I0
+  initial(R) <- 0
+  initial(incidence, zero_every = 1) <- 0
+
+  N <- parameter(1000)
+  I0 <- parameter(10)
+  beta <- parameter(0.2)
+  gamma <- parameter(0.1)
+})
+
+sir
+```
+
+If we were to create a dust system from this and run it
+
+```{r}
+sys <- dust_system_create(sir)
+dust_system_set_state_initial(sys)
+t <- 50
+res <- dust_system_simulate(sys, t)
+dust_unpack_state(sys, res)
+```
+
+then it is clear that there is a bug in our model as the number of individuals in the `R` compartment has exceeded `N`.
+
+When you believe there is a bug in a successfully compiled model, you can use special functionality provided by `odin2`to help you debug:
+
+* You can `print()` the values of variables in your model as it runs
+* You can use the `browser()` function in the same way as you would in R.
+* You can examine the code generated from your model with `odin_show()`.
+
+### Using `print()`
+
+In the code below, we can print out the value of `R` as we go.
+
+```{r}
+sir <- odin({
+  update(S) <- S - n_SI
+  update(I) <- I + n_SI
+  update(R) <- R + n_IR
+  update(incidence) <- incidence + n_SI
+
+  p_SI <- 1 - exp(-beta * I / N * dt)
+  p_IR <- 1 - exp(-gamma * dt)
+  n_SI <- Binomial(S, p_SI)
+  n_IR <- Binomial(I, p_IR)
+
+  initial(S) <- N - I0
+  initial(I) <- I0
+  initial(R) <- 0
+  initial(incidence, zero_every = 1) <- 0
+
+  N <- parameter(1000)
+  I0 <- parameter(10)
+  beta <- parameter(0.2)
+  gamma <- parameter(0.1)
+  
+  print("R: {R}")
+})
+
+sys <- dust_system_create(sir)
+dust_system_set_state_initial(sys)
 dust_system_run_to_time(sys, 10)
 ```
 
-Here we see the value of x for all of our 10 time points. If we want to be
-more selective, we can choose when we would like to print using the `when`
-argument to `print()` like this:
-
+Here we see the value of `R` for all of our 10 time points.  We can also print expressions e.g. `S + I + R`.  We can also be more selective, choosing when we would like to print using the `when` argument to `print()` like this:
 
 ```{r}
-gen <- odin({
-  update(x) <- Normal(x, 1)
-  initial(x) <- 1
-  print("x above 1: {x}", when = x > 1)
+sir <- odin({
+  update(S) <- S - n_SI
+  update(I) <- I + n_SI
+  update(R) <- R + n_IR
+  update(incidence) <- incidence + n_SI
+
+  p_SI <- 1 - exp(-beta * I / N * dt)
+  p_IR <- 1 - exp(-gamma * dt)
+  n_SI <- Binomial(S, p_SI)
+  n_IR <- Binomial(I, p_IR)
+
+  initial(S) <- N - I0
+  initial(I) <- I0
+  initial(R) <- 0
+  initial(incidence, zero_every = 1) <- 0
+
+  N <- parameter(1000)
+  I0 <- parameter(10)
+  beta <- parameter(0.2)
+  gamma <- parameter(0.1)
+  
+  print("S + I + R > N: {S + I + R}", when = S + I + R > N)
 })
-sys <- dust_system_create(gen())
+
+sys <- dust_system_create(sir)
+dust_system_set_state_initial(sys)
 dust_system_run_to_time(sys, 10)
 ```
 
-The `when` function can take more complicated logical expressions, including
-brackets, and `||` and `&&` for `or` and `and` respectively. While at present
-we can only have one `print()` line within your model, you can print multiple
-variables togther like this:
+The `when` function can take more complicated logical expressions, including brackets, and `||` and `&&` for `or` and `and` respectively.  While at present we can only have one `print()` line within your model, you can print multiple
+variables together like this:
 
 ```{r}
-gen <- odin({
-  update(x) <- Normal(x, 1)
-  initial(x) <- 1
-  update(y) <- Normal(x, 2)
-  initial(y) <- 1
-  print("x above 1: {x}, y = {y}", when = x > 1)
+sir <- odin({
+  update(S) <- S - n_SI
+  update(I) <- I + n_SI
+  update(R) <- R + n_IR
+  update(incidence) <- incidence + n_SI
+
+  p_SI <- 1 - exp(-beta * I / N * dt)
+  p_IR <- 1 - exp(-gamma * dt)
+  n_SI <- Binomial(S, p_SI)
+  n_IR <- Binomial(I, p_IR)
+
+  initial(S) <- N - I0
+  initial(I) <- I0
+  initial(R) <- 0
+  initial(incidence, zero_every = 1) <- 0
+
+  N <- parameter(1000)
+  I0 <- parameter(10)
+  beta <- parameter(0.2)
+  gamma <- parameter(0.1)
+  
+  print("S + I: {S + I}, R: {R}, when = S + I + R > N && time > 5")
 })
-sys <- dust_system_create(gen())
+
+sys <- dust_system_create(sir)
+dust_system_set_state_initial(sys)
 dust_system_run_to_time(sys, 10)
 ```
 
-### Formatting
+#### Formatting
 
-We use [glue](https://glue.tidyverse.org/) to drive the formatting, which may
-feel familiar to you already. Above, we surrounded variables with 
-`{curly braces}` to print their value instead of their name, where all other
-text was printed verbatim. 
+We use [glue](https://glue.tidyverse.org/) to drive the formatting, which may feel familiar to you already.  Above, we surrounded variables with `{curly braces}` to print their value instead of their name, where all other text was printed verbatim.
 
 You can control the precision of numbers being printed in the form below:
 
 ```{r}
-gen <- odin({
+m <- odin({
   update(x) <- Normal(x, 1)
   initial(x) <- 1
   print("x: {x; .2f}")
 })
-sys <- dust_system_create(gen())
+sys <- dust_system_create(m)
 dust_system_run_to_time(sys, 10)
 ```
 
-Here, the `.2f` gives us two decimal places; you may recognise that format 
-if you've used `sprintf()`. By default, variables are printed as floats (`f`),
-and you may sometimes find `g` useful for particularly small or large values.
+Here, the `.2f` gives us two decimal places; you may recognise that format  if you've used `sprintf()`.  By default, variables are printed as floats (`f`), and you may sometimes find `g` useful for particularly small or large values.
 
-Note that this is an experimental; see the debugging vignettes for current
-limitations. 
+Note that this is an experimental; see the [debugging vignette](https://mrc-ide.github.io/odin2/articles/debugging.html) for current limitations.
 
 
-## Using the interactive debugger, `browser()`
+### Using the interactive debugger, `browser()`
 
-You can use the `browser()` function to ask odin to drop you into a debugger
-which will appear very similar to doing so in R, but has a couple of arguments
-that are specific to odin. 
+You can use the `browser()` function to ask odin to drop you into a debugger which will appear very similar to doing so in R, but has a couple of arguments that are specific to odin.
 
 * `phase`: the system phase where the debugger should be inserted; this will typically be `update` or `deriv`.
 * `when`: optionally a condition that should be satisfied for the debugger to be triggered. You will typically want to set this or it will be called at every step.
 
-For example, suppose we are interested in what happens at the end of an SIR
-model run, when in the SIR model from `vignette("odin")` we might write:
+For example, for our SIR model with a bug we might write:
 
 ```{r}
-gen <- odin({
+sir <- odin({
+  update(S) <- S - n_SI
+  update(I) <- I + n_SI
+  update(R) <- R + n_IR
+  update(incidence) <- incidence + n_SI
+
+  p_SI <- 1 - exp(-beta * I / N * dt)
   p_IR <- 1 - exp(-gamma * dt)
-  N <- parameter(1000)
-  p_SI <- 1 - exp(-(beta * I / N * dt))
   n_SI <- Binomial(S, p_SI)
   n_IR <- Binomial(I, p_IR)
-  update(S) <- S - n_SI
-  update(I) <- I + n_SI - n_IR
-  update(R) <- R + n_IR
+
   initial(S) <- N - I0
   initial(I) <- I0
   initial(R) <- 0
+  initial(incidence, zero_every = 1) <- 0
+
+  N <- parameter(1000)
+  I0 <- parameter(10)
   beta <- parameter(0.2)
   gamma <- parameter(0.1)
-  I0 <- parameter(10)
-
-  browser(phase = "update", when = I < 10 && time > 20)
+  
+  browser(phase = "update", when = S + I + R > N)
 })
 ```
-
 The location of the call to `browser()` does not matter; it will be activated at
 the **end** of the phase.  The condition here might be something we cook up to
 look at what happens as the number of individuals in the infected class starts
@@ -131,26 +303,25 @@ tailing off at the end of the simulation.
 We create and initialise the system as normal:
 
 ```{r}
-sys <- dust_system_create(gen())
+sys <- dust_system_create(sir)
 dust_system_set_state_initial(sys)
 ```
 
 However, when you run the system you will pause part way through evaluation:
 
 ```r
-dust_system_run_to_time(sys, 200)
-ℹ dust browser ('update'; time = 117): see `?dust_browser()` for help
+dust_system_run_to_time(sys, 50)
+ℹ dust debug ('update'; time = 2): see dust_browser for help
 Called from: eval(substitute(expr), data, enclos = parent.frame())
-Browse[1]>
+Browse[1]> 
 ```
 
-Now you can explore things that odin and dust know about, in a similar way
-that you would in R.
+Now you can explore things that odin and dust know about, in a similar way that you would in R.
 
 ```r
 Browse[1]> ls()
- [1] "beta"  "gamma" "I"     "I0"    "N"     "n_IR"  "n_SI"  "p_IR"  "p_SI"
-[10] "R"     "S"     "time"
+ [1] "beta"      "gamma"     "I"         "I0"        "incidence" "N"         "n_IR"      "n_SI"      "p_IR"     
+[10] "p_SI"      "R"         "S"         "time"  
 ```
 
 and you can inspect values or perform calculations:
@@ -159,35 +330,28 @@ and you can inspect values or perform calculations:
 Browse[1]> N
 [1] 1000
 Browse[1]> I
-[1] 9
+[1] 18
 Browse[1]> S
-[1] 178
-Browse[1]> I / S
-[1] 0.0505618
+[1] 982
+Browse[1]> I / N
+[1] 0.018
 ```
 
-You can change values for testing just within this browser environment, but
-note that the changes will *not* be injected back into your model.
+You can change values for testing just within this browser environment, but note that the changes will *not* be injected back into your model.
 
-If you press `c` or `n`, then odin the system will proceed to the next step and
-drop you back into the debugger, when it reaches the browser command again,
-just like in R. So if your model had a variable called `n`, you would have to
-type `message(n)`, or use `sprintf` to see its value. You can exit with `Q
-which will return you to the console with an error.  
+If you press `c` or `n`, then odin the system will proceed to the next step and drop you back into the debugger, when it reaches the browser command again, just like in R.  So if your model had a variable called `n`, you would have to type `message(n)`, or use `sprintf` to see its value.  You can exit with `Q` which will return you to the console with an error.
 
-To cancel all future browser calls and run to the end of your simulation:- 
+To cancel all future browser calls and run to the end of your simulation: 
 
 ```r
 dust_browser_continue()
 ```
 
-and then the next time you press `c` to continue, your simulation will run
-to completion. 
+and then the next time you press `c` to continue, your simulation will run to completion.
 
-## Showing the generated code
+### Showing the generated code
 
-Sometimes just looking at the generated code can be helpful.  You can do this
-with `odin_show`:
+Sometimes just looking at the generated code can be helpful.  You can do this with [`odin_show`](https://mrc-ide.github.io/odin2/reference/odin_show.html):
 
 ```{r}
 odin_show({
@@ -196,10 +360,8 @@ odin_show({
 })
 ```
 
-Above may seem quite a bit of code, but if you look for the `initial` function
-and the `update` function at the bottom you will see the code representing your
-two model lines. To simplify things a little, we can show just a particular
-method (usually `update` or `rhs`), with the `what` argument, for example:
+Above may seem quite a bit of code (for only two lines of odin code!), but if you look for the `initial` function
+and the `update` function at the bottom you will see the code representing your two model lines.  To simplify things a little, we can show just a particular method (usually `update` or `rhs`), with the `what` argument, for example:
 
 ```{r}
 odin_show({
