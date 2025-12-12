@@ -75,7 +75,7 @@ sir <- odin({
 })
 ```
 
-Here the error message is telling us that we need an `initial()` call for `R` as we have an `update()` call for it.  All error messages include a prompt to run `odin2::odin_error_explain("Exxxx")` for more information where `Exxxx` will be the error code for the specific type of error (the full list of error codes can be found [here](https://mrc-ide.github.io/odin2/articles/errors.html)).  Running in this case gives
+Here the error message is telling us that we need an `initial()` call for `R` as we have an `update()` call for it.  All error messages include a prompt to run `odin2::odin_error_explain("Exxxx")` for more information where `Exxxx` will be the error code for the specific type of error (the full list of error codes can be found [here](https://mrc-ide.github.io/odin2/articles/errors.html)).  In RStudio, you can click on the link in the console to show information about the error message; alternatively, running in this case gives:
 
 ```{r}
 odin_error_explain("E2003")
@@ -339,7 +339,7 @@ Browse[1]> I / N
 
 You can change values for testing just within this browser environment, but note that the changes will *not* be injected back into your model.
 
-If you press `c` or `n`, then odin the system will proceed to the next step and drop you back into the debugger, when it reaches the browser command again, just like in R.  So if your model had a variable called `n`, you would have to type `message(n)`, or use `sprintf` to see its value.  You can exit with `Q` which will return you to the console with an error.
+If you press `c` or `n`, then the system will proceed to the next step and drop you back into the debugger, when it reaches the browser command again, just like in R.  So if your model had a variable called `n`, you would have to type `message(n)`, or use `sprintf` to see its value.  You can exit with `Q` which will return you to the console with an error.
 
 To cancel all future browser calls and run to the end of your simulation: 
 
