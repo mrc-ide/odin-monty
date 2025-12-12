@@ -10,7 +10,7 @@ You will also need very recent versions of everything, the easiest way is probab
 
 ```
 install.packages(
-  c("monty", "dust2", "odin2"),
+  c("monty", "dust2", "odin2", "posterior", "bayesplot", "quarto"),
   repos = c("https://mrc-ide.r-universe.dev", "https://cloud.r-project.org"))
 ```
 
