@@ -2,6 +2,7 @@ project:
   type: website
   output-dir: _slides
   render:
+    - building-odin-models.qmd
     - fitting.qmd
 
 format: revealjs

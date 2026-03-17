@@ -5,3 +5,5 @@ _slides/
 _dust/
 *_files/
 *_cache/
+
+**/*.quarto_ipynb

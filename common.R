@@ -26,3 +26,9 @@ r_output <- function(x) {
 plain_output <- function(x) {
   lang_output(x, "md") # not great, but at least renders nicely
 }
+
+model_compile_code <- function(mod_nm, mod_code) {
+  c(paste0(mod_nm, " <- odin({"),
+    paste0("  ", readLines(mod_code)),
+    "})")
+}
