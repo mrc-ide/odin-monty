@@ -13,6 +13,7 @@ Originally, we designed odin around describing and solving systems of differenti
 
 ## Slide decks
 
+* [Building a model with odin](slides/building-odin-models.html)
 * [Fitting odin models with monty](slides/fitting.html)
 
 ## Installation

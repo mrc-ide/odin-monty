@@ -1,0 +1,391 @@
+---
+title: "Building a model with odin"
+format:
+  revealjs:
+    preview-links: auto
+    footer: "[mrc-ide/odin-monty](.)"
+execute:
+  echo: true
+  message: true
+  output: true
+  warning: true
+---
+
+```{r}
+#| include: false
+#| cache: false
+set.seed(1)
+source("common.R")
+options(monty.progress = FALSE)
+```
+
+# `odin`
+
+- A "domain specific language"
+- Originally designed for ordinary differential equations
+- Some very basic discrete time/stochastic support
+
+::: {.notes}
+Odin is a DSL - a domain specific language. It exists to describe a specific problem efficiently. We developed it to describe ordinary differential equations which evolve a system in continuous time. This is a great target for DSL because it's just a collection of mathematical truths - rates exist independent of any idea of order of operation.
+:::
+
+# `odin`
+
+```{r}
+library(odin2)
+library(dust2)
+library(monty)
+```
+
+## ODE models
+
+:::: {.columns}
+
+::: {.column width="65%"}
+
+```{r}
+#| echo: false
+#| results: "asis"
+r_output(readLines("models/sir-basic-ode.R"))
+```
+
+:::
+
+::: {.column width="35%"}
+\begin{gather*}
+\frac{dS}{dt} = -\beta S \frac{I}{N}\\
+\frac{dI}{dt} = \beta S \frac{I}{N} - \gamma I\\
+\frac{dR}{dt} = \gamma I
+\end{gather*}
+:::
+
+::::
+
+. . .
+
+Things to note:
+
+* out of order definition
+* every variable has `initial` and `deriv` pair
+
+
+## Compiling the model with `odin2`
+
+```{r}
+#| echo: false
+#| results: "asis"
+r_output(model_compile_code("sir_ode", "models/sir-basic-ode.R"))
+```
+
+```{r}
+#| include: false
+sir_ode <- odin("models/sir-basic-ode.R")
+```
+
+::: {.notes}
+The `odin` call generates C code, compiles it with `gcc` or `clang` to create a shared library, and loads that plus support code into R to create a generator object `gen`
+:::
+
+## Running the model with `dust2`
+
+```{r}
+sys <- dust_system_create(sir_ode, pars = list())
+dust_system_set_state_initial(sys)
+t <- seq(0, 100)
+y <- dust_system_simulate(sys, t)
+```
+
+The output has dimensions number of states x number of timepoints
+```{r}
+dim(y)
+```
+
+## Unpacking states
+
+Output can be nicely unpacked into the different states using `dust_unpack_state`
+
+```{r}
+y <- dust_unpack_state(sys, y)
+
+plot(t, y$I, type = "l", xlab = "Time", ylab = "I")
+```
+
+::: {.notes}
+From the generator object `gen` we can construct a model (`mod`), here using no parameters -- just using default parameters as defined above. We run over a set of times and output the value of the system at a number of intermediate times.
+:::
+
+
+## Stochastic models
+
+:::: {.columns}
+
+::: {.column width="55%"}
+
+```{r}
+#| echo: false
+#| results: "asis"
+r_output(readLines("models/sir-basic.R"))
+```
+
+:::
+
+::: {.column width="45%"}
+\begin{gather*}
+S(t + \Delta t) = S(t) - n_{SI}\\
+I(t + \Delta t) = I(t) + n_{SI} - n_{IR}\\
+R(t + \Delta t) = R(t) + n_{IR}
+\end{gather*}
+
+:::
+
+::::
+
+. . .
+
+* `dt` is a special parameter
+* every variable has `initial` and `update` pair
+
+
+## ...compared with ODE models
+
+:::: {.columns}
+
+::: {.column style="font-size: 75%"}
+```{r}
+#| echo: false
+#| results: "asis"
+r_output(readLines("models/sir-basic.R"))
+```
+:::
+
+::: {.column style="font-size: 60%"}
+```{r}
+#| echo: false
+#| results: "asis"
+r_output(readLines("models/sir-basic-ode.R"))
+```
+
+:::
+
+::::
+
+
+## Compiling with `odin2`
+
+```{r}
+#| echo: false
+#| results: "asis"
+r_output(model_compile_code("sir", "models/sir-basic.R"))
+```
+
+```{r}
+#| include: false
+sir <- odin("models/sir-basic.R")
+```
+
+
+## Running a single simulation
+
+
+```{r}
+sys <- dust_system_create(sir, pars = list(), dt = 0.25)
+dust_system_set_state_initial(sys)
+t <- seq(0, 100)
+y <- dust_system_simulate(sys, t)
+y <- dust_unpack_state(sys, y)
+
+plot(t, y$I, type = "l", xlab = "Time", ylab = "Infected population")
+```
+
+
+## Running multiple simulations
+
+```{r}
+sys <- dust_system_create(sir, pars = list(), n_particles = 50,
+                                 dt = 0.25)
+dust_system_set_state_initial(sys)
+t <- seq(0, 100)
+y <- dust_system_simulate(sys, t)
+y <- dust_unpack_state(sys, y)
+matplot(t, t(y$I), type = "l", lty = 1, col = "#00000044",
+        xlab = "Time", ylab = "Infected population")
+```
+
+
+## Calculating incidence with `zero_every`
+
+```{r}
+#| echo: false
+#| results: "asis"
+r_output(model_compile_code("sir", "models/sir-incidence.R"))
+```
+
+```{r}
+#| include: false
+sir <- odin("models/sir-incidence.R")
+```
+
+
+## Incidence accumulates then resets
+
+```{r}
+sys <- dust_system_create(sir, pars = list(), dt = 1 / 128)
+dust_system_set_state_initial(sys)
+t <- seq(0, 20, by = 1 / 128)
+y <- dust_system_simulate(sys, t)
+y <- dust_unpack_state(sys, y)
+
+plot(t[t %% 1 == 0], y$incidence[t %% 1 == 0], type = "o", pch = 19,
+     ylab = "Infection incidence", xlab = "Time")
+lines(t, y$incidence, col = "red")
+```
+
+
+## Time-varying inputs: using `time`
+
+```{r}
+#| echo: false
+#| results: "asis"
+r_output(model_compile_code("sir", "models/sir-time.R"))
+```
+
+```{r}
+#| include: false
+sir <- odin("models/sir-time.R")
+```
+
+
+## Time-varying inputs: using `time`
+
+```{r}
+pars <- list(seed_time = 10, seed_size = 15)
+sys <- dust_system_create(sir, pars = pars, dt = 0.25)
+dust_system_set_state_initial(sys)
+t <- seq(0, 100)
+y <- dust_system_simulate(sys, t)
+y <- dust_unpack_state(sys, y)
+
+plot(t, y$I, type = "l", xlab = "Time", ylab = "Infected population")
+```
+
+
+## Time-varying inputs: using `interpolate`
+
+The `interpolate` function in odin can be used for time-varying parameters, with specification of
+
+- the times of changepoints
+- the values at those changepoints
+- the type of interpolation: linear, constant or spline
+
+## Time-varying inputs: using `interpolate`
+
+```{r}
+#| echo: false
+#| results: "asis"
+r_output(model_compile_code("sir", "models/sir-interpolate-constant.R"))
+```
+
+```{r}
+#| include: false
+sir <- odin("models/sir-interpolate-constant.R")
+```
+
+
+## Time-varying inputs: using `interpolate`
+
+```{r}
+pars <- list(beta_time = c(0, 30), beta_value = c(0.2, 1))
+sys <- dust_system_create(sir, pars = pars, dt = 0.25)
+dust_system_set_state_initial(sys)
+t <- seq(0, 100)
+y <- dust_system_simulate(sys, t)
+y <- dust_unpack_state(sys, y)
+
+plot(t, y$I, type = "l", xlab = "Time", ylab = "Infected population")
+abline(v = 30, lty = 3)
+```
+
+
+## Using arrays
+
+```{r}
+#| echo: false
+#| results: "asis"
+r_output(model_compile_code("sir_age", "models/sir-age.R"))
+```
+
+```{r}
+#| include: false
+sir_age <- odin("models/sir-age.R")
+```
+
+
+## Using arrays
+
+```{r}
+pars <- list(S0 = c(990, 1000),
+             I0 = c(10, 0),
+             m = matrix(c(1.8, 0.4, 0.4, 1.2) / 2000, 2, 2),
+             beta = 0.2,
+             gamma = 0.1,
+             n_age = 2)
+```
+
+Remember: `m[i, j]` is the mean number of contacts per time unit for an individual in group `i` has with an individual in group `j`
+
+
+
+## Using arrays
+
+```{r}
+sys <- dust_system_create(sir_age, pars = pars, dt = 0.25)
+dust_system_set_state_initial(sys)
+t <- seq(0, 100)
+y <- dust_system_simulate(sys, t)
+y <- dust_unpack_state(sys, y)
+
+matplot(t, t(y$I), type = "l", lty = 1, col = c("red", "blue"),
+        xlab = "Time", ylab = "Infected population")
+legend("topright", c("children", "adults"), col = c("red", "blue"), lty = 1)
+```
+
+
+## Key features of arrays
+
+- All arrays (whether state variable or parameter) need a `dim` equation
+- No use of `i`, `j` etc on LHS - indexing on the LHS is implicit
+- Support for up to 8 dimensions, with index variables `i`, `j`, `k`, `l`, `i5`, `i6`, `i7`, `i8`
+- Functions for reducing arrays such as `sum`, `prod`, `min`, `max` - can be applied over entire array or slices
+
+
+## Arrays: model with age and vaccine
+
+```{r}
+#| echo: false
+#| results: "asis"
+r_output(model_compile_code("sir_age_vax", "models/sir-age-vax.R"))
+```
+
+## Arrays: boundary conditions
+
+Multiline equations can be used to deal with boundary conditions, e.g. we have
+
+```r
+new_S[, 1] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, n_vax]
+new_S[, 2:n_vax] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, j - 1]
+```
+
+which we could also write as
+
+```r
+new_S[, ] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j]
+new_S[, 1] <- new_S[i, j] + n_S_vax[i, n_vax]
+new_S[, 2:n_vax] <- new_S[i, j] + n_S_vax[i, j - 1]
+```
+
+or another way of writing this would be to use if else
+
+```r
+new_S[, ] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] +
+    (if (j == 1) n_S_vax[i, n_vax] else n_S_vax[i, j - 1])
+```

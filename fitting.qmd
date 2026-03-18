@@ -37,14 +37,14 @@ library(monty)
 ```{r}
 #| echo: false
 #| results: "asis"
-r_output(readLines("models/sir-basic.R"))
+r_output(readLines("models/sir-incidence.R"))
 ```
 
 ## Example output {.smaller}
 
 ```{r}
 #| include: false
-sir <- odin("models/sir-basic.R")
+sir <- odin("models/sir-incidence.R")
 ```
 
 ```{r}
