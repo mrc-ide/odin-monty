@@ -20,6 +20,7 @@ options(monty.progress = FALSE)
 ```
 
 # `odin`
+[Getting started with `odin`](odin.qmd)
 
 - A "domain specific language"
 - Originally designed for ordinary differential equations
