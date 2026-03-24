@@ -20,10 +20,12 @@ options(monty.progress = FALSE)
 ```
 
 # `odin`
+[Getting started with `odin`](odin.qmd)
 
 - A "domain specific language"
 - Originally designed for ordinary differential equations
-- Some very basic discrete time/stochastic support
+- Subsequently extended to difference equations (enabling discrete-time stochastic models)
+- Refined into second version `odin2`
 
 ::: {.notes}
 Odin is a DSL - a domain specific language. It exists to describe a specific problem efficiently. We developed it to describe ordinary differential equations which evolve a system in continuous time. This is a great target for DSL because it's just a collection of mathematical truths - rates exist independent of any idea of order of operation.
@@ -37,17 +39,21 @@ library(dust2)
 library(monty)
 ```
 
-## ODE models
+## ODE models {.smaller}
 
 :::: {.columns}
 
 ::: {.column width="65%"}
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 #| echo: false
 #| results: "asis"
 r_output(readLines("models/sir-basic-ode.R"))
 ```
+
+:::
 
 :::
 
@@ -63,7 +69,7 @@ r_output(readLines("models/sir-basic-ode.R"))
 
 . . .
 
-Things to note:
+<br> Things to note:
 
 * out of order definition
 * every variable has `initial` and `deriv` pair
@@ -86,7 +92,9 @@ sir_ode <- odin("models/sir-basic-ode.R")
 The `odin` call generates C code, compiles it with `gcc` or `clang` to create a shared library, and loads that plus support code into R to create a generator object `gen`
 :::
 
-## Running the model with `dust2`
+## Running the model with `dust2` {.smaller}
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 sys <- dust_system_create(sir_ode, pars = list())
@@ -95,37 +103,68 @@ t <- seq(0, 100)
 y <- dust_system_simulate(sys, t)
 ```
 
-The output has dimensions number of states x number of timepoints
+:::
+
+<br> The output has dimensions number of states x number of timepoints
+
+::: {style="font-size: 1.5em"}
+
 ```{r}
 dim(y)
 ```
 
-## Unpacking states
+:::
+
+## Unpacking states {.smaller}
 
 Output can be nicely unpacked into the different states using `dust_unpack_state`
 
-```{r}
+::: {.panel-tabset}
+
+### Code
+
+::: {style="font-size: 1.5em"}
+
+```r
 y <- dust_unpack_state(sys, y)
 
 plot(t, y$I, type = "l", xlab = "Time", ylab = "I")
 ```
+:::
+
+### Plot
+
+```{r}
+#| echo: false
+y <- dust_unpack_state(sys, y)
+
+plot(t, y$I, type = "l", xlab = "Time", ylab = "I")
+```
+
+:::
+
+
 
 ::: {.notes}
 From the generator object `gen` we can construct a model (`mod`), here using no parameters -- just using default parameters as defined above. We run over a set of times and output the value of the system at a number of intermediate times.
 :::
 
 
-## Stochastic models
+## Stochastic models {.smaller}
 
 :::: {.columns}
 
 ::: {.column width="55%"}
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 #| echo: false
 #| results: "asis"
 r_output(readLines("models/sir-basic.R"))
 ```
+
+:::
 
 :::
 
@@ -184,10 +223,21 @@ sir <- odin("models/sir-basic.R")
 ```
 
 
-## Running a single simulation
+## `time` in `odin`
+
+* `time` is a special (continuous) variable in `odin` models
+* In discrete-time (stochastic) models, `time` is updated in increments of size `dt`
 
 
-```{r}
+## Running a single simulation {.smaller}
+
+::: {.panel-tabset}
+
+#### Code
+
+::: {style="font-size: 1.5em"}
+
+```r
 sys <- dust_system_create(sir, pars = list(), dt = 0.25)
 dust_system_set_state_initial(sys)
 t <- seq(0, 100)
@@ -197,10 +247,33 @@ y <- dust_unpack_state(sys, y)
 plot(t, y$I, type = "l", xlab = "Time", ylab = "Infected population")
 ```
 
+:::
 
-## Running multiple simulations
+
+#### Plot
 
 ```{r}
+#| echo: false
+sys <- dust_system_create(sir, pars = list(), dt = 0.25)
+dust_system_set_state_initial(sys)
+t <- seq(0, 100)
+y <- dust_system_simulate(sys, t)
+y <- dust_unpack_state(sys, y)
+
+plot(t, y$I, type = "l", xlab = "Time", ylab = "Infected population")
+```
+
+:::
+
+## Running multiple simulations {.smaller}
+
+::: {.panel-tabset}
+
+#### Code
+
+::: {style="font-size: 1.5em"}
+
+```r
 sys <- dust_system_create(sir, pars = list(), n_particles = 50,
                                  dt = 0.25)
 dust_system_set_state_initial(sys)
@@ -211,6 +284,23 @@ matplot(t, t(y$I), type = "l", lty = 1, col = "#00000044",
         xlab = "Time", ylab = "Infected population")
 ```
 
+:::
+
+#### Plot
+
+```{r}
+#| echo: false
+sys <- dust_system_create(sir, pars = list(), n_particles = 50,
+                                 dt = 0.25)
+dust_system_set_state_initial(sys)
+t <- seq(0, 100)
+y <- dust_system_simulate(sys, t)
+y <- dust_unpack_state(sys, y)
+matplot(t, t(y$I), type = "l", lty = 1, col = "#00000044",
+        xlab = "Time", ylab = "Infected population")
+```
+
+:::
 
 ## Calculating incidence with `zero_every`
 
@@ -226,9 +316,15 @@ sir <- odin("models/sir-incidence.R")
 ```
 
 
-## Incidence accumulates then resets
+## Incidence accumulates then resets {.smaller}
 
-```{r}
+::: {.panel-tabset}
+
+#### Code
+
+::: {style="font-size: 1.5em"}
+
+```r
 sys <- dust_system_create(sir, pars = list(), dt = 1 / 128)
 dust_system_set_state_initial(sys)
 t <- seq(0, 20, by = 1 / 128)
@@ -239,6 +335,25 @@ plot(t[t %% 1 == 0], y$incidence[t %% 1 == 0], type = "o", pch = 19,
      ylab = "Infection incidence", xlab = "Time")
 lines(t, y$incidence, col = "red")
 ```
+
+:::
+
+#### Plot
+
+```{r}
+#| echo: false
+sys <- dust_system_create(sir, pars = list(), dt = 1 / 128)
+dust_system_set_state_initial(sys)
+t <- seq(0, 20, by = 1 / 128)
+y <- dust_system_simulate(sys, t)
+y <- dust_unpack_state(sys, y)
+
+plot(t[t %% 1 == 0], y$incidence[t %% 1 == 0], type = "o", pch = 19,
+     ylab = "Infection incidence", xlab = "Time")
+lines(t, y$incidence, col = "red")
+```
+
+:::
 
 
 ## Time-varying inputs: using `time`
@@ -255,9 +370,15 @@ sir <- odin("models/sir-time.R")
 ```
 
 
-## Time-varying inputs: using `time`
+## Time-varying inputs: using `time` {.smaller}
 
-```{r}
+::: {.panel-tabset}
+
+#### Code
+
+::: {style="font-size: 1.5em"}
+
+```r
 pars <- list(seed_time = 10, seed_size = 15)
 sys <- dust_system_create(sir, pars = pars, dt = 0.25)
 dust_system_set_state_initial(sys)
@@ -267,6 +388,24 @@ y <- dust_unpack_state(sys, y)
 
 plot(t, y$I, type = "l", xlab = "Time", ylab = "Infected population")
 ```
+
+:::
+
+#### Plot
+
+```{r}
+#| echo: false
+pars <- list(seed_time = 10, seed_size = 15)
+sys <- dust_system_create(sir, pars = pars, dt = 0.25)
+dust_system_set_state_initial(sys)
+t <- seq(0, 100)
+y <- dust_system_simulate(sys, t)
+y <- dust_unpack_state(sys, y)
+
+plot(t, y$I, type = "l", xlab = "Time", ylab = "Infected population")
+```
+
+:::
 
 
 ## Time-varying inputs: using `interpolate`
@@ -291,9 +430,15 @@ sir <- odin("models/sir-interpolate-constant.R")
 ```
 
 
-## Time-varying inputs: using `interpolate`
+## Time-varying inputs: using `interpolate` {.smaller}
 
-```{r}
+::: {.panel-tabset}
+
+#### Code
+
+::: {style="font-size: 1.5em"}
+
+```r
 pars <- list(beta_time = c(0, 30), beta_value = c(0.2, 1))
 sys <- dust_system_create(sir, pars = pars, dt = 0.25)
 dust_system_set_state_initial(sys)
@@ -305,6 +450,24 @@ plot(t, y$I, type = "l", xlab = "Time", ylab = "Infected population")
 abline(v = 30, lty = 3)
 ```
 
+:::
+
+#### Plot
+
+```{r}
+#| echo: false
+pars <- list(beta_time = c(0, 30), beta_value = c(0.2, 1))
+sys <- dust_system_create(sir, pars = pars, dt = 0.25)
+dust_system_set_state_initial(sys)
+t <- seq(0, 100)
+y <- dust_system_simulate(sys, t)
+y <- dust_unpack_state(sys, y)
+
+plot(t, y$I, type = "l", xlab = "Time", ylab = "Infected population")
+abline(v = 30, lty = 3)
+```
+
+:::
 
 ## Using arrays
 
@@ -320,7 +483,9 @@ sir_age <- odin("models/sir-age.R")
 ```
 
 
-## Using arrays
+## Using arrays {.smaller}
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 pars <- list(S0 = c(990, 1000),
@@ -331,7 +496,9 @@ pars <- list(S0 = c(990, 1000),
              n_age = 2)
 ```
 
-Remember: `m[i, j]` is the mean number of contacts per time unit for an individual in group `i` has with an individual in group `j`
+:::
+
+<br> Here `m[i, j]` is the mean number of contacts per time unit for an individual in group `i` has with an individual in group `j`
 
 
 
@@ -366,16 +533,22 @@ legend("topright", c("children", "adults"), col = c("red", "blue"), lty = 1)
 r_output(model_compile_code("sir_age_vax", "models/sir-age-vax.R"))
 ```
 
-## Arrays: boundary conditions
+## Arrays: boundary conditions {.smaller}
 
 Multiline equations can be used to deal with boundary conditions, e.g. we have
+
+::: {style="font-size: 1.5em"}
 
 ```r
 new_S[, 1] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, n_vax]
 new_S[, 2:n_vax] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, j - 1]
 ```
 
+:::
+
 which we could also write as
+
+::: {style="font-size: 1.5em"}
 
 ```r
 new_S[, ] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j]
@@ -383,31 +556,49 @@ new_S[, 1] <- new_S[i, j] + n_S_vax[i, n_vax]
 new_S[, 2:n_vax] <- new_S[i, j] + n_S_vax[i, j - 1]
 ```
 
-or another way of writing this would be to use if else
+:::
+
+or another way of writing this would be to use `if ... else`
+
+::: {style="font-size: 1.5em"}
 
 ```r
 new_S[, ] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] +
     (if (j == 1) n_S_vax[i, n_vax] else n_S_vax[i, j - 1])
 ```
 
-## Dimensions
+:::
+
+
+## Dimensions {.smaller}
 
 Dimensions can be hard-coded:
+
+::: {style="font-size: 1.5em"}
 
 ```r
 dim(S) <- 2
 ```
 
+:::
+
 or can be soft-coded via parameters:
+
+::: {style="font-size: 1.5em"}
 
 ```r
 dim(S) <- n_age
 n_age <- parameter()
 ```
 
-## Dimensions
+:::
 
-Array parameters, can have dimensions explicitly declared
+
+## Dimensions {.smaller}
+
+Array parameters can have dimensions explicitly declared
+
+::: {style="font-size: 1.5em"}
 
 ```r
 m <- parameter()
@@ -415,30 +606,47 @@ dim(m) <- c(n_age, n_age)
 n_age <- parameter()
 ```
 
+:::
+
 or detected when the parameters are passed into the system - but a `dim` equation is needed where you must explicitly state the rank:
+
+::: {style="font-size: 1.5em"}
 
 ```r
 dim(m) <- parameter(rank = 2)
 ```
 
-## Dimensions
+:::
+
+
+## Dimensions {.smaller}
 
 Dimensions of one array can be declared as the same as the dimensions of another:
+
+::: {style="font-size: 1.5em"}
 
 ```r
 dim(m) <- c(n_age, n_age)
 dim(s_ij) <- dim(m)
 ```
 
+:::
+
 or dimensions of arrays that have the same dimensions can be declared collectively:
+
+::: {style="font-size: 1.5em"}
 
 ```r
 dim(m, s_ij) <- c(n_age, n_age)
 ```
 
-## Compilation error messages
+:::
+
+## Compilation error messages {.smaller}
 
 Let's revisit the stochastic SIR model, which compiles successfully:
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 sir <- odin({
@@ -466,8 +674,12 @@ sir <- odin({
 sir
 ```
 
-## Compilation error messages
+:::
+
+## Compilation error messages {.smaller}
 Now let's remove the `initial(R)` equation
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 #| error: true
@@ -494,18 +706,27 @@ sir <- odin({
 })
 ```
 
-## Compilation error messages
+:::
+
+
+## Compilation error messages {.smaller}
 
 We can run `odin_error_explain()` with the corresponding error code as suggested (clickable in RStudio) for more information
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 odin_error_explain("E2003")
 ```
 
+:::
 
-## Debugging
+
+## Debugging {.smaller}
 
 Here's a model that compiles but has a bug
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 sir <- odin({
@@ -533,9 +754,13 @@ sir <- odin({
 sir
 ```
 
-## Debugging
+:::
+
+## Debugging {.smaller}
 
 Let's run it
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 sys <- dust_system_create(sir)
@@ -545,7 +770,10 @@ res <- dust_system_simulate(sys, t)
 dust_unpack_state(sys, res)
 ```
 
+:::
+
 The number of individuals in the `R` compartment has exceeded `N`!
+
 
 ## Debugging
 
@@ -556,9 +784,12 @@ So there are tools to help you:
 * You can `print()` the values of variables in your model as it runs
 * You can use the `browser()` function in the same way as you would in R.
 
-## Debugging: using `print()`
+
+## Debugging: using `print()` {.smaller}
 
 With `print()` we can tell it what to print and (optionally) conditions for when to print.
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 sir <- odin({
@@ -586,9 +817,14 @@ sir <- odin({
 })
 ```
 
-## Debugging: using `print()`
+:::
+
+
+## Debugging: using `print()` {.smaller}
 
 Then when we run it prints what we wanted with the times in square brackets:
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 sys <- dust_system_create(sir)
@@ -596,12 +832,16 @@ dust_system_set_state_initial(sys)
 dust_system_run_to_time(sys, 10)
 ```
 
-This may help us spot that we're not removing individuals from `I` when they move to `R`!
+:::
+
+<br> This may help us spot that we're not removing individuals from `I` when they move to `R`!
 
 
-## Debugging: using `browser()`
+## Debugging: using `browser()` {.smaller}
 
 With the `browser()` we need to declare the phase for inserting (`deriv` for ODE models, `update` for stochastic models) and optionally `when` to trigger it.
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 sir <- odin({
@@ -629,10 +869,14 @@ sir <- odin({
 })
 ```
 
+:::
 
-## Debugging: using `browser()`
+
+## Debugging: using `browser()` {.smaller}
 
 When we try to run it will pause during evaluation:
+
+::: {style="font-size: 1.5em"}
 
 ```r
 sys <- dust_system_create(sir)
@@ -643,7 +887,11 @@ Called from: eval(substitute(expr), data, enclos = parent.frame())
 Browse[1]> 
 ```
 
-You can list all the variables
+:::
+
+<br> You can list all the variables
+
+::: {style="font-size: 1.5em"}
 
 ```r
 Browse[1]> ls()
@@ -651,9 +899,13 @@ Browse[1]> ls()
 [10] "p_SI"      "R"         "S"         "time"  
 ```
 
-## Debugging: using `browser()`
+:::
+
+## Debugging: using `browser()` {.smaller}
 
 You can inspect values and perform calculations
+
+::: {style="font-size: 1.5em"}
 
 ```r
 Browse[1]> N
@@ -665,6 +917,8 @@ Browse[1]> S
 Browse[1]> I / N
 [1] 0.018
 ```
+
+:::
 
 ## Debugging: using `browser()`
 
