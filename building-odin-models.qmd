@@ -502,9 +502,15 @@ pars <- list(S0 = c(990, 1000),
 
 
 
-## Using arrays
+## Using arrays {.smaller}
 
-```{r}
+::: {.panel-tabset}
+
+#### Code
+
+::: {style="font-size: 1.5em"}
+
+```r
 sys <- dust_system_create(sir_age, pars = pars, dt = 0.25)
 dust_system_set_state_initial(sys)
 t <- seq(0, 100)
@@ -515,6 +521,25 @@ matplot(t, t(y$I), type = "l", lty = 1, col = c("red", "blue"),
         xlab = "Time", ylab = "Infected population")
 legend("topright", c("children", "adults"), col = c("red", "blue"), lty = 1)
 ```
+
+:::
+
+#### Plot
+
+```{r}
+#| echo: false
+sys <- dust_system_create(sir_age, pars = pars, dt = 0.25)
+dust_system_set_state_initial(sys)
+t <- seq(0, 100)
+y <- dust_system_simulate(sys, t)
+y <- dust_unpack_state(sys, y)
+
+matplot(t, t(y$I), type = "l", lty = 1, col = c("red", "blue"),
+        xlab = "Time", ylab = "Infected population")
+legend("topright", c("children", "adults"), col = c("red", "blue"), lty = 1)
+```
+
+:::
 
 
 ## Key features of arrays
