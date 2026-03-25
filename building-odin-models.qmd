@@ -3,7 +3,6 @@ title: "Building a model with odin"
 format:
   revealjs:
     preview-links: auto
-    footer: "[mrc-ide/odin-monty](.)"
 execute:
   echo: true
   message: true
@@ -20,7 +19,6 @@ options(monty.progress = FALSE)
 ```
 
 # `odin`
-[Getting started with `odin`](odin.qmd)
 
 - A "domain specific language"
 - Originally designed for ordinary differential equations
@@ -67,6 +65,10 @@ r_output(readLines("models/sir-basic-ode.R"))
 
 ::::
 
+::: footer
+In the book: [Getting started with odin](https://mrc-ide.github.io/odin-monty/odin.html)
+:::
+
 . . .
 
 <br> Things to note:
@@ -75,7 +77,9 @@ r_output(readLines("models/sir-basic-ode.R"))
 * every variable has `initial` and `deriv` pair
 
 
-## Compiling the model with `odin2`
+## Compiling the model with `odin2` {.smaller}
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 #| echo: false
@@ -88,8 +92,16 @@ r_output(model_compile_code("sir_ode", "models/sir-basic-ode.R"))
 sir_ode <- odin("models/sir-basic-ode.R")
 ```
 
+:::
+
+<br> You can also compile code from a file by its path e.g. `odin("models/sir-basic.R")`.
+
 ::: {.notes}
 The `odin` call generates C code, compiles it with `gcc` or `clang` to create a shared library, and loads that plus support code into R to create a generator object `gen`
+:::
+
+::: footer
+In the book: [Getting started with odin](https://mrc-ide.github.io/odin-monty/odin.html)
 :::
 
 ## Running the model with `dust2` {.smaller}
@@ -113,6 +125,10 @@ y <- dust_system_simulate(sys, t)
 dim(y)
 ```
 
+:::
+
+::: footer
+In the book: [Getting started with odin](https://mrc-ide.github.io/odin-monty/odin.html)
 :::
 
 ## Unpacking states {.smaller}
@@ -143,6 +159,9 @@ plot(t, y$I, type = "l", xlab = "Time", ylab = "I")
 
 :::
 
+::: footer
+In the book: [Getting started with odin](https://mrc-ide.github.io/odin-monty/odin.html)
+:::
 
 
 ::: {.notes}
@@ -184,6 +203,10 @@ R(t + \Delta t) = R(t) + n_{IR}
 * `dt` is a special parameter
 * every variable has `initial` and `update` pair
 
+::: footer
+In the book: [Stochasticity](https://mrc-ide.github.io/odin-monty/stochasticity.html)
+:::
+
 
 ## ...compared with ODE models
 
@@ -208,6 +231,9 @@ r_output(readLines("models/sir-basic-ode.R"))
 
 ::::
 
+::: footer
+In the book: [Stochasticity](https://mrc-ide.github.io/odin-monty/stochasticity.html)
+:::
 
 ## Compiling with `odin2`
 
@@ -222,12 +248,20 @@ r_output(model_compile_code("sir", "models/sir-basic.R"))
 sir <- odin("models/sir-basic.R")
 ```
 
+::: footer
+In the book: [Stochasticity](https://mrc-ide.github.io/odin-monty/stochasticity.html)
+:::
+
 
 ## `time` in `odin`
 
 * `time` is a special (continuous) variable in `odin` models
 * In discrete-time (stochastic) models, `time` is updated in increments of size `dt`
 
+
+::: footer
+In the book: [On the nature of time](https://mrc-ide.github.io/odin-monty/time.html)
+:::
 
 ## Running a single simulation {.smaller}
 
@@ -263,6 +297,10 @@ y <- dust_unpack_state(sys, y)
 plot(t, y$I, type = "l", xlab = "Time", ylab = "Infected population")
 ```
 
+:::
+
+::: footer
+In the book: [Stochasticity](https://mrc-ide.github.io/odin-monty/stochasticity.html)
 :::
 
 ## Running multiple simulations {.smaller}
@@ -302,6 +340,10 @@ matplot(t, t(y$I), type = "l", lty = 1, col = "#00000044",
 
 :::
 
+::: footer
+In the book: [Stochasticity](https://mrc-ide.github.io/odin-monty/stochasticity.html)
+:::
+
 ## Calculating incidence with `zero_every`
 
 ```{r}
@@ -315,6 +357,9 @@ r_output(model_compile_code("sir", "models/sir-incidence.R"))
 sir <- odin("models/sir-incidence.R")
 ```
 
+::: footer
+In the book: [On the nature of time](https://mrc-ide.github.io/odin-monty/time.html)
+:::
 
 ## Incidence accumulates then resets {.smaller}
 
@@ -355,6 +400,9 @@ lines(t, y$incidence, col = "red")
 
 :::
 
+::: footer
+In the book: [On the nature of time](https://mrc-ide.github.io/odin-monty/time.html)
+:::
 
 ## Time-varying inputs: using `time`
 
@@ -368,6 +416,10 @@ r_output(model_compile_code("sir", "models/sir-time.R"))
 #| include: false
 sir <- odin("models/sir-time.R")
 ```
+
+::: footer
+In the book: [Inputs that vary over time](https://mrc-ide.github.io/odin-monty/interpolation.html)
+:::
 
 
 ## Time-varying inputs: using `time` {.smaller}
@@ -407,6 +459,10 @@ plot(t, y$I, type = "l", xlab = "Time", ylab = "Infected population")
 
 :::
 
+::: footer
+In the book: [Inputs that vary over time](https://mrc-ide.github.io/odin-monty/interpolation.html)
+:::
+
 
 ## Time-varying inputs: using `interpolate`
 
@@ -415,6 +471,10 @@ The `interpolate` function in odin can be used for time-varying parameters, with
 - the times of changepoints
 - the values at those changepoints
 - the type of interpolation: linear, constant or spline
+
+::: footer
+In the book: [Inputs that vary over time](https://mrc-ide.github.io/odin-monty/interpolation.html)
+:::
 
 ## Time-varying inputs: using `interpolate`
 
@@ -429,6 +489,9 @@ r_output(model_compile_code("sir", "models/sir-interpolate-constant.R"))
 sir <- odin("models/sir-interpolate-constant.R")
 ```
 
+::: footer
+In the book: [Inputs that vary over time](https://mrc-ide.github.io/odin-monty/interpolation.html)
+:::
 
 ## Time-varying inputs: using `interpolate` {.smaller}
 
@@ -469,6 +532,10 @@ abline(v = 30, lty = 3)
 
 :::
 
+::: footer
+In the book: [Inputs that vary over time](https://mrc-ide.github.io/odin-monty/interpolation.html)
+:::
+
 ## Using arrays
 
 ```{r}
@@ -482,6 +549,9 @@ r_output(model_compile_code("sir_age", "models/sir-age.R"))
 sir_age <- odin("models/sir-age.R")
 ```
 
+::: footer
+In the book: [Arrays](https://mrc-ide.github.io/odin-monty/arrays.html)
+:::
 
 ## Using arrays {.smaller}
 
@@ -500,7 +570,9 @@ pars <- list(S0 = c(990, 1000),
 
 <br> Here `m[i, j]` is the mean number of contacts per time unit for an individual in group `i` has with an individual in group `j`
 
-
+::: footer
+In the book: [Arrays](https://mrc-ide.github.io/odin-monty/arrays.html)
+:::
 
 ## Using arrays {.smaller}
 
@@ -541,6 +613,10 @@ legend("topright", c("children", "adults"), col = c("red", "blue"), lty = 1)
 
 :::
 
+::: footer
+In the book: [Arrays](https://mrc-ide.github.io/odin-monty/arrays.html)
+:::
+
 
 ## Key features of arrays
 
@@ -549,6 +625,9 @@ legend("topright", c("children", "adults"), col = c("red", "blue"), lty = 1)
 - Support for up to 8 dimensions, with index variables `i`, `j`, `k`, `l`, `i5`, `i6`, `i7`, `i8`
 - Functions for reducing arrays such as `sum`, `prod`, `min`, `max` - can be applied over entire array or slices
 
+::: footer
+In the book: [Arrays](https://mrc-ide.github.io/odin-monty/arrays.html)
+:::
 
 ## Arrays: model with age and vaccine
 
@@ -557,6 +636,10 @@ legend("topright", c("children", "adults"), col = c("red", "blue"), lty = 1)
 #| results: "asis"
 r_output(model_compile_code("sir_age_vax", "models/sir-age-vax.R"))
 ```
+
+::: footer
+In the book: [Arrays](https://mrc-ide.github.io/odin-monty/arrays.html)
+:::
 
 ## Arrays: boundary conditions {.smaller}
 
@@ -594,6 +677,10 @@ new_S[, ] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] +
 
 :::
 
+::: footer
+In the book: [Arrays](https://mrc-ide.github.io/odin-monty/arrays.html)
+:::
+
 
 ## Dimensions {.smaller}
 
@@ -618,6 +705,9 @@ n_age <- parameter()
 
 :::
 
+::: footer
+In the book: [Arrays](https://mrc-ide.github.io/odin-monty/arrays.html)
+:::
 
 ## Dimensions {.smaller}
 
@@ -643,6 +733,9 @@ dim(m) <- parameter(rank = 2)
 
 :::
 
+::: footer
+In the book: [Arrays](https://mrc-ide.github.io/odin-monty/arrays.html)
+:::
 
 ## Dimensions {.smaller}
 
@@ -665,6 +758,10 @@ or dimensions of arrays that have the same dimensions can be declared collective
 dim(m, s_ij) <- c(n_age, n_age)
 ```
 
+:::
+
+::: footer
+In the book: [Arrays](https://mrc-ide.github.io/odin-monty/arrays.html)
 :::
 
 ## Compilation error messages {.smaller}
@@ -701,6 +798,10 @@ sir
 
 :::
 
+::: footer
+In the book: [Debugging](https://mrc-ide.github.io/odin-monty/debugging.html)
+:::
+
 ## Compilation error messages {.smaller}
 Now let's remove the `initial(R)` equation
 
@@ -733,6 +834,9 @@ sir <- odin({
 
 :::
 
+::: footer
+In the book: [Debugging](https://mrc-ide.github.io/odin-monty/debugging.html)
+:::
 
 ## Compilation error messages {.smaller}
 
@@ -746,6 +850,9 @@ odin_error_explain("E2003")
 
 :::
 
+::: footer
+In the book: [Debugging](https://mrc-ide.github.io/odin-monty/debugging.html)
+:::
 
 ## Debugging {.smaller}
 
@@ -781,6 +888,10 @@ sir
 
 :::
 
+::: footer
+In the book: [Debugging](https://mrc-ide.github.io/odin-monty/debugging.html)
+:::
+
 ## Debugging {.smaller}
 
 Let's run it
@@ -799,6 +910,10 @@ dust_unpack_state(sys, res)
 
 The number of individuals in the `R` compartment has exceeded `N`!
 
+::: footer
+In the book: [Debugging](https://mrc-ide.github.io/odin-monty/debugging.html)
+:::
+
 
 ## Debugging
 
@@ -808,6 +923,10 @@ So there are tools to help you:
 
 * You can `print()` the values of variables in your model as it runs
 * You can use the `browser()` function in the same way as you would in R.
+
+::: footer
+In the book: [Debugging](https://mrc-ide.github.io/odin-monty/debugging.html)
+:::
 
 
 ## Debugging: using `print()` {.smaller}
@@ -844,6 +963,10 @@ sir <- odin({
 
 :::
 
+::: footer
+In the book: [Debugging](https://mrc-ide.github.io/odin-monty/debugging.html)
+:::
+
 
 ## Debugging: using `print()` {.smaller}
 
@@ -860,6 +983,10 @@ dust_system_run_to_time(sys, 10)
 :::
 
 <br> This may help us spot that we're not removing individuals from `I` when they move to `R`!
+
+::: footer
+In the book: [Debugging](https://mrc-ide.github.io/odin-monty/debugging.html)
+:::
 
 
 ## Debugging: using `browser()` {.smaller}
@@ -896,6 +1023,10 @@ sir <- odin({
 
 :::
 
+::: footer
+In the book: [Debugging](https://mrc-ide.github.io/odin-monty/debugging.html)
+:::
+
 
 ## Debugging: using `browser()` {.smaller}
 
@@ -926,6 +1057,10 @@ Browse[1]> ls()
 
 :::
 
+::: footer
+In the book: [Debugging](https://mrc-ide.github.io/odin-monty/debugging.html)
+:::
+
 ## Debugging: using `browser()` {.smaller}
 
 You can inspect values and perform calculations
@@ -945,9 +1080,25 @@ Browse[1]> I / N
 
 :::
 
+::: footer
+In the book: [Debugging](https://mrc-ide.github.io/odin-monty/debugging.html)
+:::
+
 ## Debugging: using `browser()`
 
 - Enter `c` or `n`, to continue until the next time the `browser()` is triggered  
 - If your model has a variable called `n`, you would need to type `message(n)` to see its value
 - Enter `Q` to immediately exit to the console with an error.
 - Run `dust_browser_continue()` to cancel all future `browser()` calls and continue running the model
+
+::: footer
+In the book: [Debugging](https://mrc-ide.github.io/odin-monty/debugging.html)
+:::
+
+
+## Next steps
+
+- Get started [fitting `odin` models with `monty`](https://mrc-ide.github.io/odin-monty/slides/fitting.html)
+- [Learn how to use `delay()`](https://mrc-ide.github.io/odin-monty/delays.html) for delay differential equations
+- Understand the [order of events for discrete-time stochastic models](https://mrc-ide.github.io/odin-monty/order.html)
+- For larger odin models, [learn about packaging them]((https://mrc-ide.github.io/odin-monty/packaging.html))
