@@ -71,10 +71,11 @@ In the book: [Getting started with odin](https://mrc-ide.github.io/odin-monty/od
 
 . . .
 
-<br> Things to note:
+Things to note:
 
 * out of order definition
 * every variable has `initial` and `deriv` pair
+* parameters declared with `parameter()`, default values can be given in brackets though not required
 
 
 ## Compiling the model with `odin2` {.smaller}
@@ -253,6 +254,17 @@ In the book: [Stochasticity](https://mrc-ide.github.io/odin-monty/stochasticity.
 :::
 
 
+## Functions in `odin2`
+
+:::{}
+* we have used the exponential function `exp()`
+* many mathematical functions are supported in `odin2` - a full list can be found [here](https://mrc-ide.github.io/odin2/articles/functions.html)
+:::
+
+:::{}
+* we have used `Binomial(S, p_SI)` for a Binomial random draw with `size = S` and `prob = p_SI`
+* many distributions are supported - a full list with their names and parameterisations can be found [here](https://mrc-ide.github.io/odin2/articles/functions.html#distribution-functions)
+:::
 ## `time` in `odin`
 
 * `time` is a special (continuous) variable in `odin` models
