@@ -170,6 +170,84 @@ From the generator object `gen` we can construct a model (`mod`), here using no 
 :::
 
 
+## Setting the state {.smaller}
+
+Upon creation all systems start with a state full of zeros. 
+
+Typically we need to set the state. We used
+
+::: {style="font-size: 1.5em"}
+
+```r
+dust_system_set_state_initial(sys)
+```
+
+:::
+
+to set the state according to the `initial` conditions defined in the odin code. We can also set the state using a new state vector e.g.
+
+::: {style="font-size: 1.5em"}
+
+```r
+dust_system_set_state(sys, c(990, 10, 0))
+```
+
+:::
+
+::: footer
+In the book: [Getting started with odin](https://mrc-ide.github.io/odin-monty/odin.html)
+:::
+
+
+## Setting the state {.smaller}
+
+The order of states in a system can be found via
+
+::: {style="font-size: 1.5em"}
+
+```{r}
+dust_unpack_index(sys)
+```
+
+:::
+
+or
+
+::: {style="font-size: 1.5em"}
+
+```{r}
+sys$packer_state$names()
+```
+
+:::
+
+::: footer
+In the book: [Getting started with odin](https://mrc-ide.github.io/odin-monty/odin.html)
+:::
+
+
+## Inputting parameters (`pars`) {.smaller}
+
+:::{}
+
+* We created our system with `pars = list()` - an empty list
+* This means we use all default values for parameters in the odin code
+
+:::
+
+:::{}
+
+* We can pass in a named list of parameters to use non-default values
+* e.g. `pars = list(beta = 0.35, gamma = 0.15)` would use those values for `beta` and `gamma` and the default values for all other parameters
+* You will need to include values for any parameters without default values!
+
+:::
+
+::: footer
+In the book: [Getting started with odin](https://mrc-ide.github.io/odin-monty/odin.html)
+:::
+
+
 ## Stochastic models {.smaller}
 
 :::: {.columns}
