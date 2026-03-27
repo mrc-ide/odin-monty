@@ -3,7 +3,6 @@ title: "Building a model with odin"
 format:
   revealjs:
     preview-links: auto
-    footer: "[mrc-ide/odin-monty](.)"
 execute:
   echo: true
   message: true
@@ -23,7 +22,8 @@ options(monty.progress = FALSE)
 
 - A "domain specific language"
 - Originally designed for ordinary differential equations
-- Some very basic discrete time/stochastic support
+- Subsequently extended to difference equations (enabling discrete-time stochastic models)
+- Refined into second version `odin2`
 
 ::: {.notes}
 Odin is a DSL - a domain specific language. It exists to describe a specific problem efficiently. We developed it to describe ordinary differential equations which evolve a system in continuous time. This is a great target for DSL because it's just a collection of mathematical truths - rates exist independent of any idea of order of operation.
@@ -37,17 +37,21 @@ library(dust2)
 library(monty)
 ```
 
-## ODE models
+## ODE models {.smaller}
 
 :::: {.columns}
 
 ::: {.column width="65%"}
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 #| echo: false
 #| results: "asis"
 r_output(readLines("models/sir-basic-ode.R"))
 ```
+
+:::
 
 :::
 
@@ -61,15 +65,22 @@ r_output(readLines("models/sir-basic-ode.R"))
 
 ::::
 
+::: footer
+In the book: [Getting started with odin](https://mrc-ide.github.io/odin-monty/odin.html)
+:::
+
 . . .
 
 Things to note:
 
 * out of order definition
 * every variable has `initial` and `deriv` pair
+* parameters declared with `parameter()`, default values can be given in brackets though not required
 
 
-## Compiling the model with `odin2`
+## Compiling the model with `odin2` {.smaller}
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 #| echo: false
@@ -82,11 +93,21 @@ r_output(model_compile_code("sir_ode", "models/sir-basic-ode.R"))
 sir_ode <- odin("models/sir-basic-ode.R")
 ```
 
+:::
+
+<br> You can also compile code from a file by its path e.g. `odin("models/sir-basic.R")`.
+
 ::: {.notes}
 The `odin` call generates C code, compiles it with `gcc` or `clang` to create a shared library, and loads that plus support code into R to create a generator object `gen`
 :::
 
-## Running the model with `dust2`
+::: footer
+In the book: [Getting started with odin](https://mrc-ide.github.io/odin-monty/odin.html)
+:::
+
+## Running the model with `dust2` {.smaller}
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 sys <- dust_system_create(sir_ode, pars = list())
@@ -95,37 +116,153 @@ t <- seq(0, 100)
 y <- dust_system_simulate(sys, t)
 ```
 
-The output has dimensions number of states x number of timepoints
+:::
+
+<br> The output has dimensions number of states x number of timepoints
+
+::: {style="font-size: 1.5em"}
+
 ```{r}
 dim(y)
 ```
 
-## Unpacking states
+:::
+
+::: footer
+In the book: [Getting started with odin](https://mrc-ide.github.io/odin-monty/odin.html)
+:::
+
+## Unpacking states {.smaller}
 
 Output can be nicely unpacked into the different states using `dust_unpack_state`
 
-```{r}
+::: {.panel-tabset}
+
+### Code
+
+::: {style="font-size: 1.5em"}
+
+```r
 y <- dust_unpack_state(sys, y)
 
 plot(t, y$I, type = "l", xlab = "Time", ylab = "I")
 ```
+:::
+
+### Plot
+
+```{r}
+#| echo: false
+y <- dust_unpack_state(sys, y)
+
+plot(t, y$I, type = "l", xlab = "Time", ylab = "I")
+```
+
+:::
+
+::: footer
+In the book: [Getting started with odin](https://mrc-ide.github.io/odin-monty/odin.html)
+:::
+
 
 ::: {.notes}
 From the generator object `gen` we can construct a model (`mod`), here using no parameters -- just using default parameters as defined above. We run over a set of times and output the value of the system at a number of intermediate times.
 :::
 
 
-## Stochastic models
+## Setting the state {.smaller}
+
+Upon creation all systems start with a state full of zeros. 
+
+Typically we need to set the state. We used
+
+::: {style="font-size: 1.5em"}
+
+```r
+dust_system_set_state_initial(sys)
+```
+
+:::
+
+to set the state according to the `initial` conditions defined in the odin code. We can also set the state using a new state vector e.g.
+
+::: {style="font-size: 1.5em"}
+
+```r
+dust_system_set_state(sys, c(990, 10, 0))
+```
+
+:::
+
+::: footer
+In the book: [Getting started with odin](https://mrc-ide.github.io/odin-monty/odin.html)
+:::
+
+
+## Setting the state {.smaller}
+
+The order of states in a system can be found via
+
+::: {style="font-size: 1.5em"}
+
+```{r}
+dust_unpack_index(sys)
+```
+
+:::
+
+or
+
+::: {style="font-size: 1.5em"}
+
+```{r}
+sys$packer_state$names()
+```
+
+:::
+
+::: footer
+In the book: [Getting started with odin](https://mrc-ide.github.io/odin-monty/odin.html)
+:::
+
+
+## Inputting parameters (`pars`) {.smaller}
+
+:::{}
+
+* We created our system with `pars = list()` - an empty list
+* This means we use all default values for parameters in the odin code
+
+:::
+
+:::{}
+
+* We can pass in a named list of parameters to use non-default values
+* e.g. `pars = list(beta = 0.35, gamma = 0.15)` would use those values for `beta` and `gamma` and the default values for all other parameters
+* You will need to include values for any parameters without default values!
+
+:::
+
+::: footer
+In the book: [Getting started with odin](https://mrc-ide.github.io/odin-monty/odin.html)
+:::
+
+
+## Stochastic models {.smaller}
 
 :::: {.columns}
 
 ::: {.column width="55%"}
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 #| echo: false
 #| results: "asis"
 r_output(readLines("models/sir-basic.R"))
 ```
+
+:::
 
 :::
 
@@ -145,6 +282,10 @@ R(t + \Delta t) = R(t) + n_{IR}
 * `dt` is a special parameter
 * every variable has `initial` and `update` pair
 
+::: footer
+In the book: [Stochasticity](https://mrc-ide.github.io/odin-monty/stochasticity.html)
+:::
+
 
 ## ...compared with ODE models
 
@@ -158,7 +299,7 @@ r_output(readLines("models/sir-basic.R"))
 ```
 :::
 
-::: {.column style="font-size: 60%"}
+::: {.column style="font-size: 75%"}
 ```{r}
 #| echo: false
 #| results: "asis"
@@ -169,6 +310,9 @@ r_output(readLines("models/sir-basic-ode.R"))
 
 ::::
 
+::: footer
+In the book: [Stochasticity](https://mrc-ide.github.io/odin-monty/stochasticity.html)
+:::
 
 ## Compiling with `odin2`
 
@@ -183,11 +327,41 @@ r_output(model_compile_code("sir", "models/sir-basic.R"))
 sir <- odin("models/sir-basic.R")
 ```
 
+::: footer
+In the book: [Stochasticity](https://mrc-ide.github.io/odin-monty/stochasticity.html)
+:::
 
-## Running a single simulation
+
+## Functions in `odin2`
+
+:::{}
+* we have used the exponential function `exp()`
+* many mathematical functions are supported in `odin2` - a full list can be found [here](https://mrc-ide.github.io/odin2/articles/functions.html)
+:::
+
+:::{}
+* we have used `Binomial(S, p_SI)` for a Binomial random draw with `size = S` and `prob = p_SI`
+* many distributions are supported - a full list with their names and parameterisations can be found [here](https://mrc-ide.github.io/odin2/articles/functions.html#distribution-functions)
+:::
+## `time` in `odin`
+
+* `time` is a special (continuous) variable in `odin` models
+* In discrete-time (stochastic) models, `time` is updated in increments of size `dt`
 
 
-```{r}
+::: footer
+In the book: [On the nature of time](https://mrc-ide.github.io/odin-monty/time.html)
+:::
+
+## Running a single simulation {.smaller}
+
+::: {.panel-tabset}
+
+#### Code
+
+::: {style="font-size: 1.5em"}
+
+```r
 sys <- dust_system_create(sir, pars = list(), dt = 0.25)
 dust_system_set_state_initial(sys)
 t <- seq(0, 100)
@@ -197,10 +371,37 @@ y <- dust_unpack_state(sys, y)
 plot(t, y$I, type = "l", xlab = "Time", ylab = "Infected population")
 ```
 
+:::
 
-## Running multiple simulations
+
+#### Plot
 
 ```{r}
+#| echo: false
+sys <- dust_system_create(sir, pars = list(), dt = 0.25)
+dust_system_set_state_initial(sys)
+t <- seq(0, 100)
+y <- dust_system_simulate(sys, t)
+y <- dust_unpack_state(sys, y)
+
+plot(t, y$I, type = "l", xlab = "Time", ylab = "Infected population")
+```
+
+:::
+
+::: footer
+In the book: [Stochasticity](https://mrc-ide.github.io/odin-monty/stochasticity.html)
+:::
+
+## Running multiple simulations {.smaller}
+
+::: {.panel-tabset}
+
+#### Code
+
+::: {style="font-size: 1.5em"}
+
+```r
 sys <- dust_system_create(sir, pars = list(), n_particles = 50,
                                  dt = 0.25)
 dust_system_set_state_initial(sys)
@@ -211,6 +412,27 @@ matplot(t, t(y$I), type = "l", lty = 1, col = "#00000044",
         xlab = "Time", ylab = "Infected population")
 ```
 
+:::
+
+#### Plot
+
+```{r}
+#| echo: false
+sys <- dust_system_create(sir, pars = list(), n_particles = 50,
+                                 dt = 0.25)
+dust_system_set_state_initial(sys)
+t <- seq(0, 100)
+y <- dust_system_simulate(sys, t)
+y <- dust_unpack_state(sys, y)
+matplot(t, t(y$I), type = "l", lty = 1, col = "#00000044",
+        xlab = "Time", ylab = "Infected population")
+```
+
+:::
+
+::: footer
+In the book: [Stochasticity](https://mrc-ide.github.io/odin-monty/stochasticity.html)
+:::
 
 ## Calculating incidence with `zero_every`
 
@@ -225,10 +447,19 @@ r_output(model_compile_code("sir", "models/sir-incidence.R"))
 sir <- odin("models/sir-incidence.R")
 ```
 
+::: footer
+In the book: [On the nature of time](https://mrc-ide.github.io/odin-monty/time.html)
+:::
 
-## Incidence accumulates then resets
+## Incidence accumulates then resets {.smaller}
 
-```{r}
+::: {.panel-tabset}
+
+#### Code
+
+::: {style="font-size: 1.5em"}
+
+```r
 sys <- dust_system_create(sir, pars = list(), dt = 1 / 128)
 dust_system_set_state_initial(sys)
 t <- seq(0, 20, by = 1 / 128)
@@ -240,6 +471,28 @@ plot(t[t %% 1 == 0], y$incidence[t %% 1 == 0], type = "o", pch = 19,
 lines(t, y$incidence, col = "red")
 ```
 
+:::
+
+#### Plot
+
+```{r}
+#| echo: false
+sys <- dust_system_create(sir, pars = list(), dt = 1 / 128)
+dust_system_set_state_initial(sys)
+t <- seq(0, 20, by = 1 / 128)
+y <- dust_system_simulate(sys, t)
+y <- dust_unpack_state(sys, y)
+
+plot(t[t %% 1 == 0], y$incidence[t %% 1 == 0], type = "o", pch = 19,
+     ylab = "Infection incidence", xlab = "Time")
+lines(t, y$incidence, col = "red")
+```
+
+:::
+
+::: footer
+In the book: [On the nature of time](https://mrc-ide.github.io/odin-monty/time.html)
+:::
 
 ## Time-varying inputs: using `time`
 
@@ -254,10 +507,20 @@ r_output(model_compile_code("sir", "models/sir-time.R"))
 sir <- odin("models/sir-time.R")
 ```
 
+::: footer
+In the book: [Inputs that vary over time](https://mrc-ide.github.io/odin-monty/interpolation.html)
+:::
 
-## Time-varying inputs: using `time`
 
-```{r}
+## Time-varying inputs: using `time` {.smaller}
+
+::: {.panel-tabset}
+
+#### Code
+
+::: {style="font-size: 1.5em"}
+
+```r
 pars <- list(seed_time = 10, seed_size = 15)
 sys <- dust_system_create(sir, pars = pars, dt = 0.25)
 dust_system_set_state_initial(sys)
@@ -268,6 +531,28 @@ y <- dust_unpack_state(sys, y)
 plot(t, y$I, type = "l", xlab = "Time", ylab = "Infected population")
 ```
 
+:::
+
+#### Plot
+
+```{r}
+#| echo: false
+pars <- list(seed_time = 10, seed_size = 15)
+sys <- dust_system_create(sir, pars = pars, dt = 0.25)
+dust_system_set_state_initial(sys)
+t <- seq(0, 100)
+y <- dust_system_simulate(sys, t)
+y <- dust_unpack_state(sys, y)
+
+plot(t, y$I, type = "l", xlab = "Time", ylab = "Infected population")
+```
+
+:::
+
+::: footer
+In the book: [Inputs that vary over time](https://mrc-ide.github.io/odin-monty/interpolation.html)
+:::
+
 
 ## Time-varying inputs: using `interpolate`
 
@@ -276,6 +561,10 @@ The `interpolate` function in odin can be used for time-varying parameters, with
 - the times of changepoints
 - the values at those changepoints
 - the type of interpolation: linear, constant or spline
+
+::: footer
+In the book: [Inputs that vary over time](https://mrc-ide.github.io/odin-monty/interpolation.html)
+:::
 
 ## Time-varying inputs: using `interpolate`
 
@@ -290,10 +579,19 @@ r_output(model_compile_code("sir", "models/sir-interpolate-constant.R"))
 sir <- odin("models/sir-interpolate-constant.R")
 ```
 
+::: footer
+In the book: [Inputs that vary over time](https://mrc-ide.github.io/odin-monty/interpolation.html)
+:::
 
-## Time-varying inputs: using `interpolate`
+## Time-varying inputs: using `interpolate` {.smaller}
 
-```{r}
+::: {.panel-tabset}
+
+#### Code
+
+::: {style="font-size: 1.5em"}
+
+```r
 pars <- list(beta_time = c(0, 30), beta_value = c(0.2, 1))
 sys <- dust_system_create(sir, pars = pars, dt = 0.25)
 dust_system_set_state_initial(sys)
@@ -305,6 +603,28 @@ plot(t, y$I, type = "l", xlab = "Time", ylab = "Infected population")
 abline(v = 30, lty = 3)
 ```
 
+:::
+
+#### Plot
+
+```{r}
+#| echo: false
+pars <- list(beta_time = c(0, 30), beta_value = c(0.2, 1))
+sys <- dust_system_create(sir, pars = pars, dt = 0.25)
+dust_system_set_state_initial(sys)
+t <- seq(0, 100)
+y <- dust_system_simulate(sys, t)
+y <- dust_unpack_state(sys, y)
+
+plot(t, y$I, type = "l", xlab = "Time", ylab = "Infected population")
+abline(v = 30, lty = 3)
+```
+
+:::
+
+::: footer
+In the book: [Inputs that vary over time](https://mrc-ide.github.io/odin-monty/interpolation.html)
+:::
 
 ## Using arrays
 
@@ -319,8 +639,13 @@ r_output(model_compile_code("sir_age", "models/sir-age.R"))
 sir_age <- odin("models/sir-age.R")
 ```
 
+::: footer
+In the book: [Arrays](https://mrc-ide.github.io/odin-monty/arrays.html)
+:::
 
-## Using arrays
+## Using arrays {.smaller}
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 pars <- list(S0 = c(990, 1000),
@@ -331,13 +656,23 @@ pars <- list(S0 = c(990, 1000),
              n_age = 2)
 ```
 
-Remember: `m[i, j]` is the mean number of contacts per time unit for an individual in group `i` has with an individual in group `j`
+:::
 
+<br> Here `m[i, j]` is the mean number of contacts per time unit for an individual in group `i` has with an individual in group `j`
 
+::: footer
+In the book: [Arrays](https://mrc-ide.github.io/odin-monty/arrays.html)
+:::
 
-## Using arrays
+## Using arrays {.smaller}
 
-```{r}
+::: {.panel-tabset}
+
+#### Code
+
+::: {style="font-size: 1.5em"}
+
+```r
 sys <- dust_system_create(sir_age, pars = pars, dt = 0.25)
 dust_system_set_state_initial(sys)
 t <- seq(0, 100)
@@ -349,6 +684,29 @@ matplot(t, t(y$I), type = "l", lty = 1, col = c("red", "blue"),
 legend("topright", c("children", "adults"), col = c("red", "blue"), lty = 1)
 ```
 
+:::
+
+#### Plot
+
+```{r}
+#| echo: false
+sys <- dust_system_create(sir_age, pars = pars, dt = 0.25)
+dust_system_set_state_initial(sys)
+t <- seq(0, 100)
+y <- dust_system_simulate(sys, t)
+y <- dust_unpack_state(sys, y)
+
+matplot(t, t(y$I), type = "l", lty = 1, col = c("red", "blue"),
+        xlab = "Time", ylab = "Infected population")
+legend("topright", c("children", "adults"), col = c("red", "blue"), lty = 1)
+```
+
+:::
+
+::: footer
+In the book: [Arrays](https://mrc-ide.github.io/odin-monty/arrays.html)
+:::
+
 
 ## Key features of arrays
 
@@ -357,6 +715,9 @@ legend("topright", c("children", "adults"), col = c("red", "blue"), lty = 1)
 - Support for up to 8 dimensions, with index variables `i`, `j`, `k`, `l`, `i5`, `i6`, `i7`, `i8`
 - Functions for reducing arrays such as `sum`, `prod`, `min`, `max` - can be applied over entire array or slices
 
+::: footer
+In the book: [Arrays](https://mrc-ide.github.io/odin-monty/arrays.html)
+:::
 
 ## Arrays: model with age and vaccine
 
@@ -366,16 +727,26 @@ legend("topright", c("children", "adults"), col = c("red", "blue"), lty = 1)
 r_output(model_compile_code("sir_age_vax", "models/sir-age-vax.R"))
 ```
 
-## Arrays: boundary conditions
+::: footer
+In the book: [Arrays](https://mrc-ide.github.io/odin-monty/arrays.html)
+:::
+
+## Arrays: boundary conditions {.smaller}
 
 Multiline equations can be used to deal with boundary conditions, e.g. we have
+
+::: {style="font-size: 1.5em"}
 
 ```r
 new_S[, 1] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, n_vax]
 new_S[, 2:n_vax] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, j - 1]
 ```
 
+:::
+
 which we could also write as
+
+::: {style="font-size: 1.5em"}
 
 ```r
 new_S[, ] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j]
@@ -383,9 +754,441 @@ new_S[, 1] <- new_S[i, j] + n_S_vax[i, n_vax]
 new_S[, 2:n_vax] <- new_S[i, j] + n_S_vax[i, j - 1]
 ```
 
-or another way of writing this would be to use if else
+:::
+
+or another way of writing this would be to use `if ... else`
+
+::: {style="font-size: 1.5em"}
 
 ```r
 new_S[, ] <- S[i, j] - n_SI[i, j] - n_S_vax[i, j] +
     (if (j == 1) n_S_vax[i, n_vax] else n_S_vax[i, j - 1])
 ```
+
+:::
+
+::: footer
+In the book: [Arrays](https://mrc-ide.github.io/odin-monty/arrays.html)
+:::
+
+
+## Dimensions {.smaller}
+
+Dimensions can be hard-coded:
+
+::: {style="font-size: 1.5em"}
+
+```r
+dim(S) <- 2
+```
+
+:::
+
+or can be soft-coded via parameters:
+
+::: {style="font-size: 1.5em"}
+
+```r
+dim(S) <- n_age
+n_age <- parameter()
+```
+
+:::
+
+::: footer
+In the book: [Arrays](https://mrc-ide.github.io/odin-monty/arrays.html)
+:::
+
+## Dimensions {.smaller}
+
+Array parameters can have dimensions explicitly declared
+
+::: {style="font-size: 1.5em"}
+
+```r
+m <- parameter()
+dim(m) <- c(n_age, n_age)
+n_age <- parameter()
+```
+
+:::
+
+or detected when the parameters are passed into the system - but a `dim` equation is needed where you must explicitly state the rank:
+
+::: {style="font-size: 1.5em"}
+
+```r
+dim(m) <- parameter(rank = 2)
+```
+
+:::
+
+::: footer
+In the book: [Arrays](https://mrc-ide.github.io/odin-monty/arrays.html)
+:::
+
+## Dimensions {.smaller}
+
+Dimensions of one array can be declared as the same as the dimensions of another:
+
+::: {style="font-size: 1.5em"}
+
+```r
+dim(m) <- c(n_age, n_age)
+dim(s_ij) <- dim(m)
+```
+
+:::
+
+or dimensions of arrays that have the same dimensions can be declared collectively:
+
+::: {style="font-size: 1.5em"}
+
+```r
+dim(m, s_ij) <- c(n_age, n_age)
+```
+
+:::
+
+::: footer
+In the book: [Arrays](https://mrc-ide.github.io/odin-monty/arrays.html)
+:::
+
+## Compilation error messages {.smaller}
+
+Let's revisit the stochastic SIR model, which compiles successfully:
+
+::: {style="font-size: 1.5em"}
+
+```{r}
+sir <- odin({
+  update(S) <- S - n_SI
+  update(I) <- I + n_SI - n_IR
+  update(R) <- R + n_IR
+  update(incidence) <- incidence + n_SI
+
+  p_SI <- 1 - exp(-beta * I / N * dt)
+  p_IR <- 1 - exp(-gamma * dt)
+  n_SI <- Binomial(S, p_SI)
+  n_IR <- Binomial(I, p_IR)
+
+  initial(S) <- N - I0
+  initial(I) <- I0
+  initial(R) <- 0
+  initial(incidence, zero_every = 1) <- 0
+
+  N <- parameter(1000)
+  I0 <- parameter(10)
+  beta <- parameter(0.2)
+  gamma <- parameter(0.1)
+})
+
+sir
+```
+
+:::
+
+::: footer
+In the book: [Debugging](https://mrc-ide.github.io/odin-monty/debugging.html)
+:::
+
+## Compilation error messages {.smaller}
+Now let's remove the `initial(R)` equation
+
+::: {style="font-size: 1.5em"}
+
+```{r}
+#| error: true
+
+sir <- odin({
+  update(S) <- S - n_SI
+  update(I) <- I + n_SI - n_IR
+  update(R) <- R + n_IR
+  update(incidence) <- incidence + n_SI
+
+  p_SI <- 1 - exp(-beta * I / N * dt)
+  p_IR <- 1 - exp(-gamma * dt)
+  n_SI <- Binomial(S, p_SI)
+  n_IR <- Binomial(I, p_IR)
+
+  initial(S) <- N - I0
+  initial(I) <- I0
+  initial(incidence, zero_every = 1) <- 0
+
+  N <- parameter(1000)
+  I0 <- parameter(10)
+  beta <- parameter(0.2)
+  gamma <- parameter(0.1)
+})
+```
+
+:::
+
+::: footer
+In the book: [Debugging](https://mrc-ide.github.io/odin-monty/debugging.html)
+:::
+
+## Compilation error messages {.smaller}
+
+We can run `odin_error_explain()` with the corresponding error code as suggested (clickable in RStudio) for more information
+
+::: {style="font-size: 1.5em"}
+
+```{r}
+odin_error_explain("E2003")
+```
+
+:::
+
+::: footer
+In the book: [Debugging](https://mrc-ide.github.io/odin-monty/debugging.html)
+:::
+
+## Debugging {.smaller}
+
+Here's a model that compiles but has a bug
+
+::: {style="font-size: 1.5em"}
+
+```{r}
+sir <- odin({
+  update(S) <- S - n_SI
+  update(I) <- I + n_SI
+  update(R) <- R + n_IR
+  update(incidence) <- incidence + n_SI
+
+  p_SI <- 1 - exp(-beta * I / N * dt)
+  p_IR <- 1 - exp(-gamma * dt)
+  n_SI <- Binomial(S, p_SI)
+  n_IR <- Binomial(I, p_IR)
+
+  initial(S) <- N - I0
+  initial(I) <- I0
+  initial(R) <- 0
+  initial(incidence, zero_every = 1) <- 0
+
+  N <- parameter(1000)
+  I0 <- parameter(10)
+  beta <- parameter(0.2)
+  gamma <- parameter(0.1)
+})
+
+sir
+```
+
+:::
+
+::: footer
+In the book: [Debugging](https://mrc-ide.github.io/odin-monty/debugging.html)
+:::
+
+## Debugging {.smaller}
+
+Let's run it
+
+::: {style="font-size: 1.5em"}
+
+```{r}
+sys <- dust_system_create(sir)
+dust_system_set_state_initial(sys)
+t <- 50
+res <- dust_system_simulate(sys, t)
+dust_unpack_state(sys, res)
+```
+
+:::
+
+The number of individuals in the `R` compartment has exceeded `N`!
+
+::: footer
+In the book: [Debugging](https://mrc-ide.github.io/odin-monty/debugging.html)
+:::
+
+
+## Debugging
+
+You can stare at the code and hope to spot what's wrong, but that can be like trying to find a needle in a haystack, especially for larger models. 
+
+So there are tools to help you:
+
+* You can `print()` the values of variables in your model as it runs
+* You can use the `browser()` function in the same way as you would in R.
+
+::: footer
+In the book: [Debugging](https://mrc-ide.github.io/odin-monty/debugging.html)
+:::
+
+
+## Debugging: using `print()` {.smaller}
+
+With `print()` we can tell it what to print and (optionally) conditions for when to print.
+
+::: {style="font-size: 1.5em"}
+
+```{r}
+sir <- odin({
+  update(S) <- S - n_SI
+  update(I) <- I + n_SI
+  update(R) <- R + n_IR
+  update(incidence) <- incidence + n_SI
+
+  p_SI <- 1 - exp(-beta * I / N * dt)
+  p_IR <- 1 - exp(-gamma * dt)
+  n_SI <- Binomial(S, p_SI)
+  n_IR <- Binomial(I, p_IR)
+
+  initial(S) <- N - I0
+  initial(I) <- I0
+  initial(R) <- 0
+  initial(incidence, zero_every = 1) <- 0
+
+  N <- parameter(1000)
+  I0 <- parameter(10)
+  beta <- parameter(0.2)
+  gamma <- parameter(0.1)
+  
+  print("S + I: {S + I}, R: {R}", when = S + I + R > N && time > 5)
+})
+```
+
+:::
+
+::: footer
+In the book: [Debugging](https://mrc-ide.github.io/odin-monty/debugging.html)
+:::
+
+
+## Debugging: using `print()` {.smaller}
+
+Then when we run it prints what we wanted with the times in square brackets:
+
+::: {style="font-size: 1.5em"}
+
+```{r}
+sys <- dust_system_create(sir)
+dust_system_set_state_initial(sys)
+dust_system_run_to_time(sys, 10)
+```
+
+:::
+
+<br> This may help us spot that we're not removing individuals from `I` when they move to `R`!
+
+::: footer
+In the book: [Debugging](https://mrc-ide.github.io/odin-monty/debugging.html)
+:::
+
+
+## Debugging: using `browser()` {.smaller}
+
+With the `browser()` we need to declare the phase for inserting (`deriv` for ODE models, `update` for stochastic models) and optionally `when` to trigger it.
+
+::: {style="font-size: 1.5em"}
+
+```{r}
+sir <- odin({
+  update(S) <- S - n_SI
+  update(I) <- I + n_SI
+  update(R) <- R + n_IR
+  update(incidence) <- incidence + n_SI
+
+  p_SI <- 1 - exp(-beta * I / N * dt)
+  p_IR <- 1 - exp(-gamma * dt)
+  n_SI <- Binomial(S, p_SI)
+  n_IR <- Binomial(I, p_IR)
+
+  initial(S) <- N - I0
+  initial(I) <- I0
+  initial(R) <- 0
+  initial(incidence, zero_every = 1) <- 0
+
+  N <- parameter(1000)
+  I0 <- parameter(10)
+  beta <- parameter(0.2)
+  gamma <- parameter(0.1)
+  
+  browser(phase = "update", when = S + I + R > N)
+})
+```
+
+:::
+
+::: footer
+In the book: [Debugging](https://mrc-ide.github.io/odin-monty/debugging.html)
+:::
+
+
+## Debugging: using `browser()` {.smaller}
+
+When we try to run it will pause during evaluation:
+
+::: {style="font-size: 1.5em"}
+
+```r
+sys <- dust_system_create(sir)
+dust_system_set_state_initial(sys)
+dust_system_run_to_time(sys, 50)
+ℹ dust debug ('update'; time = 2): see dust_browser for help
+Called from: eval(substitute(expr), data, enclos = parent.frame())
+Browse[1]> 
+```
+
+:::
+
+<br> You can list all the variables
+
+::: {style="font-size: 1.5em"}
+
+```r
+Browse[1]> ls()
+ [1] "beta"      "gamma"     "I"         "I0"        "incidence" "N"         "n_IR"      "n_SI"      "p_IR"     
+[10] "p_SI"      "R"         "S"         "time"  
+```
+
+:::
+
+::: footer
+In the book: [Debugging](https://mrc-ide.github.io/odin-monty/debugging.html)
+:::
+
+## Debugging: using `browser()` {.smaller}
+
+You can inspect values and perform calculations
+
+::: {style="font-size: 1.5em"}
+
+```r
+Browse[1]> N
+[1] 1000
+Browse[1]> I
+[1] 18
+Browse[1]> S
+[1] 982
+Browse[1]> I / N
+[1] 0.018
+```
+
+:::
+
+::: footer
+In the book: [Debugging](https://mrc-ide.github.io/odin-monty/debugging.html)
+:::
+
+## Debugging: using `browser()`
+
+- Enter `c` or `n`, to continue until the next time the `browser()` is triggered  
+- If your model has a variable called `n`, you would need to type `message(n)` to see its value
+- Enter `Q` to immediately exit to the console with an error.
+- Run `dust_browser_continue()` to cancel all future `browser()` calls and continue running the model
+
+::: footer
+In the book: [Debugging](https://mrc-ide.github.io/odin-monty/debugging.html)
+:::
+
+
+## Next steps
+
+- Get started [fitting `odin` models with `monty`](https://mrc-ide.github.io/odin-monty/slides/fitting.html)
+- [Learn how to use `delay()`](https://mrc-ide.github.io/odin-monty/delays.html) for delay differential equations
+- Understand the [order of events for discrete-time stochastic models](https://mrc-ide.github.io/odin-monty/order.html)
+- For larger odin models, [learn about packaging them]((https://mrc-ide.github.io/odin-monty/packaging.html))
