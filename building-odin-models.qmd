@@ -31,11 +31,18 @@ Odin is a DSL - a domain specific language. It exists to describe a specific pro
 
 # `odin`
 
+::: {style="font-size: 1.5em"}
+
 ```{r}
 library(odin2)
 library(dust2)
 library(monty)
 ```
+
+:::
+
+<br> A script containing the code featured in these slides can be downloaded [here](building-odin-models.R).
+
 
 ## ODE models {.smaller}
 
@@ -1191,4 +1198,4 @@ In the book: [Debugging](https://mrc-ide.github.io/odin-monty/debugging.html)
 - Get started [fitting `odin` models with `monty`](https://mrc-ide.github.io/odin-monty/slides/fitting.html)
 - [Learn how to use `delay()`](https://mrc-ide.github.io/odin-monty/delays.html) for delay differential equations
 - Understand the [order of events for discrete-time stochastic models](https://mrc-ide.github.io/odin-monty/order.html)
-- For larger odin models, [learn about packaging them]((https://mrc-ide.github.io/odin-monty/packaging.html))
+- For larger odin models, [learn about packaging them](https://mrc-ide.github.io/odin-monty/packaging.html)
