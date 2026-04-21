@@ -10,7 +10,8 @@ library(monty)
 
 
 ## The data
-
+# Download https://github.com/mrc-ide/odin-monty/blob/main/data/incidence.csv
+# and ensure you read from the correct file path
 data <- read.csv("data/incidence.csv")
 
 plot(data, pch = 19, col = "red")
@@ -80,9 +81,11 @@ packer$pack(c(beta = 0.2, gamma = 0.1))
 packer <- monty_packer(c("beta", "gamma"), fixed = list(I0 = 5))
 packer$unpack(c(0.2, 0.1))
 
-packer <- monty_packer(array = c(beta = 3, gamma = 3))
+packer <- monty_packer(c("beta", "gamma"),
+                       array = list(alpha = 3, delta = c(2, 2)),
+                       fixed = list(eta = c(1, 3, 5)))
 packer
-packer$unpack(c(0.2, 0.21, 0.22, 0.1, 0.11, 0.12))
+packer$unpack(c(0.2, 0.1, 0.31, 0.32, 0.33, 0.15, 0.16, 0.17, 0.18))
 
 
 
@@ -255,8 +258,121 @@ legend("bottomright", c("stochastic fit", "deterministic fit"), pch = c(19, 19),
 
 
 
-## Projections and counterfactuals
+## Fitting to vector/array data
+# Download https://github.com/mrc-ide/odin-monty/blob/main/data/incidence-age.csv
+# and ensure you read from the correct file path
+data_age <- read.csv("data/incidence-age.csv")
+head(data_age)
 
+sir_age <- odin({
+  # Equations for transitions between compartments by age group
+  update(S[]) <- S[i] - n_SI[i]
+  update(I[]) <- I[i] + n_SI[i] - n_IR[i]
+  update(R[]) <- R[i] + n_IR[i]
+  update(incidence[]) <- incidence[i] + n_SI[i]
+  
+  # Individual probabilities of transition:
+  p_SI[] <- 1 - exp(-lambda[i] * dt) # S to I
+  p_IR <- 1 - exp(-gamma * dt) # I to R
+  
+  # Calculate force of infection
+  
+  # age-structured contact matrix: m[i, j] is mean number
+  # of contacts an individual in group i has with an
+  # individual in group j per time unit
+  m <- parameter()
+  
+  # here s_ij[i, j] gives the mean number of contacts an
+  # individual in group i will have with the currently
+  # infectious individuals of group j
+  s_ij[, ] <- m[i, j] * I[j]
+  
+  # lambda[i] is the total force of infection on an
+  # individual in group i
+  lambda[] <- beta * sum(s_ij[i, ])
+  
+  # Draws from binomial distributions for numbers
+  # changing between compartments:
+  n_SI[] <- Binomial(S[i], p_SI[i])
+  n_IR[] <- Binomial(I[i], p_IR)
+  
+  initial(S[]) <- S0[i]
+  initial(I[]) <- I0[i]
+  initial(R[]) <- 0
+  initial(incidence[], zero_every = 1) <- 0
+  
+  S0 <- parameter()
+  I0 <- parameter()
+  beta <- parameter(0.2)
+  gamma <- parameter(0.1)
+  
+  n_age <- parameter()
+  dim(S, S0, n_SI, p_SI, incidence) <- n_age
+  dim(I, I0, n_IR) <- n_age
+  dim(R) <- n_age
+  dim(m, s_ij) <- c(n_age, n_age)
+  dim(lambda) <- n_age
+  
+  
+  ## Likelihood
+  cases <- data()
+  dim(cases) <- n_age
+  cases[] ~ Poisson(incidence[i])
+})
+
+
+## Formatting array data in the data frame
+
+data_age$cases <- I(asplit(data_age[, c("cases_children", "cases_adult")], 1))
+data_age$cases_children <- NULL
+data_age$cases_adult <- NULL
+head(data_age)
+
+
+## Fitting the age-stratified model
+
+packer <- monty_packer(c("beta", "gamma"),
+                       fixed = list(S0 = c(990, 1000),
+                                    I0 = c(10, 0),
+                                    m = matrix(c(1.8, 0.4, 0.4, 1.2) / 2000, 2, 2),
+                                    n_age = 2))
+
+
+data_age <- dust_filter_data(data_age, time = "time")
+filter <- dust_filter_create(sir_age, data = data_age, time_start = 0,
+                             n_particles = 200, dt = 0.25)
+likelihood <- dust_likelihood_monty(filter, packer, save_trajectories = TRUE)
+
+prior <- monty_dsl({
+  beta ~ Exponential(mean = 0.3)
+  gamma ~ Exponential(mean = 0.1)
+})
+posterior <- likelihood + prior
+
+vcv <- matrix(c(0.01, 0.005, 0.005, 0.005), 2, 2)
+sampler <- monty_sampler_random_walk(vcv)
+samples <- monty_sample(posterior, sampler, 500, 
+                        initial = c(0.3, 0.1), n_chains = 4)
+
+
+y <- dust_unpack_state(filter, samples$observations$trajectories)
+incidence <- array(y$incidence, c(2, 100, 2000))
+
+matplot(data_age$time, incidence[1, , ], type = "l", col = "#00000044", lty = 1,
+        xlab = "Time", ylab = "Incidence (children)")
+cases_children <- vapply(data_age$cases, "[[", numeric(1), "cases_children")
+points(data_age$time, cases_children, pch = 19, col = "red")
+
+matplot(data_age$time, incidence[2, , ], type = "l", col = "#00000044", lty = 1,
+        xlab = "Time", ylab = "Incidence (adults)")
+cases_adult <- vapply(data_age$cases, "[[", numeric(1), "cases_adult")
+points(data_age$time, cases_adult, pch = 19, col = "red")
+
+
+
+## Projections and counterfactuals
+# Download https://github.com/mrc-ide/odin-monty/blob/main/data/schools.csv
+# and ensure you read from the correct file path
 data <- read.csv("data/schools.csv")
 plot(data, pch = 19, col = "red")
 
@@ -301,7 +417,7 @@ packer <- monty_packer(c("beta0", "gamma", "schools_modifier"),
                        fixed = list(schools_time = schools_time,
                                     schools_open = schools_open))
 
-filter <- dust_filter_create(sis, time_start = 0, dt = 1,
+filter <- dust_filter_create(sis, time_start = 0, dt = 0.25,
                              data = data, n_particles = 200)
 
 prior <- monty_dsl({
