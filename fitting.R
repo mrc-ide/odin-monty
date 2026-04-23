@@ -48,7 +48,7 @@ sir <- odin({
 
 
 ## Calculating likelihood
-
+data <- dust_filter_data(data, time = "time")
 filter <- dust_filter_create(sir, data = data, time_start = 0,
                              n_particles = 200, dt = 0.25)
 dust_likelihood_run(filter, list(beta = 0.4, gamma = 0.2))
@@ -333,6 +333,72 @@ legend("bottomright", c("stochastic fit", "deterministic fit"), pch = c(19, 19),
 
 
 
+## Fitting a time-varying parameter
+# Download https://github.com/mrc-ide/odin-monty/blob/main/data/incidence2.csv
+# and ensure you read from the correct file path
+data <- read.csv("data/incidence2.csv")
+head(data)
+
+plot(data, pch = 19, col = "red")
+
+sir <- odin({
+  update(S) <- S - n_SI
+  update(I) <- I + n_SI - n_IR
+  update(R) <- R + n_IR
+  update(incidence) <- incidence + n_SI
+  
+  beta_t <- interpolate(beta_time, beta, "constant")
+  beta <- parameter()
+  beta_time <- parameter()
+  dim(beta, beta_time) <- parameter(rank = 1)
+  
+  p_SI <- 1 - exp(-beta_t * I / N * dt)
+  p_IR <- 1 - exp(-gamma * dt)
+  n_SI <- Binomial(S, p_SI)
+  n_IR <- Binomial(I, p_IR)
+  
+  initial(S) <- N - I0
+  initial(I) <- I0
+  initial(R) <- 0
+  initial(incidence, zero_every = 1) <- 0
+  
+  N <- parameter(1000)
+  I0 <- parameter(10)
+  gamma <- parameter(0.1)
+  
+  cases <- data()
+  cases ~ Poisson(incidence)
+})
+
+packer <- monty_packer("gamma", array = list(beta = 2),
+                       fixed = list(beta_time = c(0, 20)))
+
+data <- dust_filter_data(data, time = "time")
+filter <- dust_filter_create(sir, data = data, time_start = 0,
+                             n_particles = 200, dt = 0.25)
+likelihood <- dust_likelihood_monty(filter, packer, save_trajectories = TRUE)
+
+prior <- monty_dsl({
+  beta[] ~ Exponential(mean = 0.3)
+  gamma ~ Exponential(mean = 0.1)
+  dim(beta) <- n_beta
+}, fixed = list(n_beta = 2), gradient = FALSE)
+posterior <- likelihood + prior
+posterior
+
+vcv <- diag(c(0.005, 0.01, 0.01))
+sampler <- monty_sampler_random_walk(vcv)
+samples <- monty_sample(posterior, sampler, 1000, initial = c(0.1, 0.5, 0.5), n_chains = 4)
+samples <- monty_samples_thin(samples, thinning_factor = 2, burnin = 500)
+
+y <- dust_unpack_state(filter, samples$observations$trajectories)
+incidence <- array(y$incidence, c(50, 1000))
+matplot(data$time, incidence, type = "l", lty = 1,
+        col = "#00000044", xlab = "Time", ylab = "Infection incidence")
+points(data, pch = 19, col = "red")
+
+
+
 ## Fitting to vector/array data
 # Download https://github.com/mrc-ide/odin-monty/blob/main/data/incidence-age.csv
 # and ensure you read from the correct file path
@@ -492,6 +558,7 @@ packer <- monty_packer(c("beta0", "gamma", "schools_modifier"),
                        fixed = list(schools_time = schools_time,
                                     schools_open = schools_open))
 
+data <- dust_filter_data(data, time = "time")
 filter <- dust_filter_create(sis, time_start = 0, dt = 0.25,
                              data = data, n_particles = 200)
 
