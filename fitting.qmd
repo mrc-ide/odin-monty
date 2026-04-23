@@ -150,6 +150,46 @@ cases ~ NegativeBinomial(size = kappa, mean = incidence)
 
 The distributions supported for likelihoods are the same as those supported for random draws - a full list with their names and parameterisations can be found [here](https://mrc-ide.github.io/odin2/articles/functions.html#distribution-functions).
 
+# State space models {.smaller}
+
+
+- A state space model (SSM) is a mathematical framework for modelling a dynamical system.
+- It is built around two processes:
+    - **state equations** that describes the evolution of some latent variables (also referred as "hidden" states) over time
+    - **observation equations** that relates the observations to the latent variables.
+
+## Can you be more precise? {.smaller}
+
+![](images/SSM.jpg)
+
+- $x_{t, 1 \leq t \leq T}$ the hidden states of the system
+- $y_{t, 1 \leq t \leq T}$ the observations
+- $f_{\theta}$ the state transition function
+- $g_{\theta}$ the observation function
+- $t$ is often time
+- $\theta$ defines the model
+
+## Two common problems {.smaller}
+
+![](images/SSM.jpg)
+
+- Two common needs
+  - "Filtering" i.e. estimate the hidden states $x_{t}$ from the observations $y_t$
+  - "Inference" i.e. estimate the $\theta$'s compatible with the observations $y_{t}$
+
+# Sequential Monte Carlo {.smaller}
+
+AKA, the (bootstrap) particle filter
+
+- Assuming a given $\theta$, at each time step $t$, BSSMC:
+  1. generates $X_{t+1}^N$ by using $f_{\theta}(X_{t+1}^N|X_{t}^N)$ (the $N$ particles)
+  2. calculates weights for the newly generated states based on $g_{\theta}(Y_{t+1}|X_{t+1})$
+  3. resamples the states to keep only the good ones
+
+- Allow to explores efficiently the state space by progressively integrating the data points
+
+- Produces a Monte Carlo approximation of $p(Y_{1:T}|\theta)$ the marginal likelihood
+
 ## Calculating likelihood: particle filtering {.smaller}
 
 ![](images/filter.gif)
