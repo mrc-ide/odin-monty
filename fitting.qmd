@@ -64,7 +64,7 @@ plot(data, pch = 19, col = "red")
 
 ## Our model {.smaller}
 
-Let's fit these data to a model
+We'll fit these data to a model - estimating the unknown parameters `beta` and `gamma`
 
 ::: {style="font-size: 1.5em"}
 
@@ -75,12 +75,6 @@ r_output(model_compile_code("sir", "models/sir-incidence.R"))
 ```
 
 :::
-
-
-## Adding likelihood to the model {.smaller}
-
-We will link `cases` in the data to `incidence` in the model, and we will treat
-`beta` and `gamma` as unknown parameters to be estimated
 
 
 ## Adding likelihood to the model {.smaller}
@@ -103,10 +97,7 @@ sir <- odin("models/sir-compare.R")
 
 ## Adding likelihood to the model {.smaller}
 
-We are declaring that
-
-* `cases` is a data variable
-* it relates to `incidence` in the model via a Poisson distribution
+We have added to the model:
 
 ::: {style="font-size: 1.5em"}
 
@@ -116,7 +107,21 @@ cases ~ Poisson(incidence)
 ```
 :::
 
-<br> Note we use `~` to indicate a likelihood relationship as opposed to `<-` for assignments with random draws. Beyond that syntax for distributions is the same.
+. . .
+
+We are declaring that
+
+* `cases` is a data variable
+* it relates to `incidence` in the model via a Poisson distribution
+
+. . .
+
+Note the two types of equations involving distributions:
+
+* `~` indicates a likelihood relationship
+* `<-` is for assignments (that can involve random draws)
+
+Beyond that syntax for distributions is the same.
 
 
 ## Adding likelihood to the model {.smaller}
@@ -199,8 +204,8 @@ points(data, pch = 19, col = "red")
 
 ```{r}
 #| echo: false
-dust_likelihood_run(filter, list(beta = 0.4, gamma = 0.2),
-                    save_trajectories = TRUE)
+d <- dust_likelihood_run(filter, list(beta = 0.4, gamma = 0.2),
+                         save_trajectories = TRUE)
 y <- dust_likelihood_last_trajectories(filter)
 y <- dust_unpack_state(filter, y)
 matplot(data$time, t(y$incidence), type = "l", col = "#00000044", lty = 1,
@@ -303,9 +308,13 @@ packer$unpack(c(0.2, 0.1, 0.31, 0.32, 0.33, 0.15, 0.16, 0.17, 0.18))
 
 :::
 
-## Priors {.smaller}
+## The monty DSL {.smaller}
 
-Another DSL, similar to odin's:
+Working in a Bayesian framework, we will need to construct a prior distribution model for our parameters.
+
+Introducing the `monty` DSL, similar to odin's:
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 prior <- monty_dsl({
@@ -314,38 +323,330 @@ prior <- monty_dsl({
 })
 ```
 
-. . .
+:::
 
-This is a "monty model"
+The distributions supported in the `monty` DSL are the same as those in `odin2` - a full list with their names and parameterisations can be found [here](https://mrc-ide.github.io/odin2/articles/functions.html#distribution-functions).
+
+
+## The monty DSL {.smaller}
+
+The `monty` DSL creates a "monty model"
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 prior
-monty_model_density(prior, c(0.2, 0.1))
 ```
+
+:::
+
+
+## The monty DSL {.smaller}
+
+You can see the parameter names of the created model
+
+::: {style="font-size: 1.5em"}
+
+```{r}
+prior$parameters
+```
+
+:::
 
 . . .
 
-compute this density manually:
+We can evaluate the (log) density for a given parameter vector (the order of parameters matches the above)
+
+::: {style="font-size: 1.5em"}
+
+```{r}
+prior$density(c(0.2, 0.1))
+```
+
+:::
+
+compare with computing this density manually:
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 dexp(0.2, 1 / 0.5, log = TRUE) + dexp(0.1, 1 / 0.3, log = TRUE)
 ```
 
+:::
+
+## The monty DSL {.smaller}
+
+We can direct sample from the model using a `monty_rng` object
+
+::: {style="font-size: 1.5em"}
+
+```{r}
+rng <- monty_rng_create()
+prior$direct_sample(rng)
+```
+
+:::
+
+and evaluate the gradient for a given parameter vector (via [automatic differentiation](https://en.wikipedia.org/wiki/Automatic_differentiation))
+
+::: {style="font-size: 1.5em"}
+
+```{r}
+prior$gradient(c(0.2, 0.1))
+```
+
+:::
+
+Which can be used for Hamiltonian Monte Carlo (HMC) - more support for this in future!
+
+## The monty DSL {.smaller}
+
+In the monty DSL you can have the distribution of one parameter depend upon another
+
+::: {style="font-size: 1.5em"}
+
+```{r}
+m <- monty_dsl({
+  a ~ Normal(0, 1)
+  b ~ Normal(a, 1)
+})
+m
+```
+
+:::
+
+## The monty DSL {.smaller}
+
+Order matters in the `monty` DSL - you cannot have the distribution of a parameter depend upon one defined later, so switching the order in our previous model results in an error
+
+::: {style="font-size: 1.5em"}
+
+```{r}
+#| error: true
+m <- monty_dsl({
+  b ~ Normal(a, 1)
+  a ~ Normal(0, 1)
+})
+
+```
+
+:::
+
+
+## The monty DSL {.smaller}
+
+You can use assignments to help make your code more understandable
+
+::: {style="font-size: 1.5em"}
+
+```{r}
+m <- monty_dsl({
+  mu <- 10
+  sd <- 2
+  a ~ Normal(mu, sd)
+})
+```
+
+:::
+
+these can also be used for intermediate calculations
+
+::: {style="font-size: 1.5em"}
+
+```{r}
+#| error: true
+m <- monty_dsl({
+  a ~ Normal(0, 1)
+  b ~ Normal(0, 1)
+  mu <- (a + b) / 2
+  c ~ Normal(mu, 1)
+})
+
+```
+
+:::
+
+
+## The monty DSL {.smaller}
+
+You can softcode values by passing them in as a list via `fixed`, e.g.
+
+::: {style="font-size: 1.5em"}
+
+```{r}
+m <- monty_dsl({
+  alpha ~ Normal(178, 20)
+  beta ~ Normal(0, 10)
+  sigma ~ Uniform(0, 50)
+})
+```
+
+:::
+
+can be implemented as
+
+::: {style="font-size: 1.5em"}
+
+```{r}
+fixed <- list(alpha_mean = 170, alpha_sd = 20,
+              beta_mean = 0, beta_sd = 10,
+              sigma_max = 50)
+m <- monty_dsl({
+  alpha ~ Normal(alpha_mean, alpha_sd)
+  beta ~ Normal(beta_mean, beta_sd)
+  sigma ~ Uniform(0, sigma_max)
+}, fixed = fixed)
+```
+
+:::
+
+Note that the `fixed` values cannot be modified after the model object has been created.
+
+
+## The monty DSL {.smaller}
+
+The `monty` DSL supports arrays with a similar syntax to `odin`.
+
+::: {style="font-size: 1.5em"}
+
+```{r}
+fixed = list(gamma_mean = c(0.3, 0.25, 0.2))
+m <- monty_dsl({
+  alpha ~ Exponential(mean = 0.5)
+  beta[, ] ~ Normal(0, 1)
+  gamma[] ~ Exponential(mean = gamma_mean[i])
+  dim(beta) <- c(2, 2)
+  dim(gamma, gamma_mean) <- 3
+}, fixed = fixed, gradient = FALSE)
+m
+```
+
+:::
+
+## The monty DSL {.smaller}
+
+* All arrays need a `dim()` equation
+* No use of `i`, `j` etc on LHS - indexing on the LHS is implicit
+* Support for up to 8 dimensions, with index variables `i`, `j`, `k`, `l`, `i5`, `i6`, `i7`, `i8`
+
+::: {style="font-size: 1.5em"}
+
+```r
+beta[, ] ~ Normal(0, 1)
+gamma[] ~ Exponential(mean = gamma_mean[i])
+```
+
+:::
+
+essentially generates loops
+
+::: {style="font-size: 1.5em"}
+
+```r
+for (i in 1:2) {
+  for (j in 1:2) {
+    beta[i, j] ~ Normal(0, 1)
+  }
+}
+for (i in 1:3) {
+  gamma[i] ~ Exponential(mean = gamma_mean[i])
+}
+```
+
+:::
+
+## The monty DSL {.smaller}
+
+For flexibility dimensions can be softcoded and passed in via `fixed`
+
+::: {style="font-size: 1.5em"}
+
+```{r}
+fixed = list(gamma_mean = c(0.3, 0.25, 0.2),
+             n_beta_1 = 2, n_beta_2 = 2, n_gamma = 3)
+m <- monty_dsl({
+  alpha ~ Exponential(mean = 0.5)
+  beta[, ] ~ Normal(0, 1)
+  gamma[] ~ Exponential(mean = gamma_mean[i])
+  dim(beta) <- c(n_beta_1, n_beta_2)
+  dim(gamma, gamma_mean) <- n_gamma
+}, fixed = fixed, gradient = FALSE)
+m
+```
+
+:::
+
+
+## The monty DSL {.smaller}
+
+You can define arrays with multiline equations
+
+::: {style="font-size: 1.5em"}
+
+```{r}
+fixed = list(n_beta = 5)
+m <- monty_dsl({
+  beta[1] ~ Exponential(mean = 0.3)
+  beta[2:5] ~ Exponential(mean = beta[i - 1])
+  dim(beta) <- n_beta
+}, fixed = fixed, gradient = FALSE)
+```
+
+:::
+
+but collectively the equations need to define all elements of the array, and each element can only be defined once.
+
+## The monty DSL {.smaller}
+
+Elements of an array can depend upon other elements of the same array that are defined earlier.
+
+We can see that in our previous example
+
+::: {style="font-size: 1.5em"}
+
+```r
+beta[1] ~ Exponential(mean = 0.3)
+beta[2:5] ~ Exponential(mean = beta[i - 1])
+```
+
+:::
+
+which becomes clearer when we think how the loop will be generated
+
+::: {style="font-size: 1.5em"}
+
+```r
+beta[1] ~ Exponential(mean = 0.3)
+for (i in 2:5) {
+  beta[i] ~ Exponential(mean = beta[i - 1])
+}
+```
+:::
+
 ## From a dust filter to a monty model {.smaller}
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 filter
 ```
 
+:::
+
 . . .
 
 Combine a filter and a packer
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 packer <- monty_packer(c("beta", "gamma"))
 likelihood <- dust_likelihood_monty(filter, packer)
 likelihood
 ```
+
+:::
 
 ## Posterior from likelihood and prior {.smaller}
 
@@ -357,37 +658,57 @@ $$
 
 . . .
 
+::: {style="font-size: 1.5em"}
+
 ```{r}
 posterior <- likelihood + prior
 posterior
 ```
 
+:::
+
 (remember that addition is multiplication on a log scale)
 
-## Create a sampler
+## Create a sampler {.smaller}
 
 A diagonal variance-covariance matrix (uncorrelated parameters)
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 vcv <- diag(2) * 0.2
 vcv
 ```
 
+:::
+
 Use this to create a "random walk" sampler:
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 sampler <- monty_sampler_random_walk(vcv)
 sampler
 ```
 
-## Let's sample!
+:::
+
+## Let's sample! {.smaller}
+
+We will sample 4 chains, each with 1000 steps
+
+::: {style="font-size: 1.5em"}
 
 ```{r, cache = TRUE}
 samples <- monty_sample(posterior, sampler, 1000, n_chains = 3)
 samples
 ```
 
-## The result: diagnostics
+:::
+
+## The result: diagnostics {.smaller}
+
+::: {style="font-size: 1.5em"}
 
 Diagnostics can be used from the `posterior` package
 
@@ -397,31 +718,49 @@ samples_df <- posterior::as_draws_df(samples)
 posterior::summarise_draws(samples_df)
 ```
 
-## The results: parameters
+:::
+
+## The results: parameters {.smaller}
 
 You can use the `posterior` package in conjunction with `bayesplot` (and then also `ggplot2`)
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 bayesplot::mcmc_scatter(samples_df)
 ```
 
-## The result: traceplots
+:::
+
+## The result: traceplots {.smaller}
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 bayesplot::mcmc_trace(samples_df)
 ```
 
-## The result: density over time
+:::
+
+## The result: density over time {.smaller}
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 matplot(drop(samples$density), type = "l", lty = 1)
 ```
 
-## The result: density over time
+:::
+
+## The result: density over time {.smaller}
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 matplot(drop(samples$density[-(1:100), ]), type = "l", lty = 1)
 ```
+
+:::
 
 ## Better mixing {.smaller}
 
@@ -433,26 +772,38 @@ samples <- monty_sample(posterior, sampler, 2000, initial = samples,
 matplot(samples$density, type = "l", lty = 1)
 ```
 
-## Better mixing: the results
+## Better mixing: the results {.smaller}
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 samples_df <- posterior::as_draws_df(samples)
 posterior::summarise_draws(samples_df)
 ```
 
-## Better mixing: the results
+:::
+
+## Better mixing: the results {.smaller}
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 bayesplot::mcmc_scatter(samples_df)
 ```
 
-## Better mixing: the results
+:::
+
+## Better mixing: the results {.smaller}
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 bayesplot::mcmc_trace(samples_df)
 ```
 
-# Parallelism
+:::
+
+# Parallelism {.smaller}
 
 Two places to parallelise
 
@@ -461,40 +812,58 @@ Two places to parallelise
 
 e.g., 4 threads per filter x 2 workers = 8 total cores in use
 
-## Configure the filter
+## Configure the filter {.smaller}
 
 Use the `n_threads` argument, here for 4 threads
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 filter <- dust_filter_create(sir, data = data, time_start = 0,
                              n_particles = 200, dt = 0.25, n_threads = 4)
 ```
 
-requires that you have OpenMP; this is very annoying on macOS
+:::
 
-## Configure a parallel runner
+requires that you have OpenMP.
+
+## Configure a parallel runner {.smaller}
 
 Use `monty_runner_callr`, here for 2 workers
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 runner <- monty_runner_callr(2)
 ```
 
+:::
+
 Pass `runner` through to `monty_sample`:
+
+::: {style="font-size: 1.5em"}
 
 ```{r, eval = FALSE}
 samples <- monty_sample(posterior, sampler, 1000,
                         runner = runner, n_chains = 4)
 ```
 
-## Run chains on different cluster nodes
+:::
+
+## Run chains on different cluster nodes {.smaller}
+
+::: {style="font-size: 1.5em"}
 
 ```r
 monty_sample_manual_prepare(posterior, sampler, 10000, "mypath",
                             n_chains = 10)
 ```
 
+:::
+
 Then run these chains in parallel on your cluster:
+
+::: {style="font-size: 1.5em"}
 
 ```r
 monty_sample_manual_run(1, "mypath")
@@ -502,55 +871,78 @@ monty_sample_manual_run(2, "mypath")
 monty_sample_manual_run(3, "mypath")
 ```
 
+:::
+
 And retrieve the result
+
+::: {style="font-size: 1.5em"}
 
 ```r
 samples <- monty_sample_manual_collect("mypath")
 ```
 
-## Saving history
+:::
+
+## Saving history {.smaller}
 
 * Save your trajectories at every collected sample
 * Save the final state at every sample (for onward simulation)
-* Save snapshots at intermediate timepoints of the state at every sample (for counterfactuals) 
+* Save snapshots at intermediate timepoints of the state at every sample (for counterfactuals)
 
-## Trajectories
+We look at how to do onward simulation and counterfactuals later.
 
-```{r}
+## Trajectories {.smaller}
+
+::: {style="font-size: 1.5em"}
+
+```{r, cache = TRUE}
 likelihood <- dust_likelihood_monty(filter, packer,
                                     save_trajectories = TRUE)
 posterior <- likelihood + prior
 samples <- monty_sample(posterior, sampler, 1000, n_chains = 4)
 ```
 
-## Trajectories
+:::
 
-```{r}
+## Trajectories {.smaller}
+
+::: {style="font-size: 1.5em"}
+
+```{r, cache = TRUE}
 trajectories <- dust_unpack_state(filter,
                                   samples$observations$trajectories)
 matplot(data$time, trajectories$incidence[, , 1], type = "l", lty = 1,
         col = "#00000044", xlab = "Time", ylab = "Infection incidence")
 points(data, pch = 19, col = "red")
 ```
-## Trajectories
+
+:::
+
+## Trajectories {.smaller}
 
 Trajectories are 4-dimensional
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 # (4 states x 20 time points x 1000 samples x 4 chains)
 dim(samples$observations$trajectories)
 ```
 
+:::
+
 These can get very large quickly - there are two main ways to help reduce this:
 
 * Saving only a subset of the states
 * Thinning
 
-## Saving a subset of trajectories
+## Saving a subset of trajectories {.smaller}
 
 You can save a subset via specifying a named vector
 
-```{r}
+::: {style="font-size: 1.5em"}
+
+```{r, cache = TRUE}
 likelihood <- dust_likelihood_monty(filter, packer, 
                                     save_trajectories = c("I", "incidence"))
 posterior <- likelihood + prior
@@ -558,7 +950,11 @@ samples2 <- monty_sample(posterior, sampler, 100, initial = samples)
 dim(samples2$observations$trajectories)
 ```
 
-## Thinning
+:::
+
+## Thinning {.smaller}
+
+::: {style="font-size: 1.5em"}
 
 While running
 
@@ -568,13 +964,19 @@ samples <- monty_sample(...,
                         thinning_factor = 2)
 ```
 
+:::
+
 After running
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 samples <- monty_samples_thin(samples,
                               burnin = 500,
                               thinning_factor = 2)
 ```
+
+:::
 
 * Thinning while running faster and uses less memory
 * After running is more flexible (e.g. can plot full chains of parameters between running and thinning)
@@ -587,24 +989,36 @@ samples <- monty_samples_thin(samples,
 * This gives two models for the price of one
 * However it might not be suitable for all models
 
-## Fitting in deterministic mode
+## Fitting in deterministic mode {.smaller}
 
 The key difference is to use `dust_unfilter_create`
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 unfilter <- dust_unfilter_create(sir, data = data, time_start = 0, dt = 0.25)
 ```
 
+:::
+
 Note as this is deterministic it produces the same likelihood every time
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 dust_likelihood_run(unfilter, list(beta = 0.4, gamma = 0.2))
 dust_likelihood_run(unfilter, list(beta = 0.4, gamma = 0.2))
 ```
 
-## Fitting in deterministic mode
+:::
 
-```{r}
+You should use the same setup if you have an ODE model (which is automatically deterministic)
+
+## Fitting in deterministic mode {.smaller}
+
+::: {style="font-size: 1.5em"}
+
+```{r, cache = TRUE}
 likelihood <- dust_likelihood_monty(unfilter, packer, save_trajectories = TRUE)
 posterior <- likelihood + prior
 samples_det <- monty_sample(posterior, sampler, 1000, n_chains = 4)
@@ -613,9 +1027,13 @@ samples_det <- monty_samples_thin(samples_det,
                                   thinning_factor = 2)
 ```
 
-## Stochastic v deterministic comparison
+:::
 
-```{r}
+## Stochastic v deterministic comparison {.smaller}
+
+::: {style="font-size: 1.5em"}
+
+```{r, cache = TRUE}
 y <- dust2::dust_unpack_state(filter, samples$observations$trajectories)
 incidence <- array(y$incidence, c(20, 1000))
 matplot(data$time, incidence, type = "l", lty = 1, col = "#00000044",
@@ -624,10 +1042,14 @@ points(data, pch = 19, col = "red")
 
 ```
 
-## Stochastic v deterministic comparison
+:::
 
-```{r}
-y <- dust2::dust_unpack_state(filter, samples_det$observations$trajectories)
+## Stochastic v deterministic comparison {.smaller}
+
+::: {style="font-size: 1.5em"}
+
+```{r, cache = TRUE}
+y <- dust2::dust_unpack_state(unfilter, samples_det$observations$trajectories)
 incidence <- array(y$incidence, c(20, 1000))
 matplot(data$time, incidence, type = "l", lty = 1, col = "#00000044",
         xlab = "Time", ylab = "Infection incidence", ylim = c(0, 75))
@@ -635,7 +1057,11 @@ points(data, pch = 19, col = "red")
 
 ```
 
-## Stochastic v deterministic comparison
+:::
+
+## Stochastic v deterministic comparison {.smaller}
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 pars_stochastic <- array(samples$pars, c(2, 500))
@@ -646,6 +1072,132 @@ points(pars_deterministic[1, ], pars_deterministic[2, ], pch = 19, col = "red")
 legend("bottomright", c("stochastic fit", "deterministic fit"), pch = c(19, 19), 
        col = c("blue", "red"))
 ```
+
+:::
+
+## Fitting a time-varying parameter {.smaller}
+
+Let's look at another dataset (the file can be downloaded [here](data/incidence2.csv))
+
+```{r}
+data <- read.csv("data/incidence2.csv")
+head(data)
+```
+
+## Fitting a time-varying parameter {.smaller}
+
+```{r}
+plot(data, pch = 19, col = "red")
+```
+
+## Fitting a time-varying parameter {.smaller}
+
+We'll fit these data to a model with a piecewise constant `beta` using `interpolate`
+
+::: {style="font-size: 1.5em"}
+
+```{r}
+#| echo: false
+#| results: "asis"
+r_output(model_compile_code("sir", "models/sir-interpolate-compare.R"))
+```
+
+```{r}
+#| include: false
+sir <- odin("models/sir-interpolate-compare.R")
+```
+
+:::
+
+## Fitting a time-varying parameter {.smaller}
+
+Let's create our packer - we'll fit `gamma` and 2 values for `beta` (with changepoints at `time = 0` and `time = 30`)
+
+::: {style="font-size: 1.5em"}
+
+```{r}
+packer <- monty_packer("gamma", array = list(beta = 2),
+                       fixed = list(beta_time = c(0, 20)))
+```
+
+:::
+
+## Fitting a time-varying parameter {.smaller}
+
+Let's create our filter and likelihood model
+
+::: {style="font-size: 1.5em"}
+
+```{r}
+data <- dust_filter_data(data, time = "time")
+filter <- dust_filter_create(sir, data = data, time_start = 0,
+                             n_particles = 200, dt = 0.25)
+likelihood <- dust_likelihood_monty(filter, packer, save_trajectories = TRUE)
+```
+
+:::
+
+and create a prior model, then combine to create our posterior model
+
+::: {style="font-size: 1.5em"}
+
+```{r}
+prior <- monty_dsl({
+  beta[] ~ Exponential(mean = 0.3)
+  gamma ~ Exponential(mean = 0.1)
+  dim(beta) <- n_beta
+}, fixed = list(n_beta = 2), gradient = FALSE)
+posterior <- likelihood + prior
+posterior
+```
+
+:::
+
+## Fitting a time-varying parameter {.smaller}
+
+Create a sampler and then sample
+
+::: {style="font-size: 1.5em"}
+
+```{r, cache = TRUE}
+vcv <- diag(c(0.005, 0.01, 0.01))
+sampler <- monty_sampler_random_walk(vcv)
+samples <- monty_sample(posterior, sampler, 1000, initial = c(0.1, 0.5, 0.5), n_chains = 4)
+samples <- monty_samples_thin(samples, thinning_factor = 2, burnin = 500)
+```
+
+:::
+
+## Fitting a time-varying parameter {.smaller}
+
+::: {.panel-tabset}
+
+#### Code
+
+::: {style="font-size: 1.5em"}
+
+```r
+y <- dust_unpack_state(filter, samples$observations$trajectories)
+incidence <- array(y$incidence, c(50, 1000))
+matplot(data$time, incidence, type = "l", lty = 1,
+        col = "#00000044", xlab = "Time", ylab = "Infection incidence")
+points(data, pch = 19, col = "red")
+```
+
+:::
+
+#### Plot
+
+```{r, cache = TRUE}
+#| echo: false
+y <- dust_unpack_state(filter, samples$observations$trajectories)
+incidence <- array(y$incidence, c(50, 1000))
+matplot(data$time, incidence, type = "l", lty = 1,
+        col = "#00000044", xlab = "Time", ylab = "Infection incidence")
+points(data, pch = 19, col = "red")
+```
+
+:::
 
 ## Fitting to vector/array data {.smaller}
 
@@ -793,7 +1345,7 @@ Create a sampler and then sample
 
 ::: {style="font-size: 1.5em"}
 
-```{r}
+```{r, cache = TRUE}
 vcv <- matrix(c(0.01, 0.005, 0.005, 0.005), 2, 2)
 sampler <- monty_sampler_random_walk(vcv)
 samples <- monty_sample(posterior, sampler, 500, 
@@ -829,7 +1381,7 @@ points(data_age$time, cases_adult, pch = 19, col = "red")
 
 #### Plot 1
 
-```{r}
+```{r, cache = TRUE}
 #| echo: false
 y <- dust_unpack_state(filter, samples$observations$trajectories)
 incidence <- array(y$incidence, c(2, 100, 2000))
@@ -842,7 +1394,7 @@ points(data_age$time, cases_children, pch = 19, col = "red")
 
 #### Plot 2
 
-```{r}
+```{r, cache = TRUE}
 #| echo: false
 matplot(data_age$time, incidence[2, , ], type = "l", col = "#00000044", lty = 1,
         xlab = "Time", ylab = "Incidence (adults)")
@@ -852,18 +1404,24 @@ points(data_age$time, cases_adult, pch = 19, col = "red")
 
 :::
 
-## Projections and counterfactuals
+## Projections and counterfactuals {.smaller}
 
 Let's use some new data
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 data <- read.csv("data/schools.csv")
 plot(data, pch = 19, col = "red")
 ```
 
-## Projections and counterfactuals
+:::
+
+## Projections and counterfactuals {.smaller}
 
 We'll fit the data to an SIS model incorporating schools opening/closing
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 #| echo: false
@@ -876,19 +1434,27 @@ r_output(model_compile_code("sis", "models/sis.R"))
 sis <- odin("models/sis.R")
 ```
 
-## Projections and counterfactuals
+:::
+
+## Projections and counterfactuals {.smaller}
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 schools_time <- c(0, 50, 60, 120, 130, 170, 180)
 schools_open <- c(1,  0,  1,   0,   1,   0,   1)
 ```
 
+:::
+
 We will
 
 * project forward from the end of the fits (day 150) to day 200
 * run a counterfactual where the schools did not reopen on day 60, reopening on day 130
 
-## Fitting to the SIS model
+## Fitting to the SIS model {.smaller}
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 packer <- monty_packer(c("beta0", "gamma", "schools_modifier"),
@@ -908,11 +1474,15 @@ vcv <- diag(c(2e-4, 2e-4, 4e-4))
 sampler <- monty_sampler_random_walk(vcv)
 ```
 
-## Fitting to the SIS model
+:::
+
+## Fitting to the SIS model {.smaller}
 
 We want to save the end state, and a snapshot at day 60 (where the counterfactual will diverge)
 
-```{r}
+::: {style="font-size: 1.5em"}
+
+```{r, cache = TRUE}
 likelihood <- dust_likelihood_monty(filter, packer, save_trajectories = TRUE,
                                     save_state = TRUE, save_snapshots = 60)
 
@@ -923,10 +1493,13 @@ samples <- monty_sample(posterior, sampler, 500, initial = c(0.3, 0.1, 0.5),
 samples <- monty_samples_thin(samples, burnin = 100, thinning_factor = 8)
 ```
 
+:::
 
-## Fit to data
+## Fit to data {.smaller}
 
-```{r}
+::: {style="font-size: 1.5em"}
+
+```{r, cache = TRUE}
 y <- dust_unpack_state(filter, samples$observations$trajectories)
 incidence <- array(y$incidence, c(150, 200))
 matplot(data$time, incidence, type = "l", col = "#00000044", lty = 1,
@@ -935,9 +1508,13 @@ points(data, pch = 19, col = "red")
 ```
 
 
-## Running projection using the end state
+:::
 
-```{r}
+## Running projection using the end state {.smaller}
+
+::: {style="font-size: 1.5em"}
+
+```{r, cache = TRUE}
 state <- array(samples$observations$state, c(3, 200))
 pars <- array(samples$pars, c(3, 200))
 pars <- lapply(seq_len(200), function(i) packer$unpack(pars[, i]))
@@ -950,7 +1527,11 @@ y <- dust_system_simulate(sys, t)
 y <- dust_unpack_state(sys, y)
 ```
 
-## Running projection using the end state
+:::
+
+## Running projection using the end state {.smaller}
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 matplot(data$time, incidence, type = "l", col = "#00000044", lty = 1,
@@ -959,10 +1540,13 @@ matlines(t, t(y$incidence), col = "blue")
 points(data, pch = 19, col = "red")
 ```
 
+:::
 
-## Running counterfactual using the snapshot
+## Running counterfactual using the snapshot {.smaller}
 
-```{r}
+::: {style="font-size: 1.5em"}
+
+```{r, cache = TRUE}
 snapshot <- array(samples$observations$snapshots, c(3, 200))
 pars <- array(samples$pars, c(3, 200))
 f <- function(i) {
@@ -980,7 +1564,11 @@ y <- dust_system_simulate(sys, t)
 y <- dust_unpack_state(sys, y)
 ```
 
-## Running counterfactual using the snapshot
+:::
+
+## Running counterfactual using the snapshot {.smaller}
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 matplot(data$time, incidence, type = "l", col = "#00000044", lty = 1,
@@ -988,6 +1576,8 @@ matplot(data$time, incidence, type = "l", col = "#00000044", lty = 1,
 matlines(t, t(y$incidence), col = "blue")
 points(data, pch = 19, col = "red")
 ```
+
+:::
 
 # Next steps
 

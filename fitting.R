@@ -89,7 +89,7 @@ packer$unpack(c(0.2, 0.1, 0.31, 0.32, 0.33, 0.15, 0.16, 0.17, 0.18))
 
 
 
-## Priors
+## The monty DSL
 
 prior <- monty_dsl({
   beta ~ Exponential(mean = 0.5)
@@ -97,9 +97,84 @@ prior <- monty_dsl({
 })
 prior
 
-monty_model_density(prior, c(0.2, 0.1))
+prior$parameters
 
+prior$density(c(0.2, 0.1))
 dexp(0.2, 1 / 0.5, log = TRUE) + dexp(0.1, 1 / 0.3, log = TRUE)
+
+rng <- monty_rng_create()
+prior$direct_sample(rng)
+
+prior$gradient(c(0.2, 0.1))
+
+
+m <- monty_dsl({
+  a ~ Normal(0, 1)
+  b ~ Normal(a, 1)
+})
+m
+
+m <- monty_dsl({
+  b ~ Normal(a, 1)
+  a ~ Normal(0, 1)
+})
+
+m <- monty_dsl({
+  mu <- 10
+  sd <- 2
+  a ~ Normal(mu, sd)
+})
+
+m <- monty_dsl({
+  a ~ Normal(0, 1)
+  b ~ Normal(0, 1)
+  mu <- (a + b) / 2
+  c ~ Normal(mu, 1)
+})
+
+m <- monty_dsl({
+  alpha ~ Normal(178, 20)
+  beta ~ Normal(0, 10)
+  sigma ~ Uniform(0, 50)
+})
+
+fixed <- list(alpha_mean = 170, alpha_sd = 20,
+              beta_mean = 0, beta_sd = 10,
+              sigma_max = 50)
+m <- monty_dsl({
+  alpha ~ Normal(alpha_mean, alpha_sd)
+  beta ~ Normal(beta_mean, beta_sd)
+  sigma ~ Uniform(0, sigma_max)
+}, fixed = fixed)
+
+
+fixed = list(gamma_mean = c(0.3, 0.25, 0.2))
+m <- monty_dsl({
+  alpha ~ Exponential(mean = 0.5)
+  beta[, ] ~ Normal(0, 1)
+  gamma[] ~ Exponential(mean = gamma_mean[i])
+  dim(beta) <- c(2, 2)
+  dim(gamma, gamma_mean) <- 3
+}, fixed = fixed, gradient = FALSE)
+m
+
+fixed = list(gamma_mean = c(0.3, 0.25, 0.2),
+             n_beta_1 = 2, n_beta_2 = 2, n_gamma = 3)
+m <- monty_dsl({
+  alpha ~ Exponential(mean = 0.5)
+  beta[, ] ~ Normal(0, 1)
+  gamma[] ~ Exponential(mean = gamma_mean[i])
+  dim(beta) <- c(n_beta_1, n_beta_2)
+  dim(gamma, gamma_mean) <- n_gamma
+}, fixed = fixed, gradient = FALSE)
+m
+
+fixed = list(n_beta = 5)
+m <- monty_dsl({
+  beta[1] ~ Exponential(mean = 0.3)
+  beta[2:5] ~ Exponential(mean = beta[i - 1])
+  dim(beta) <- n_beta
+}, fixed = fixed, gradient = FALSE)
 
 
 
