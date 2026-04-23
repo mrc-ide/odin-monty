@@ -314,13 +314,15 @@ samples_det <- monty_samples_thin(samples_det,
 y <- dust2::dust_unpack_state(filter, samples$observations$trajectories)
 incidence <- array(y$incidence, c(20, 1000))
 matplot(data$time, incidence, type = "l", lty = 1, col = "#00000044",
-        xlab = "Time", ylab = "Infection incidence", ylim = c(0, 75))
+        xlab = "Time", ylab = "Infection incidence", ylim = c(0, 75),
+        title = "Stochastic fit")
 points(data, pch = 19, col = "red")
 
 y <- dust2::dust_unpack_state(filter, samples_det$observations$trajectories)
 incidence <- array(y$incidence, c(20, 1000))
 matplot(data$time, incidence, type = "l", lty = 1, col = "#00000044",
-        xlab = "Time", ylab = "Infection incidence", ylim = c(0, 75))
+        xlab = "Time", ylab = "Infection incidence", ylim = c(0, 75),
+        title = "Deterministic fit")
 points(data, pch = 19, col = "red")
 
 pars_stochastic <- array(samples$pars, c(2, 500))
