@@ -1042,9 +1042,13 @@ samples <- monty_sample(posterior, sampler, 1000, n_chains = 4)
 
 ## Trajectories {.smaller}
 
+::: {.panel-tabset}
+
+#### Code
+
 ::: {style="font-size: 1.5em"}
 
-```{r, cache = TRUE}
+```r
 trajectories <- dust_unpack_state(filter,
                                   samples$observations$trajectories)
 matplot(data$time, trajectories$incidence[, , 1], type = "l", lty = 1,
@@ -1053,6 +1057,20 @@ points(data, pch = 19, col = "red")
 ```
 
 :::
+
+#### Plot
+
+```{r, cache = TRUE}
+#| echo: false
+trajectories <- dust_unpack_state(filter,
+                                  samples$observations$trajectories)
+matplot(data$time, trajectories$incidence[, , 1], type = "l", lty = 1,
+        col = "#00000044", xlab = "Time", ylab = "Infection incidence")
+points(data, pch = 19, col = "red")
+```
+
+:::
+
 
 ## Trajectories {.smaller}
 
@@ -1414,7 +1432,7 @@ head(data_age)
 
 :::
 
-* Let's think of the cases data at each time point as a vector for the 2 age groups
+<br> Let's think of the cases data at each time point as a vector of length 2 (for the 2 age groups)
 
 ## Fitting to vector/array data {.smaller}
 
@@ -1460,8 +1478,6 @@ In the book: [Data](https://mrc-ide.github.io/odin-monty/data.html)
 
 ## Formatting array data in the data frame {.smaller}
 
-Array data can be handled with a list-column
-
 Normally, you could setup a data.frame by writing:
 
 ::: {style="font-size: 1.5em"}
@@ -1472,7 +1488,11 @@ data.frame(time = c(1, 2, 3, 4), cases = c(0, 4, 6, 10))
 
 :::
 
-for a list-column you pass in a list with the same number of elements as there are rows, with each list element being an array of the right size
+## Formatting array data in the data frame {.smaller}
+
+Array data can be handled with a list-column.
+
+For a list-column you pass in a list with the same number of elements as there are rows, with each list element being an array of the right size
 
 ::: {style="font-size: 1.5em"}
 
@@ -1728,16 +1748,33 @@ In the book: [Projections and counterfactuals](https://mrc-ide.github.io/odin-mo
 
 ## Fit to data {.smaller}
 
+::: {.panel-tabset}
+
+#### Code
+
 ::: {style="font-size: 1.5em"}
 
+```r
+y <- dust_unpack_state(filter, samples$observations$trajectories)
+incidence <- array(y$incidence, c(150, 200))
+matplot(data$time, incidence, type = "l", col = "#00000044", lty = 1,
+        xlab = "Time", ylab = "Incidence")
+points(data, pch = 19, col = "red")
+
+```
+
+:::
+
+#### Plot
+
 ```{r, cache = TRUE}
+#| echo: false
 y <- dust_unpack_state(filter, samples$observations$trajectories)
 incidence <- array(y$incidence, c(150, 200))
 matplot(data$time, incidence, type = "l", col = "#00000044", lty = 1,
         xlab = "Time", ylab = "Incidence")
 points(data, pch = 19, col = "red")
 ```
-
 
 :::
 
@@ -1770,9 +1807,25 @@ In the book: [Projections and counterfactuals](https://mrc-ide.github.io/odin-mo
 
 ## Running projection using the end state {.smaller}
 
+::: {.panel-tabset}
+
+#### Code
+
 ::: {style="font-size: 1.5em"}
 
-```{r}
+```r
+matplot(data$time, incidence, type = "l", col = "#00000044", lty = 1,
+        xlab = "Time", ylab = "Incidence", xlim = c(0, 200))
+matlines(t, t(y$incidence), col = "blue")
+points(data, pch = 19, col = "red")
+```
+
+:::
+
+#### Plot
+
+```{r, cache = TRUE}
+#| echo: false
 matplot(data$time, incidence, type = "l", col = "#00000044", lty = 1,
         xlab = "Time", ylab = "Incidence", xlim = c(0, 200))
 matlines(t, t(y$incidence), col = "blue")
@@ -1815,9 +1868,25 @@ In the book: [Projections and counterfactuals](https://mrc-ide.github.io/odin-mo
 
 ## Running counterfactual using the snapshot {.smaller}
 
+::: {.panel-tabset}
+
+#### Code
+
 ::: {style="font-size: 1.5em"}
 
-```{r}
+```r
+matplot(data$time, incidence, type = "l", col = "#00000044", lty = 1,
+        xlab = "Time", ylab = "Incidence")
+matlines(t, t(y$incidence), col = "blue")
+points(data, pch = 19, col = "red")
+```
+
+:::
+
+#### Plot
+
+```{r, cache = TRUE}
+#| echo: false
 matplot(data$time, incidence, type = "l", col = "#00000044", lty = 1,
         xlab = "Time", ylab = "Incidence")
 matlines(t, t(y$incidence), col = "blue")
