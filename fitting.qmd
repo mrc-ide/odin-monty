@@ -150,7 +150,7 @@ cases ~ NegativeBinomial(size = kappa, mean = incidence)
 
 The distributions supported for likelihoods are the same as those supported for random draws - a full list with their names and parameterisations can be found [here](https://mrc-ide.github.io/odin2/articles/functions.html#distribution-functions).
 
-# State space models {.smaller}
+## State space models {.smaller}
 
 
 - A state space model (SSM) is a mathematical framework for modelling a dynamical system.
@@ -177,7 +177,7 @@ The distributions supported for likelihoods are the same as those supported for 
   - "Filtering" i.e. estimate the hidden states $x_{t}$ from the observations $y_t$
   - "Inference" i.e. estimate the $\theta$'s compatible with the observations $y_{t}$
 
-# Sequential Monte Carlo (SMC) {.smaller}
+## Sequential Monte Carlo (SMC) {.smaller}
 
 AKA, the (bootstrap) particle filter
 
