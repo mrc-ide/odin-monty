@@ -165,7 +165,7 @@ The distributions supported for likelihoods are the same as those supported for 
 - $x_{t, 1 \leq t \leq T}$ the hidden states of the system
 - $y_{t, 1 \leq t \leq T}$ the observations
 - $f_{\theta}$ the state transition function
-- $g_{\theta}$ the observation function
+- $g_{\theta}$ the observation (likelihood) function
 - $t$ is often time
 - $\theta$ defines the model
 
@@ -177,11 +177,11 @@ The distributions supported for likelihoods are the same as those supported for 
   - "Filtering" i.e. estimate the hidden states $x_{t}$ from the observations $y_t$
   - "Inference" i.e. estimate the $\theta$'s compatible with the observations $y_{t}$
 
-# Sequential Monte Carlo {.smaller}
+# Sequential Monte Carlo (SMC) {.smaller}
 
 AKA, the (bootstrap) particle filter
 
-- Assuming a given $\theta$, at each time step $t$, BSSMC:
+- Assuming a given $\theta$, at each time step $t$ it
   1. generates $X_{t+1}^N$ by using $f_{\theta}(X_{t+1}^N|X_{t}^N)$ (the $N$ particles)
   2. calculates weights for the newly generated states based on $g_{\theta}(Y_{t+1}|X_{t+1})$
   3. resamples the states to keep only the good ones
@@ -256,6 +256,13 @@ points(data, pch = 19, col = "red")
 
 :::
 
+# Particle MCMC (PMCMC) {.smaller}
+
+- PMCMC is an algorithm which performs "filtering" and "inference"
+- A Markov Chain Monte Carlo (MCMC) method for estimating target distributions
+- MCMC explores the parameter space by moving randomly making jumps from one value to the next
+- In PMCMC, the marginal likelihood is estimated using a particle filter
+- One particle trajectory is selected randomly at the end of the particle filter  
 
 # Particle MCMC {.smaller}
 
