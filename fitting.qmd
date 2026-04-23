@@ -123,6 +123,9 @@ Note the two types of equations involving distributions:
 
 Beyond that syntax for distributions is the same.
 
+::: footer
+In the book: [Data](https://mrc-ide.github.io/odin-monty/data.html)
+:::
 
 ## Adding likelihood to the model {.smaller}
 
@@ -149,6 +152,10 @@ cases ~ NegativeBinomial(size = kappa, mean = incidence)
 :::
 
 The distributions supported for likelihoods are the same as those supported for random draws - a full list with their names and parameterisations can be found [here](https://mrc-ide.github.io/odin2/articles/functions.html#distribution-functions).
+
+::: footer
+In the book: [Data](https://mrc-ide.github.io/odin-monty/data.html)
+:::
 
 ## State space models {.smaller}
 
@@ -376,6 +383,10 @@ prior <- monty_dsl({
 The distributions supported in the `monty` DSL are the same as those in `odin2` - a full list with their names and parameterisations can be found [here](https://mrc-ide.github.io/odin2/articles/functions.html#distribution-functions).
 
 
+::: footer
+In the book: [The monty DSL](https://mrc-ide.github.io/odin-monty/monty-dsl.html)
+:::
+
 ## The monty DSL {.smaller}
 
 The `monty` DSL creates a "monty model"
@@ -388,6 +399,10 @@ prior
 
 :::
 
+
+::: footer
+In the book: [The monty DSL](https://mrc-ide.github.io/odin-monty/monty-dsl.html)
+:::
 
 ## The monty DSL {.smaller}
 
@@ -423,6 +438,10 @@ dexp(0.2, 1 / 0.5, log = TRUE) + dexp(0.1, 1 / 0.3, log = TRUE)
 
 :::
 
+::: footer
+In the book: [The monty DSL](https://mrc-ide.github.io/odin-monty/monty-dsl.html)
+:::
+
 ## The monty DSL {.smaller}
 
 We can direct sample from the model using a `monty_rng` object
@@ -448,6 +467,10 @@ prior$gradient(c(0.2, 0.1))
 
 Which can be used for Hamiltonian Monte Carlo (HMC) - more support for this in future!
 
+::: footer
+In the book: [The monty DSL](https://mrc-ide.github.io/odin-monty/monty-dsl.html)
+:::
+
 ## The monty DSL {.smaller}
 
 In the monty DSL you can have the distribution of one parameter depend upon another
@@ -462,6 +485,10 @@ m <- monty_dsl({
 m
 ```
 
+:::
+
+::: footer
+In the book: [The monty DSL](https://mrc-ide.github.io/odin-monty/monty-dsl.html)
 :::
 
 ## The monty DSL {.smaller}
@@ -481,6 +508,9 @@ m <- monty_dsl({
 
 :::
 
+::: footer
+In the book: [The monty DSL](https://mrc-ide.github.io/odin-monty/monty-dsl.html)
+:::
 
 ## The monty DSL {.smaller}
 
@@ -513,6 +543,10 @@ m <- monty_dsl({
 
 ```
 
+:::
+
+::: footer
+In the book: [The monty DSL](https://mrc-ide.github.io/odin-monty/monty-dsl.html)
 :::
 
 
@@ -551,6 +585,10 @@ m <- monty_dsl({
 
 Note that the `fixed` values cannot be modified after the model object has been created.
 
+::: footer
+In the book: [The monty DSL](https://mrc-ide.github.io/odin-monty/monty-dsl.html)
+:::
+
 
 ## The monty DSL {.smaller}
 
@@ -570,6 +608,10 @@ m <- monty_dsl({
 m
 ```
 
+:::
+
+::: footer
+In the book: [The monty DSL](https://mrc-ide.github.io/odin-monty/monty-dsl.html)
 :::
 
 ## The monty DSL {.smaller}
@@ -604,6 +646,10 @@ for (i in 1:3) {
 
 :::
 
+::: footer
+In the book: [The monty DSL](https://mrc-ide.github.io/odin-monty/monty-dsl.html)
+:::
+
 ## The monty DSL {.smaller}
 
 For flexibility dimensions can be softcoded and passed in via `fixed`
@@ -625,6 +671,10 @@ m
 
 :::
 
+::: footer
+In the book: [The monty DSL](https://mrc-ide.github.io/odin-monty/monty-dsl.html)
+:::
+
 
 ## The monty DSL {.smaller}
 
@@ -644,6 +694,10 @@ m <- monty_dsl({
 :::
 
 but collectively the equations need to define all elements of the array, and each element can only be defined once.
+
+::: footer
+In the book: [The monty DSL](https://mrc-ide.github.io/odin-monty/monty-dsl.html)
+:::
 
 ## The monty DSL {.smaller}
 
@@ -672,6 +726,11 @@ for (i in 2:5) {
 ```
 :::
 
+::: footer
+In the book: [The monty DSL](https://mrc-ide.github.io/odin-monty/monty-dsl.html)
+:::
+
+
 ## From a dust filter to a monty model {.smaller}
 
 ::: {style="font-size: 1.5em"}
@@ -694,6 +753,10 @@ likelihood <- dust_likelihood_monty(filter, packer)
 likelihood
 ```
 
+:::
+
+::: footer
+In the book: [Inference](https://mrc-ide.github.io/odin-monty/inference.html)
 :::
 
 ## Posterior from likelihood and prior {.smaller}
@@ -741,6 +804,10 @@ sampler
 
 :::
 
+::: footer
+In the book: [Samplers and inference](https://mrc-ide.github.io/odin-monty/samplers.html)
+:::
+
 ## Let's sample! {.smaller}
 
 We will sample 4 chains, each with 1000 steps
@@ -752,6 +819,10 @@ samples <- monty_sample(posterior, sampler, 1000, n_chains = 3)
 samples
 ```
 
+:::
+
+::: footer
+In the book: [Inference](https://mrc-ide.github.io/odin-monty/inference.html)
 :::
 
 ## The result: diagnostics {.smaller}
@@ -860,6 +931,10 @@ Two places to parallelise
 
 e.g., 4 threads per filter x 2 workers = 8 total cores in use
 
+::: footer
+In the book: [Parallelisation](https://mrc-ide.github.io/odin-monty/parallel.html)
+:::
+
 ## Configure the filter {.smaller}
 
 Use the `n_threads` argument, here for 4 threads
@@ -874,6 +949,10 @@ filter <- dust_filter_create(sir, data = data, time_start = 0,
 :::
 
 requires that you have OpenMP.
+
+::: footer
+In the book: [Parallelisation](https://mrc-ide.github.io/odin-monty/parallel.html)
+:::
 
 ## Configure a parallel runner {.smaller}
 
@@ -896,6 +975,10 @@ samples <- monty_sample(posterior, sampler, 1000,
                         runner = runner, n_chains = 4)
 ```
 
+:::
+
+::: footer
+In the book: [Parallelisation](https://mrc-ide.github.io/odin-monty/parallel.html)
 :::
 
 ## Run chains on different cluster nodes {.smaller}
@@ -930,6 +1013,11 @@ samples <- monty_sample_manual_collect("mypath")
 ```
 
 :::
+
+::: footer
+In the book: [Parallelisation](https://mrc-ide.github.io/odin-monty/parallel.html)
+:::
+
 
 ## Saving history {.smaller}
 
@@ -1091,39 +1179,67 @@ samples_det <- monty_samples_thin(samples_det,
 
 ## Stochastic v deterministic comparison {.smaller}
 
+::: {.panel-tabset}
+
+#### Code
+
 ::: {style="font-size: 1.5em"}
 
-```{r, cache = TRUE}
+```r
 y <- dust2::dust_unpack_state(filter, samples$observations$trajectories)
 incidence <- array(y$incidence, c(20, 1000))
 matplot(data$time, incidence, type = "l", lty = 1, col = "#00000044",
-        xlab = "Time", ylab = "Infection incidence", ylim = c(0, 75))
+        xlab = "Time", ylab = "Infection incidence", ylim = c(0, 75),
+        title = "Stochastic fit")
 points(data, pch = 19, col = "red")
 
-```
-
-:::
-
-## Stochastic v deterministic comparison {.smaller}
-
-::: {style="font-size: 1.5em"}
-
-```{r, cache = TRUE}
 y <- dust2::dust_unpack_state(unfilter, samples_det$observations$trajectories)
 incidence <- array(y$incidence, c(20, 1000))
 matplot(data$time, incidence, type = "l", lty = 1, col = "#00000044",
-        xlab = "Time", ylab = "Infection incidence", ylim = c(0, 75))
+        xlab = "Time", ylab = "Infection incidence", ylim = c(0, 75),
+        title = "Deterministic fit")
 points(data, pch = 19, col = "red")
-
 ```
 
 :::
 
+
+#### Plot 1
+
+```{r, cache = TRUE}
+#| echo: false
+y <- dust2::dust_unpack_state(filter, samples$observations$trajectories)
+incidence <- array(y$incidence, c(20, 1000))
+matplot(data$time, incidence, type = "l", lty = 1, col = "#00000044",
+        xlab = "Time", ylab = "Infection incidence", ylim = c(0, 75),
+        title = "Stochastic fit")
+points(data, pch = 19, col = "red")
+```
+
+#### Plot 2
+
+```{r, cache = TRUE}
+#| echo: false
+y <- dust2::dust_unpack_state(unfilter, samples_det$observations$trajectories)
+incidence <- array(y$incidence, c(20, 1000))
+matplot(data$time, incidence, type = "l", lty = 1, col = "#00000044",
+        xlab = "Time", ylab = "Infection incidence", ylim = c(0, 75),
+        title = "Deterministic fit")
+points(data, pch = 19, col = "red")
+```
+
+:::
+
+
 ## Stochastic v deterministic comparison {.smaller}
+
+::: {.panel-tabset}
+
+#### Code
 
 ::: {style="font-size: 1.5em"}
 
-```{r}
+```r
 pars_stochastic <- array(samples$pars, c(2, 500))
 pars_deterministic <- array(samples_det$pars, c(2, 500))
 plot(pars_stochastic[1, ], pars_stochastic[2, ], ylab = "gamma", xlab = "beta",
@@ -1135,20 +1251,45 @@ legend("bottomright", c("stochastic fit", "deterministic fit"), pch = c(19, 19),
 
 :::
 
+
+#### Plot
+
+```{r, cache = TRUE}
+#| echo: false
+pars_stochastic <- array(samples$pars, c(2, 500))
+pars_deterministic <- array(samples_det$pars, c(2, 500))
+plot(pars_stochastic[1, ], pars_stochastic[2, ], ylab = "gamma", xlab = "beta",
+     pch = 19, col = "blue")
+points(pars_deterministic[1, ], pars_deterministic[2, ], pch = 19, col = "red")
+legend("bottomright", c("stochastic fit", "deterministic fit"), pch = c(19, 19), 
+       col = c("blue", "red"))
+```
+
+:::
+
+
 ## Fitting a time-varying parameter {.smaller}
 
 Let's look at another dataset (the file can be downloaded [here](data/incidence2.csv))
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 data <- read.csv("data/incidence2.csv")
 head(data)
 ```
 
+:::
+
 ## Fitting a time-varying parameter {.smaller}
+
+::: {style="font-size: 1.5em"}
 
 ```{r}
 plot(data, pch = 19, col = "red")
 ```
+
+:::
 
 ## Fitting a time-varying parameter {.smaller}
 
@@ -1259,6 +1400,7 @@ points(data, pch = 19, col = "red")
 
 :::
 
+
 ## Fitting to vector/array data {.smaller}
 
 Suppose we have some data on the daily incidence of cases by age group (the file can be downloaded [here](data/incidence-age.csv))
@@ -1312,6 +1454,10 @@ cases[] ~ Poisson(incidence[i])
 * All datastreams that are arrays require `dim()` equations
 
 
+::: footer
+In the book: [Data](https://mrc-ide.github.io/odin-monty/data.html)
+:::
+
 ## Formatting array data in the data frame {.smaller}
 
 Array data can be handled with a list-column
@@ -1338,6 +1484,10 @@ data.frame(time = c(1, 2, 3, 4),
 :::
 
 Note we need to wrap with `I()`!
+
+::: footer
+In the book: [Data](https://mrc-ide.github.io/odin-monty/data.html)
+:::
 
 ## Formatting array data in the data frame {.smaller}
 
@@ -1477,6 +1627,10 @@ plot(data, pch = 19, col = "red")
 
 :::
 
+::: footer
+In the book: [Projections and counterfactuals](https://mrc-ide.github.io/odin-monty/counterfactuals.html)
+:::
+
 ## Projections and counterfactuals {.smaller}
 
 We'll fit the data to an SIS model incorporating schools opening/closing
@@ -1496,6 +1650,10 @@ sis <- odin("models/sis.R")
 
 :::
 
+::: footer
+In the book: [Projections and counterfactuals](https://mrc-ide.github.io/odin-monty/counterfactuals.html)
+:::
+
 ## Projections and counterfactuals {.smaller}
 
 ::: {style="font-size: 1.5em"}
@@ -1511,6 +1669,10 @@ We will
 
 * project forward from the end of the fits (day 150) to day 200
 * run a counterfactual where the schools did not reopen on day 60, reopening on day 130
+
+::: footer
+In the book: [Projections and counterfactuals](https://mrc-ide.github.io/odin-monty/counterfactuals.html)
+:::
 
 ## Fitting to the SIS model {.smaller}
 
@@ -1537,6 +1699,10 @@ sampler <- monty_sampler_random_walk(vcv)
 
 :::
 
+::: footer
+In the book: [Projections and counterfactuals](https://mrc-ide.github.io/odin-monty/counterfactuals.html)
+:::
+
 ## Fitting to the SIS model {.smaller}
 
 We want to save the end state, and a snapshot at day 60 (where the counterfactual will diverge)
@@ -1556,6 +1722,10 @@ samples <- monty_samples_thin(samples, burnin = 100, thinning_factor = 8)
 
 :::
 
+::: footer
+In the book: [Projections and counterfactuals](https://mrc-ide.github.io/odin-monty/counterfactuals.html)
+:::
+
 ## Fit to data {.smaller}
 
 ::: {style="font-size: 1.5em"}
@@ -1569,6 +1739,10 @@ points(data, pch = 19, col = "red")
 ```
 
 
+:::
+
+::: footer
+In the book: [Projections and counterfactuals](https://mrc-ide.github.io/odin-monty/counterfactuals.html)
 :::
 
 ## Running projection using the end state {.smaller}
@@ -1590,6 +1764,10 @@ y <- dust_unpack_state(sys, y)
 
 :::
 
+::: footer
+In the book: [Projections and counterfactuals](https://mrc-ide.github.io/odin-monty/counterfactuals.html)
+:::
+
 ## Running projection using the end state {.smaller}
 
 ::: {style="font-size: 1.5em"}
@@ -1601,6 +1779,10 @@ matlines(t, t(y$incidence), col = "blue")
 points(data, pch = 19, col = "red")
 ```
 
+:::
+
+::: footer
+In the book: [Projections and counterfactuals](https://mrc-ide.github.io/odin-monty/counterfactuals.html)
 :::
 
 ## Running counterfactual using the snapshot {.smaller}
@@ -1627,6 +1809,10 @@ y <- dust_unpack_state(sys, y)
 
 :::
 
+::: footer
+In the book: [Projections and counterfactuals](https://mrc-ide.github.io/odin-monty/counterfactuals.html)
+:::
+
 ## Running counterfactual using the snapshot {.smaller}
 
 ::: {style="font-size: 1.5em"}
@@ -1638,6 +1824,10 @@ matlines(t, t(y$incidence), col = "blue")
 points(data, pch = 19, col = "red")
 ```
 
+:::
+
+::: footer
+In the book: [Projections and counterfactuals](https://mrc-ide.github.io/odin-monty/counterfactuals.html)
 :::
 
 # Next steps
