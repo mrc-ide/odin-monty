@@ -1356,7 +1356,7 @@ likelihood <- dust_likelihood_monty(filter, packer, save_trajectories = TRUE)
 
 :::
 
-and create a prior model, then combine to create our posterior model
+and create a prior model. then combine to create our posterior model
 
 ::: {style="font-size: 1.5em"}
 
@@ -1366,13 +1366,22 @@ prior <- monty_dsl({
   gamma ~ Exponential(mean = 0.1)
   dim(beta) <- n_beta
 }, fixed = list(n_beta = 2), gradient = FALSE)
-posterior <- likelihood + prior
-posterior
 ```
 
 :::
 
 ## Fitting a time-varying parameter {.smaller}
+
+Combine to create our posterior model
+
+::: {style="font-size: 1.5em"}
+
+```{r}
+posterior <- likelihood + prior
+posterior
+```
+
+:::
 
 Create a sampler and then sample
 
@@ -1899,7 +1908,7 @@ points(data, pch = 19, col = "red")
 In the book: [Projections and counterfactuals](https://mrc-ide.github.io/odin-monty/counterfactuals.html)
 :::
 
-# Next steps
+# Next steps {.smaller}
 
 Try different samplers
 
