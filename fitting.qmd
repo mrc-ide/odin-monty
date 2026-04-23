@@ -186,7 +186,7 @@ AKA, the (bootstrap) particle filter
   2. calculates weights for the newly generated states based on $g_{\theta}(Y_{t+1}|X_{t+1})$
   3. resamples the states to keep only the good ones
 
-- Allow to explores efficiently the state space by progressively integrating the data points
+- Allows to efficiently explore the state space by progressively integrating the data points
 
 - Produces a Monte Carlo approximation of $p(Y_{1:T}|\theta)$ the marginal likelihood
 
@@ -199,6 +199,7 @@ AKA, the (bootstrap) particle filter
 ::: {style="font-size: 1.5em"}
 
 ```{r}
+data <- dust_filter_data(data, time = "time")
 filter <- dust_filter_create(sir, data = data, time_start = 0,
                              n_particles = 200, dt = 0.25)
 dust_likelihood_run(filter, list(beta = 0.4, gamma = 0.2))
@@ -1022,7 +1023,19 @@ samples <- monty_samples_thin(samples,
 * After running is more flexible (e.g. can plot full chains of parameters between running and thinning)
 
 
-## Deterministic models from stochastic
+## Dealing with sticky chains {.smaller}
+
+* Chains can get stuck when the variance of the marginal likelihood estimate is large
+* The chain has obtained a high-end marginal likelihood estimate at one parameter set and needs another high-end estimate at another parameter set to accept
+* You can increase the number of particles to reduce variance, but note this will take longer to run
+* In `monty_sampler_random_walk` you can rerun the particle filter at the current parameter set with the aim of calculating a lower estimate
+  - `rerun_every` sets how often you rerun (`rerun_every = 1000` means once every 1000 iterations)
+  - `rerun_random` defines whether this occurs randomly (TRUE) or at fixed intervals (FALSE)
+  - using the rerun comes at cost of some bias in the results
+  - also some extra runtime cost (increasing the more frequently you rerun)
+
+
+## Deterministic models from stochastic {.smaller}
 
 * Stochastic models written in odin, can be run deterministically
 * Runs by taking the expectation of any random draws
@@ -1501,6 +1514,7 @@ packer <- monty_packer(c("beta0", "gamma", "schools_modifier"),
                        fixed = list(schools_time = schools_time,
                                     schools_open = schools_open))
 
+data <- dust_filter_data(data, time = "time")
 filter <- dust_filter_create(sis, time_start = 0, dt = 0.25,
                              data = data, n_particles = 200)
 
@@ -1621,10 +1635,12 @@ points(data, pch = 19, col = "red")
 
 # Next steps
 
-* forward time predictions
-* posterior predictive checks
-* rerun filter in MCMC
-* multi-parameter models
-* deterministic (expectation) models as starting points
-* adaptive fitting (deterministic models only)
-* HMC
+Try different samplers
+
+* adaptive sampler (for deterministic models)
+
+Some under development to support odin models
+
+* Hamiltonian Monte Carlo (HMC)
+* parallel tempering
+* nested sampler for grouped models
