@@ -686,7 +686,7 @@ You can define arrays with multiline equations
 fixed = list(n_beta = 5)
 m <- monty_dsl({
   beta[1] ~ Exponential(mean = 0.3)
-  beta[2:5] ~ Exponential(mean = beta[i - 1])
+  beta[2:n_beta] ~ Exponential(mean = beta[i - 1])
   dim(beta) <- n_beta
 }, fixed = fixed, gradient = FALSE)
 ```
