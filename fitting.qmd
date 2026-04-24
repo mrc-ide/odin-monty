@@ -866,7 +866,8 @@ bayesplot::mcmc_trace(samples_df)
 ::: {style="font-size: 1.5em"}
 
 ```{r}
-matplot(drop(samples$density), type = "l", lty = 1)
+matplot(drop(samples$density),
+        type = "l", lty = 1, ylab = "density")
 ```
 
 :::
@@ -876,7 +877,8 @@ matplot(drop(samples$density), type = "l", lty = 1)
 ::: {style="font-size: 1.5em"}
 
 ```{r}
-matplot(drop(samples$density[-(1:100), ]), type = "l", lty = 1)
+matplot(drop(samples$density[-(1:100), ]), 
+        type = "l", lty = 1, ylab = "density")
 ```
 
 :::
@@ -888,7 +890,8 @@ vcv <- matrix(c(0.01, 0.005, 0.005, 0.005), 2, 2)
 sampler <- monty_sampler_random_walk(vcv)
 samples <- monty_sample(posterior, sampler, 2000, initial = samples,
                         n_chains = 4)
-matplot(samples$density, type = "l", lty = 1)
+matplot(drop(samples$density),
+        type = "l", lty = 1, ylab = "density")
 ```
 
 ## Better mixing: the results {.smaller}

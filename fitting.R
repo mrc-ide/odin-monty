@@ -172,7 +172,7 @@ m
 fixed = list(n_beta = 5)
 m <- monty_dsl({
   beta[1] ~ Exponential(mean = 0.3)
-  beta[2:5] ~ Exponential(mean = beta[i - 1])
+  beta[2:n_beta] ~ Exponential(mean = beta[i - 1])
   dim(beta) <- n_beta
 }, fixed = fixed, gradient = FALSE)
 
@@ -233,8 +233,10 @@ bayesplot::mcmc_trace(samples_df)
 
 ## The result: density over time
 
-matplot(drop(samples$density), type = "l", lty = 1)
-matplot(drop(samples$density[-(1:100), ]), type = "l", lty = 1)
+matplot(drop(samples$density),
+        type = "l", lty = 1, ylab = "density")
+matplot(drop(samples$density[-(1:100), ]), 
+        type = "l", lty = 1, ylab = "density")
 
 
 
@@ -244,7 +246,8 @@ vcv <- matrix(c(0.01, 0.005, 0.005, 0.005), 2, 2)
 sampler <- monty_sampler_random_walk(vcv)
 samples <- monty_sample(posterior, sampler, 2000, initial = samples,
                         n_chains = 4)
-matplot(samples$density, type = "l", lty = 1)
+matplot(samples$density,
+        type = "l", lty = 1, ylab = "density")
 
 
 
