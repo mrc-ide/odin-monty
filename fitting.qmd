@@ -1648,7 +1648,7 @@ points(data_age$time, cases_adult, pch = 19, col = "red")
 
 ## Projections and counterfactuals {.smaller}
 
-Let's use some new data
+Let's use some new data (the file can be downloaded [here](data/schools.csv))
 
 ::: {style="font-size: 1.5em"}
 
