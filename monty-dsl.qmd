@@ -31,8 +31,6 @@ We have model parameters
 prior$parameters
 ```
 
-These are defined in the order that they appear in your definition (so `alpha` is first and `sigma` is last)
-
 We can compute the domain for your model:
 
 ```{r}
@@ -137,3 +135,91 @@ prior <- monty_dsl({
 ```
 
 Values you pass in this way are **fixed** (hence the name!) and cannot be modified after the model object is created.
+
+## Arrays
+
+The `monty` DSL supports arrays with a similar syntax to `odin`. In this example
+
+```{r}
+fixed = list(gamma_mean = c(0.3, 0.25, 0.2))
+m <- monty_dsl({
+  alpha ~ Exponential(mean = 0.5)
+  beta[, ] ~ Normal(0, 1)
+  gamma[] ~ Exponential(mean = gamma_mean[i])
+  
+  dim(beta) <- c(2, 2)
+  dim(gamma, gamma_mean) <- 3
+}, fixed = fixed, gradient = FALSE)
+```
+
+we have two array parameters: `beta` (a 2x2 matrix) and `gamma` (a vector of length 3). Additionally, `gamma_mean` is a fixed vector of length 3.
+
+As with arrays in `odin`, all arrays used in the `monty` DSL need a `dim()` equation.
+
+Note the names of the parameters
+
+```{r}
+m$parameters
+```
+
+For indexing arrays in the DSL (again, the same as in `odin`) there is no use of `i`, `j` etc on LHS - indexing on the LHS is implicit. Support is for up to 8 dimensions, with index variables `i`, `j`, `k`, `l`, `i5`, `i6`, `i7`, `i8`. In our above example we had empty indices on the LHS, which means we will loop over the entire range of that dimension, so essentially
+
+```r
+beta[, ] ~ Normal(0, 1)
+gamma[] ~ Exponential(mean = gamma_mean[i])
+```
+
+generates loops
+
+```r
+for (i in 1:2) {
+  for (j in 1:2) {
+    beta[i, j] ~ Normal(0, 1)
+  }
+}
+for (i in 1:3) {
+  gamma[i] ~ Exponential(mean = gamma_mean[i])
+}
+
+For flexibility dimensions can be softcoded and passed in via `fixed`
+
+```{r}
+fixed = list(gamma_mean = c(0.3, 0.25, 0.2),
+             n_beta_1 = 2, n_beta_2 = 2, n_gamma = 3)
+m <- monty_dsl({
+  alpha ~ Exponential(mean = 0.5)
+  beta[, ] ~ Normal(0, 1)
+  gamma[] ~ Exponential(mean = gamma_mean[i])
+  dim(beta) <- c(n_beta_1, n_beta_2)
+  dim(gamma, gamma_mean) <- n_gamma
+}, fixed = fixed, gradient = FALSE)
+m
+```
+
+You can define arrays with multiline equations
+
+```{r}
+fixed = list(n_beta = 5)
+m <- monty_dsl({
+  beta[1] ~ Exponential(mean = 0.3)
+  beta[2:n_beta] ~ Exponential(mean = beta[i - 1])
+  dim(beta) <- n_beta
+}, fixed = fixed, gradient = FALSE)
+```
+
+but collectively the equations need to define all elements of the array, and each element can only be defined once.
+
+Elements of an array can depend upon other elements of the same array that are defined earlier. We can see this in our previous example
+
+```r
+beta[1] ~ Exponential(mean = 0.3)
+beta[2:5] ~ Exponential(mean = beta[i - 1])
+```
+which becomes clearer when we think how the loop will be generated
+
+```r
+beta[1] ~ Exponential(mean = 0.3)
+for (i in 2:5) {
+  beta[i] ~ Exponential(mean = beta[i - 1])
+}
+```
