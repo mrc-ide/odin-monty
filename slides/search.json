@@ -1,0 +1,919 @@
+[
+  {
+    "objectID": "fitting.html#a-pragmatic-introduction",
+    "href": "fitting.html#a-pragmatic-introduction",
+    "title": "Fitting odin models with monty",
+    "section": "A pragmatic introduction",
+    "text": "A pragmatic introduction\n\n\nlibrary(odin2)\nlibrary(dust2)\nlibrary(monty)\n\n\n A script containing the code featured in these slides can be downloaded here."
+  },
+  {
+    "objectID": "fitting.html#previously-on-introduction-to-odin",
+    "href": "fitting.html#previously-on-introduction-to-odin",
+    "title": "Fitting odin models with monty",
+    "section": "Previously, on “Introduction to odin”",
+    "text": "Previously, on “Introduction to odin”\n\nWe created some simple compartmental models\nWe ran these and observed trajectories over time\nWe saw that stochastic models produce a family of trajectories"
+  },
+  {
+    "objectID": "fitting.html#the-data",
+    "href": "fitting.html#the-data",
+    "title": "Fitting odin models with monty",
+    "section": "The data",
+    "text": "The data\nWe have some data on the daily incidence of cases (the data can be downloaded here)\n\n\ndata &lt;- read.csv(\"data/incidence.csv\")\nhead(data)\n#&gt;   time cases\n#&gt; 1    1    12\n#&gt; 2    2    23\n#&gt; 3    3    25\n#&gt; 4    4    36\n#&gt; 5    5    30\n#&gt; 6    6    57"
+  },
+  {
+    "objectID": "fitting.html#the-data-1",
+    "href": "fitting.html#the-data-1",
+    "title": "Fitting odin models with monty",
+    "section": "The data",
+    "text": "The data\n\n\nplot(data, pch = 19, col = \"red\")"
+  },
+  {
+    "objectID": "fitting.html#our-model",
+    "href": "fitting.html#our-model",
+    "title": "Fitting odin models with monty",
+    "section": "Our model",
+    "text": "Our model\nWe’ll fit these data to a model - estimating the unknown parameters beta and gamma\n\nsir &lt;- odin({\n  update(S) &lt;- S - n_SI\n  update(I) &lt;- I + n_SI - n_IR\n  update(R) &lt;- R + n_IR\n  update(incidence) &lt;- incidence + n_SI\n  \n  p_SI &lt;- 1 - exp(-beta * I / N * dt)\n  p_IR &lt;- 1 - exp(-gamma * dt)\n  n_SI &lt;- Binomial(S, p_SI)\n  n_IR &lt;- Binomial(I, p_IR)\n  \n  initial(S) &lt;- N - I0\n  initial(I) &lt;- I0\n  initial(R) &lt;- 0\n  initial(incidence, zero_every = 1) &lt;- 0\n  \n  N &lt;- parameter(1000)\n  I0 &lt;- parameter(10)\n  beta &lt;- parameter(0.2)\n  gamma &lt;- parameter(0.1)\n})"
+  },
+  {
+    "objectID": "fitting.html#adding-likelihood-to-the-model",
+    "href": "fitting.html#adding-likelihood-to-the-model",
+    "title": "Fitting odin models with monty",
+    "section": "Adding likelihood to the model",
+    "text": "Adding likelihood to the model\n\nsir &lt;- odin({\n  update(S) &lt;- S - n_SI\n  update(I) &lt;- I + n_SI - n_IR\n  update(R) &lt;- R + n_IR\n  update(incidence) &lt;- incidence + n_SI\n  \n  initial(S) &lt;- N - I0\n  initial(I) &lt;- I0\n  initial(R) &lt;- 0\n  initial(incidence, zero_every = 1) &lt;- 0\n  \n  p_SI &lt;- 1 - exp(-beta * I / N * dt)\n  p_IR &lt;- 1 - exp(-gamma * dt)\n  n_SI &lt;- Binomial(S, p_SI)\n  n_IR &lt;- Binomial(I, p_IR)\n  \n  N &lt;- parameter(1000)\n  I0 &lt;- parameter(10)\n  beta &lt;- parameter(0.2)\n  gamma &lt;- parameter(0.1)\n  \n  cases &lt;- data()\n  cases ~ Poisson(incidence)\n})"
+  },
+  {
+    "objectID": "fitting.html#adding-likelihood-to-the-model-1",
+    "href": "fitting.html#adding-likelihood-to-the-model-1",
+    "title": "Fitting odin models with monty",
+    "section": "Adding likelihood to the model",
+    "text": "Adding likelihood to the model\nWe have added to the model:\n\ncases &lt;- data()\ncases ~ Poisson(incidence)\n\n\nWe are declaring that\n\ncases is a data variable\nit relates to incidence in the model via a Poisson distribution\n\n\n\nNote the two types of equations involving distributions:\n\n~ indicates a likelihood relationship\n&lt;- is for assignments (that can involve random draws)\n\nBeyond that syntax for distributions is the same.\n\nIn the book: Data"
+  },
+  {
+    "objectID": "fitting.html#adding-likelihood-to-the-model-2",
+    "href": "fitting.html#adding-likelihood-to-the-model-2",
+    "title": "Fitting odin models with monty",
+    "section": "Adding likelihood to the model",
+    "text": "Adding likelihood to the model\nYou can use data variables on the RHS as well\n\nn_positives &lt;- data()\nn_tests &lt;- data()\nn_positives ~ Binomial(n_tests, prob_positive)\n\nand parameters\n\ncases &lt;- data()\nkappa &lt;- parameter()\ncases ~ NegativeBinomial(size = kappa, mean = incidence)\n\nThe distributions supported for likelihoods are the same as those supported for random draws - a full list with their names and parameterisations can be found here.\n\nIn the book: Data"
+  },
+  {
+    "objectID": "fitting.html#state-space-models",
+    "href": "fitting.html#state-space-models",
+    "title": "Fitting odin models with monty",
+    "section": "State space models",
+    "text": "State space models\n\nA state space model (SSM) is a mathematical framework for modelling a dynamical system.\nIt is built around two processes:\n\nstate equations that describes the evolution of some latent variables (also referred as “hidden” states) over time\nobservation equations that relates the observations to the latent variables."
+  },
+  {
+    "objectID": "fitting.html#can-you-be-more-precise",
+    "href": "fitting.html#can-you-be-more-precise",
+    "title": "Fitting odin models with monty",
+    "section": "Can you be more precise?",
+    "text": "Can you be more precise?\n\n\n\\(x_{t, 1 \\leq t \\leq T}\\) the hidden states of the system\n\\(y_{t, 1 \\leq t \\leq T}\\) the observations\n\\(f_{\\theta}\\) the state transition function\n\\(g_{\\theta}\\) the observation (likelihood) function\n\\(t\\) is often time\n\\(\\theta\\) defines the model"
+  },
+  {
+    "objectID": "fitting.html#two-common-problems",
+    "href": "fitting.html#two-common-problems",
+    "title": "Fitting odin models with monty",
+    "section": "Two common problems",
+    "text": "Two common problems\n\n\nTwo common needs\n\n“Filtering” i.e. estimate the hidden states \\(x_{t}\\) from the observations \\(y_t\\)\n“Inference” i.e. estimate the \\(\\theta\\)’s compatible with the observations \\(y_{t}\\)"
+  },
+  {
+    "objectID": "fitting.html#sequential-monte-carlo-smc",
+    "href": "fitting.html#sequential-monte-carlo-smc",
+    "title": "Fitting odin models with monty",
+    "section": "Sequential Monte Carlo (SMC)",
+    "text": "Sequential Monte Carlo (SMC)\nAKA, the (bootstrap) particle filter\n\nAssuming a given \\(\\theta\\), at each time step \\(t\\) it\n\ngenerates \\(X_{t+1}^N\\) by using \\(f_{\\theta}(X_{t+1}^N|X_{t}^N)\\) (the \\(N\\) particles)\ncalculates weights for the newly generated states based on \\(g_{\\theta}(Y_{t+1}|X_{t+1})\\)\nresamples the states to keep only the good ones\n\nAllows to efficiently explore the state space by progressively integrating the data points\nProduces a Monte Carlo approximation of \\(p(Y_{1:T}|\\theta)\\) the marginal likelihood"
+  },
+  {
+    "objectID": "fitting.html#calculating-likelihood-particle-filtering",
+    "href": "fitting.html#calculating-likelihood-particle-filtering",
+    "title": "Fitting odin models with monty",
+    "section": "Calculating likelihood: particle filtering",
+    "text": "Calculating likelihood: particle filtering"
+  },
+  {
+    "objectID": "fitting.html#calculating-likelihood",
+    "href": "fitting.html#calculating-likelihood",
+    "title": "Fitting odin models with monty",
+    "section": "Calculating likelihood",
+    "text": "Calculating likelihood\n\n\ndata &lt;- dust_filter_data(data, time = \"time\")\nfilter &lt;- dust_filter_create(sir, data = data, time_start = 0,\n                             n_particles = 200, dt = 0.25)\ndust_likelihood_run(filter, list(beta = 0.4, gamma = 0.2))\n#&gt; [1] -92.89566\n\n\n\nThe system runs stochastically, and the likelihood is different each time:\n\n\ndust_likelihood_run(filter, list(beta = 0.4, gamma = 0.2))\n#&gt; [1] -93.37538\ndust_likelihood_run(filter, list(beta = 0.4, gamma = 0.2))\n#&gt; [1] -88.08544"
+  },
+  {
+    "objectID": "fitting.html#filtered-trajectories",
+    "href": "fitting.html#filtered-trajectories",
+    "title": "Fitting odin models with monty",
+    "section": "Filtered trajectories",
+    "text": "Filtered trajectories\n\nCodePlot\n\n\n\ndust_likelihood_run(filter, list(beta = 0.4, gamma = 0.2),\n                    save_trajectories = TRUE)\ny &lt;- dust_likelihood_last_trajectories(filter)\ny &lt;- dust_unpack_state(filter, y)\nmatplot(data$time, t(y$incidence), type = \"l\", col = \"#00000044\", lty = 1,\n        xlab = \"Time\", ylab = \"Incidence\")\npoints(data, pch = 19, col = \"red\")"
+  },
+  {
+    "objectID": "fitting.html#parameters",
+    "href": "fitting.html#parameters",
+    "title": "Fitting odin models with monty",
+    "section": "“Parameters”",
+    "text": "“Parameters”\n\nOur filter takes a list of beta and gamma, pars\n\nit could take all sorts of other things, not all of which are to be estimated\nsome of the inputs might be vectors or matrices\n\nOur MCMC takes an unstructured vector \\(\\theta\\)\n\nwe propose a new \\(\\theta^*\\) via some kernel, say a multivariate normal requiring a matrix of parameters corresponding to \\(\\theta\\)\nwe need a prior over \\(\\theta\\), but not necessarily every element of pars\n\nSmoothing this over is a massive nuisance\n\nsome way of mapping from \\(\\theta\\) to pars (and back again)"
+  },
+  {
+    "objectID": "fitting.html#parameter-packers",
+    "href": "fitting.html#parameter-packers",
+    "title": "Fitting odin models with monty",
+    "section": "Parameter packers",
+    "text": "Parameter packers\nOur solution, “packers”\n\n\npacker &lt;- monty_packer(c(\"beta\", \"gamma\"))\npacker\n#&gt; \n#&gt; ── &lt;monty_packer&gt; ──────────────────────────────────────────────────────────────\n#&gt; ℹ Packing 2 parameters: 'beta' and 'gamma'\n#&gt; ℹ Use '$pack()' to convert from a list to a vector\n#&gt; ℹ Use '$unpack()' to convert from a vector to a list\n#&gt; ℹ See `?monty_packer()` for more information"
+  },
+  {
+    "objectID": "fitting.html#parameter-packers-1",
+    "href": "fitting.html#parameter-packers-1",
+    "title": "Fitting odin models with monty",
+    "section": "Parameter packers",
+    "text": "Parameter packers\nWe can transform from \\(\\theta\\) to a named list:\n\n\npacker$unpack(c(0.2, 0.1))\n#&gt; $beta\n#&gt; [1] 0.2\n#&gt; \n#&gt; $gamma\n#&gt; [1] 0.1\n\n\nand back the other way:\n\n\npacker$pack(c(beta = 0.2, gamma = 0.1))\n#&gt; [1] 0.2 0.1"
+  },
+  {
+    "objectID": "fitting.html#parameter-packers-2",
+    "href": "fitting.html#parameter-packers-2",
+    "title": "Fitting odin models with monty",
+    "section": "Parameter packers",
+    "text": "Parameter packers\nYou can bind fixed parameters by passing them in as a named list as the (optional) fixed argument\n\n\npacker &lt;- monty_packer(c(\"beta\", \"gamma\"), fixed = list(I0 = 5))\npacker$unpack(c(0.2, 0.1))\n#&gt; $beta\n#&gt; [1] 0.2\n#&gt; \n#&gt; $gamma\n#&gt; [1] 0.1\n#&gt; \n#&gt; $I0\n#&gt; [1] 5"
+  },
+  {
+    "objectID": "fitting.html#parameter-packers-3",
+    "href": "fitting.html#parameter-packers-3",
+    "title": "Fitting odin models with monty",
+    "section": "Parameter packers",
+    "text": "Parameter packers\nCope with vector- (or array-) parameters in \\(\\theta\\) by declaring their dimensions as a named list passed in as the array argument. Fixed array parameters are just included in fixed.\n\n\npacker &lt;- monty_packer(c(\"beta\", \"gamma\"),\n                       array = list(alpha = 3, delta = c(2, 2)),\n                       fixed = list(eta = c(1, 3, 5)))\npacker\n#&gt; \n#&gt; ── &lt;monty_packer&gt; ──────────────────────────────────────────────────────────────\n#&gt; ℹ Packing 9 parameters: 'beta', 'gamma', 'alpha[1]', 'alpha[2]', 'alpha[3]', 'delta[1,1]', 'delta[2,1]', 'delta[1,2]', and 'delta[2,2]'\n#&gt; ℹ Use '$pack()' to convert from a list to a vector\n#&gt; ℹ Use '$unpack()' to convert from a vector to a list\n#&gt; ℹ See `?monty_packer()` for more information\npacker$unpack(c(0.2, 0.1, 0.31, 0.32, 0.33, 0.15, 0.16, 0.17, 0.18))\n#&gt; $beta\n#&gt; [1] 0.2\n#&gt; \n#&gt; $gamma\n#&gt; [1] 0.1\n#&gt; \n#&gt; $alpha\n#&gt; [1] 0.31 0.32 0.33\n#&gt; \n#&gt; $delta\n#&gt;      [,1] [,2]\n#&gt; [1,] 0.15 0.17\n#&gt; [2,] 0.16 0.18\n#&gt; \n#&gt; $eta\n#&gt; [1] 1 3 5"
+  },
+  {
+    "objectID": "fitting.html#the-monty-dsl",
+    "href": "fitting.html#the-monty-dsl",
+    "title": "Fitting odin models with monty",
+    "section": "The monty DSL",
+    "text": "The monty DSL\nWorking in a Bayesian framework, we will need to construct a prior distribution model for our parameters.\nIntroducing the monty DSL, similar to odin’s:\n\n\nprior &lt;- monty_dsl({\n  beta ~ Exponential(mean = 0.5)\n  gamma ~ Exponential(mean = 0.3)\n})\n\n\nThe distributions supported in the monty DSL are the same as those in odin2 - a full list with their names and parameterisations can be found here.\n\nIn the book: The monty DSL"
+  },
+  {
+    "objectID": "fitting.html#the-monty-dsl-1",
+    "href": "fitting.html#the-monty-dsl-1",
+    "title": "Fitting odin models with monty",
+    "section": "The monty DSL",
+    "text": "The monty DSL\nThe monty DSL creates a “monty model”\n\n\nprior\n#&gt; \n#&gt; ── &lt;monty_model&gt; ───────────────────────────────────────────────────────────────\n#&gt; ℹ Model has 2 parameters: 'beta' and 'gamma'\n#&gt; ℹ This model:\n#&gt; • can compute gradients\n#&gt; • can be directly sampled from\n#&gt; • accepts multiple parameters\n#&gt; ℹ See `?monty_model()` for more information\n\n\n\nIn the book: The monty DSL"
+  },
+  {
+    "objectID": "fitting.html#the-monty-dsl-2",
+    "href": "fitting.html#the-monty-dsl-2",
+    "title": "Fitting odin models with monty",
+    "section": "The monty DSL",
+    "text": "The monty DSL\nYou can see the parameter names of the created model\n\n\nprior$parameters\n#&gt; [1] \"beta\"  \"gamma\"\n\n\n\nWe can evaluate the (log) density for a given parameter vector (the order of parameters matches the above)\n\n\nprior$density(c(0.2, 0.1))\n#&gt; [1] 1.163787\n\n\ncompare with computing this density manually:\n\n\ndexp(0.2, 1 / 0.5, log = TRUE) + dexp(0.1, 1 / 0.3, log = TRUE)\n#&gt; [1] 1.163787\n\n\n\nIn the book: The monty DSL"
+  },
+  {
+    "objectID": "fitting.html#the-monty-dsl-3",
+    "href": "fitting.html#the-monty-dsl-3",
+    "title": "Fitting odin models with monty",
+    "section": "The monty DSL",
+    "text": "The monty DSL\nWe can direct sample from the model using a monty_rng object\n\n\nrng &lt;- monty_rng_create()\nprior$direct_sample(rng)\n#&gt; [1] 0.43108958 0.05549291\n\n\nand evaluate the gradient for a given parameter vector (via automatic differentiation)\n\n\nprior$gradient(c(0.2, 0.1))\n#&gt; [1] -2.000000 -3.333333\n\n\nWhich can be used for Hamiltonian Monte Carlo (HMC) - more support for this in future!\n\nIn the book: The monty DSL"
+  },
+  {
+    "objectID": "fitting.html#the-monty-dsl-4",
+    "href": "fitting.html#the-monty-dsl-4",
+    "title": "Fitting odin models with monty",
+    "section": "The monty DSL",
+    "text": "The monty DSL\nIn the monty DSL you can have the distribution of one parameter depend upon another\n\n\nm &lt;- monty_dsl({\n  a ~ Normal(0, 1)\n  b ~ Normal(a, 1)\n})\nm\n#&gt; \n#&gt; ── &lt;monty_model&gt; ───────────────────────────────────────────────────────────────\n#&gt; ℹ Model has 2 parameters: 'a' and 'b'\n#&gt; ℹ This model:\n#&gt; • can compute gradients\n#&gt; • can be directly sampled from\n#&gt; • accepts multiple parameters\n#&gt; ℹ See `?monty_model()` for more information\n\n\n\nIn the book: The monty DSL"
+  },
+  {
+    "objectID": "fitting.html#the-monty-dsl-5",
+    "href": "fitting.html#the-monty-dsl-5",
+    "title": "Fitting odin models with monty",
+    "section": "The monty DSL",
+    "text": "The monty DSL\nOrder matters in the monty DSL - you cannot have the distribution of a parameter depend upon one defined later, so switching the order in our previous model results in an error\n\n\nm &lt;- monty_dsl({\n  b ~ Normal(a, 1)\n  a ~ Normal(0, 1)\n})\n#&gt; Error in `monty_dsl()`:\n#&gt; ! Invalid use of variable 'a'\n#&gt; → In expression\n#&gt; b ~ Normal(a, 1)\n#&gt; \n#&gt; ℹ 'a' is defined later:\n#&gt; a ~ Normal(0, 1)\n#&gt; ℹ For more information, run `monty::monty_dsl_error_explain(\"E205\")`\n\n\n\nIn the book: The monty DSL"
+  },
+  {
+    "objectID": "fitting.html#the-monty-dsl-6",
+    "href": "fitting.html#the-monty-dsl-6",
+    "title": "Fitting odin models with monty",
+    "section": "The monty DSL",
+    "text": "The monty DSL\nYou can use assignments to help make your code more understandable\n\n\nm &lt;- monty_dsl({\n  mu &lt;- 10\n  sd &lt;- 2\n  a ~ Normal(mu, sd)\n})\n\n\nthese can also be used for intermediate calculations\n\n\nm &lt;- monty_dsl({\n  a ~ Normal(0, 1)\n  b ~ Normal(0, 1)\n  mu &lt;- (a + b) / 2\n  c ~ Normal(mu, 1)\n})\n\n\n\nIn the book: The monty DSL"
+  },
+  {
+    "objectID": "fitting.html#the-monty-dsl-7",
+    "href": "fitting.html#the-monty-dsl-7",
+    "title": "Fitting odin models with monty",
+    "section": "The monty DSL",
+    "text": "The monty DSL\nYou can softcode values by passing them in as a list via fixed, e.g.\n\n\nm &lt;- monty_dsl({\n  alpha ~ Normal(178, 20)\n  beta ~ Normal(0, 10)\n  sigma ~ Uniform(0, 50)\n})\n\n\ncan be implemented as\n\n\nfixed &lt;- list(alpha_mean = 170, alpha_sd = 20,\n              beta_mean = 0, beta_sd = 10,\n              sigma_max = 50)\nm &lt;- monty_dsl({\n  alpha ~ Normal(alpha_mean, alpha_sd)\n  beta ~ Normal(beta_mean, beta_sd)\n  sigma ~ Uniform(0, sigma_max)\n}, fixed = fixed)\n\n\nNote that the fixed values cannot be modified after the model object has been created.\n\nIn the book: The monty DSL"
+  },
+  {
+    "objectID": "fitting.html#the-monty-dsl-8",
+    "href": "fitting.html#the-monty-dsl-8",
+    "title": "Fitting odin models with monty",
+    "section": "The monty DSL",
+    "text": "The monty DSL\nThe monty DSL supports arrays with a similar syntax to odin.\n\n\nfixed = list(gamma_mean = c(0.3, 0.25, 0.2))\nm &lt;- monty_dsl({\n  alpha ~ Exponential(mean = 0.5)\n  beta[, ] ~ Normal(0, 1)\n  gamma[] ~ Exponential(mean = gamma_mean[i])\n  dim(beta) &lt;- c(2, 2)\n  dim(gamma, gamma_mean) &lt;- 3\n}, fixed = fixed, gradient = FALSE)\nm\n#&gt; \n#&gt; ── &lt;monty_model&gt; ───────────────────────────────────────────────────────────────\n#&gt; ℹ Model has 8 parameters: 'alpha', 'beta[1,1]', 'beta[2,1]', 'beta[1,2]', 'beta[2,2]', 'gamma[1]', 'gamma[2]', and 'gamma[3]'\n#&gt; ℹ This model:\n#&gt; • can be directly sampled from\n#&gt; • accepts multiple parameters\n#&gt; ℹ See `?monty_model()` for more information\n\n\n\nIn the book: The monty DSL"
+  },
+  {
+    "objectID": "fitting.html#the-monty-dsl-9",
+    "href": "fitting.html#the-monty-dsl-9",
+    "title": "Fitting odin models with monty",
+    "section": "The monty DSL",
+    "text": "The monty DSL\n\nAll arrays need a dim() equation\nNo use of i, j etc on LHS - indexing on the LHS is implicit\nSupport for up to 8 dimensions, with index variables i, j, k, l, i5, i6, i7, i8\n\n\nbeta[, ] ~ Normal(0, 1)\ngamma[] ~ Exponential(mean = gamma_mean[i])\n\nessentially generates loops\n\nfor (i in 1:2) {\n  for (j in 1:2) {\n    beta[i, j] ~ Normal(0, 1)\n  }\n}\nfor (i in 1:3) {\n  gamma[i] ~ Exponential(mean = gamma_mean[i])\n}\n\n\nIn the book: The monty DSL"
+  },
+  {
+    "objectID": "fitting.html#the-monty-dsl-10",
+    "href": "fitting.html#the-monty-dsl-10",
+    "title": "Fitting odin models with monty",
+    "section": "The monty DSL",
+    "text": "The monty DSL\nFor flexibility dimensions can be softcoded and passed in via fixed\n\n\nfixed = list(gamma_mean = c(0.3, 0.25, 0.2),\n             n_beta_1 = 2, n_beta_2 = 2, n_gamma = 3)\nm &lt;- monty_dsl({\n  alpha ~ Exponential(mean = 0.5)\n  beta[, ] ~ Normal(0, 1)\n  gamma[] ~ Exponential(mean = gamma_mean[i])\n  dim(beta) &lt;- c(n_beta_1, n_beta_2)\n  dim(gamma, gamma_mean) &lt;- n_gamma\n}, fixed = fixed, gradient = FALSE)\nm\n#&gt; \n#&gt; ── &lt;monty_model&gt; ───────────────────────────────────────────────────────────────\n#&gt; ℹ Model has 8 parameters: 'alpha', 'beta[1,1]', 'beta[2,1]', 'beta[1,2]', 'beta[2,2]', 'gamma[1]', 'gamma[2]', and 'gamma[3]'\n#&gt; ℹ This model:\n#&gt; • can be directly sampled from\n#&gt; • accepts multiple parameters\n#&gt; ℹ See `?monty_model()` for more information\n\n\n\nIn the book: The monty DSL"
+  },
+  {
+    "objectID": "fitting.html#the-monty-dsl-11",
+    "href": "fitting.html#the-monty-dsl-11",
+    "title": "Fitting odin models with monty",
+    "section": "The monty DSL",
+    "text": "The monty DSL\nYou can define arrays with multiline equations\n\n\nfixed = list(n_beta = 5)\nm &lt;- monty_dsl({\n  beta[1] ~ Exponential(mean = 0.3)\n  beta[2:n_beta] ~ Exponential(mean = beta[i - 1])\n  dim(beta) &lt;- n_beta\n}, fixed = fixed, gradient = FALSE)\n\n\nbut collectively the equations need to define all elements of the array, and each element can only be defined once.\n\nIn the book: The monty DSL"
+  },
+  {
+    "objectID": "fitting.html#the-monty-dsl-12",
+    "href": "fitting.html#the-monty-dsl-12",
+    "title": "Fitting odin models with monty",
+    "section": "The monty DSL",
+    "text": "The monty DSL\nElements of an array can depend upon other elements of the same array that are defined earlier.\nWe can see that in our previous example\n\nbeta[1] ~ Exponential(mean = 0.3)\nbeta[2:5] ~ Exponential(mean = beta[i - 1])\n\nwhich becomes clearer when we think how the loop will be generated\n\nbeta[1] ~ Exponential(mean = 0.3)\nfor (i in 2:5) {\n  beta[i] ~ Exponential(mean = beta[i - 1])\n}\n\n\nIn the book: The monty DSL"
+  },
+  {
+    "objectID": "fitting.html#from-a-dust-filter-to-a-monty-model",
+    "href": "fitting.html#from-a-dust-filter-to-a-monty-model",
+    "title": "Fitting odin models with monty",
+    "section": "From a dust filter to a monty model",
+    "text": "From a dust filter to a monty model\n\n\nfilter\n#&gt; \n#&gt; ── &lt;dust_likelihood (odin_system)&gt; ─────────────────────────────────────────────\n#&gt; ℹ 4 state x 200 particles\n#&gt; ℹ The likelihood is stochastic\n#&gt; ℹ This system runs in discrete time with dt = 0.25\n#&gt; ℹ Use coef() (`?stats::coef()`) to get more information on parameters\n\n\n\nCombine a filter and a packer\n\n\npacker &lt;- monty_packer(c(\"beta\", \"gamma\"))\nlikelihood &lt;- dust_likelihood_monty(filter, packer)\nlikelihood\n#&gt; \n#&gt; ── &lt;monty_model&gt; ───────────────────────────────────────────────────────────────\n#&gt; ℹ Model has 2 parameters: 'beta' and 'gamma'\n#&gt; ℹ This model:\n#&gt; • is stochastic\n#&gt; ℹ See `?monty_model()` for more information\n\n\n\nIn the book: Inference"
+  },
+  {
+    "objectID": "fitting.html#posterior-from-likelihood-and-prior",
+    "href": "fitting.html#posterior-from-likelihood-and-prior",
+    "title": "Fitting odin models with monty",
+    "section": "Posterior from likelihood and prior",
+    "text": "Posterior from likelihood and prior\nCombine a likelihood and a prior to make a posterior\n\\[\n\\underbrace{\\Pr(\\theta | \\mathrm{data})}_{\\mathrm{posterior}} \\propto \\underbrace{\\Pr(\\mathrm{data} | \\theta)}_\\mathrm{likelihood} \\times \\underbrace{P(\\theta)}_{\\mathrm{prior}}\n\\]\n\n\n\nposterior &lt;- likelihood + prior\nposterior\n#&gt; \n#&gt; ── &lt;monty_model&gt; ───────────────────────────────────────────────────────────────\n#&gt; ℹ Model has 2 parameters: 'beta' and 'gamma'\n#&gt; ℹ This model:\n#&gt; • can be directly sampled from\n#&gt; • is stochastic\n#&gt; ℹ See `?monty_model()` for more information\n\n\n(remember that addition is multiplication on a log scale)"
+  },
+  {
+    "objectID": "fitting.html#create-a-sampler",
+    "href": "fitting.html#create-a-sampler",
+    "title": "Fitting odin models with monty",
+    "section": "Create a sampler",
+    "text": "Create a sampler\nA diagonal variance-covariance matrix (uncorrelated parameters)\n\n\nvcv &lt;- diag(2) * 0.2\nvcv\n#&gt;      [,1] [,2]\n#&gt; [1,]  0.2  0.0\n#&gt; [2,]  0.0  0.2\n\n\nUse this to create a “random walk” sampler:\n\n\nsampler &lt;- monty_sampler_random_walk(vcv)\nsampler\n#&gt; \n#&gt; ── &lt;monty_sampler: Random walk (monty_random_walk)&gt; ────────────────────────────\n#&gt; ℹ Use `?monty_sample()` to use this sampler\n#&gt; ℹ See `?monty_random_walk()` for more information\n\n\n\nIn the book: Samplers and inference"
+  },
+  {
+    "objectID": "fitting.html#lets-sample",
+    "href": "fitting.html#lets-sample",
+    "title": "Fitting odin models with monty",
+    "section": "Let’s sample!",
+    "text": "Let’s sample!\nWe will sample 4 chains, each with 1000 steps\n\n\nsamples &lt;- monty_sample(posterior, sampler, 1000, n_chains = 3)\nsamples\n#&gt; \n#&gt; ── &lt;monty_samples: 2 parameters x 1000 samples x 3 chains&gt; ─────────────────────\n#&gt; ℹ Parameters: 'beta' and 'gamma'\n#&gt; ℹ Conversion to other types is possible:\n#&gt; → ! posterior::as_draws_array() [package installed, but not loaded]\n#&gt; → ! posterior::as_draws_df() [package installed, but not loaded]\n#&gt; → ! coda::as.mcmc.list() [package installed, but not loaded]\n#&gt; ℹ See `?monty_sample()` and `vignette(\"samples\")` for more information\n\n\n\nIn the book: Inference"
+  },
+  {
+    "objectID": "fitting.html#the-result-diagnostics",
+    "href": "fitting.html#the-result-diagnostics",
+    "title": "Fitting odin models with monty",
+    "section": "The result: diagnostics",
+    "text": "The result: diagnostics\n\nDiagnostics can be used from the posterior package\n\n## Note: as_draws_df converts samples$pars, and drops anything else in samples\nsamples_df &lt;- posterior::as_draws_df(samples)\nposterior::summarise_draws(samples_df)\n#&gt; # A tibble: 2 × 10\n#&gt;   variable  mean median    sd   mad    q5   q95  rhat ess_bulk ess_tail\n#&gt;   &lt;chr&gt;    &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;\n#&gt; 1 beta     0.866  0.831 0.153 0.152 0.658 1.15   1.05     50.8     68.8\n#&gt; 2 gamma    0.549  0.545 0.119 0.115 0.381 0.728  1.04     50.5     77.1"
+  },
+  {
+    "objectID": "fitting.html#the-results-parameters",
+    "href": "fitting.html#the-results-parameters",
+    "title": "Fitting odin models with monty",
+    "section": "The results: parameters",
+    "text": "The results: parameters\nYou can use the posterior package in conjunction with bayesplot (and then also ggplot2)\n\n\nbayesplot::mcmc_scatter(samples_df)"
+  },
+  {
+    "objectID": "fitting.html#the-result-traceplots",
+    "href": "fitting.html#the-result-traceplots",
+    "title": "Fitting odin models with monty",
+    "section": "The result: traceplots",
+    "text": "The result: traceplots\n\n\nbayesplot::mcmc_trace(samples_df)"
+  },
+  {
+    "objectID": "fitting.html#the-result-density-over-time",
+    "href": "fitting.html#the-result-density-over-time",
+    "title": "Fitting odin models with monty",
+    "section": "The result: density over time",
+    "text": "The result: density over time\n\n\nmatplot(drop(samples$density),\n        type = \"l\", lty = 1, ylab = \"density\")"
+  },
+  {
+    "objectID": "fitting.html#the-result-density-over-time-1",
+    "href": "fitting.html#the-result-density-over-time-1",
+    "title": "Fitting odin models with monty",
+    "section": "The result: density over time",
+    "text": "The result: density over time\n\n\nmatplot(drop(samples$density[-(1:100), ]), \n        type = \"l\", lty = 1, ylab = \"density\")"
+  },
+  {
+    "objectID": "fitting.html#better-mixing",
+    "href": "fitting.html#better-mixing",
+    "title": "Fitting odin models with monty",
+    "section": "Better mixing",
+    "text": "Better mixing\n\nvcv &lt;- matrix(c(0.01, 0.005, 0.005, 0.005), 2, 2)\nsampler &lt;- monty_sampler_random_walk(vcv)\nsamples &lt;- monty_sample(posterior, sampler, 2000, initial = samples,\n                        n_chains = 4)\nmatplot(drop(samples$density),\n        type = \"l\", lty = 1, ylab = \"density\")"
+  },
+  {
+    "objectID": "fitting.html#better-mixing-the-results",
+    "href": "fitting.html#better-mixing-the-results",
+    "title": "Fitting odin models with monty",
+    "section": "Better mixing: the results",
+    "text": "Better mixing: the results\n\n\nsamples_df &lt;- posterior::as_draws_df(samples)\nposterior::summarise_draws(samples_df)\n#&gt; # A tibble: 2 × 10\n#&gt;   variable  mean median    sd    mad    q5   q95  rhat ess_bulk ess_tail\n#&gt;   &lt;chr&gt;    &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;\n#&gt; 1 beta     0.851  0.835 0.131 0.120  0.667 1.09   1.01     338.     388.\n#&gt; 2 gamma    0.539  0.524 0.107 0.0944 0.393 0.737  1.00     301.     286."
+  },
+  {
+    "objectID": "fitting.html#better-mixing-the-results-1",
+    "href": "fitting.html#better-mixing-the-results-1",
+    "title": "Fitting odin models with monty",
+    "section": "Better mixing: the results",
+    "text": "Better mixing: the results\n\n\nbayesplot::mcmc_scatter(samples_df)"
+  },
+  {
+    "objectID": "fitting.html#better-mixing-the-results-2",
+    "href": "fitting.html#better-mixing-the-results-2",
+    "title": "Fitting odin models with monty",
+    "section": "Better mixing: the results",
+    "text": "Better mixing: the results\n\n\nbayesplot::mcmc_trace(samples_df)"
+  },
+  {
+    "objectID": "fitting.html#configure-the-filter",
+    "href": "fitting.html#configure-the-filter",
+    "title": "Fitting odin models with monty",
+    "section": "Configure the filter",
+    "text": "Configure the filter\nUse the n_threads argument, here for 4 threads\n\n\nfilter &lt;- dust_filter_create(sir, data = data, time_start = 0,\n                             n_particles = 200, dt = 0.25, n_threads = 4)\n\n\nrequires that you have OpenMP.\n\nIn the book: Parallelisation"
+  },
+  {
+    "objectID": "fitting.html#configure-a-parallel-runner",
+    "href": "fitting.html#configure-a-parallel-runner",
+    "title": "Fitting odin models with monty",
+    "section": "Configure a parallel runner",
+    "text": "Configure a parallel runner\nUse monty_runner_callr, here for 2 workers\n\n\nrunner &lt;- monty_runner_callr(2)\n\n\nPass runner through to monty_sample:\n\n\nsamples &lt;- monty_sample(posterior, sampler, 1000,\n                        runner = runner, n_chains = 4)\n\n\n\nIn the book: Parallelisation"
+  },
+  {
+    "objectID": "fitting.html#run-chains-on-different-cluster-nodes",
+    "href": "fitting.html#run-chains-on-different-cluster-nodes",
+    "title": "Fitting odin models with monty",
+    "section": "Run chains on different cluster nodes",
+    "text": "Run chains on different cluster nodes\n\nmonty_sample_manual_prepare(posterior, sampler, 10000, \"mypath\",\n                            n_chains = 10)\n\nThen run these chains in parallel on your cluster:\n\nmonty_sample_manual_run(1, \"mypath\")\nmonty_sample_manual_run(2, \"mypath\")\nmonty_sample_manual_run(3, \"mypath\")\n\nAnd retrieve the result\n\nsamples &lt;- monty_sample_manual_collect(\"mypath\")\n\n\nIn the book: Parallelisation"
+  },
+  {
+    "objectID": "fitting.html#saving-history",
+    "href": "fitting.html#saving-history",
+    "title": "Fitting odin models with monty",
+    "section": "Saving history",
+    "text": "Saving history\n\nSave your trajectories at every collected sample\nSave the final state at every sample (for onward simulation)\nSave snapshots at intermediate timepoints of the state at every sample (for counterfactuals)\n\nWe look at how to do onward simulation and counterfactuals later."
+  },
+  {
+    "objectID": "fitting.html#trajectories",
+    "href": "fitting.html#trajectories",
+    "title": "Fitting odin models with monty",
+    "section": "Trajectories",
+    "text": "Trajectories\n\n\nlikelihood &lt;- dust_likelihood_monty(filter, packer,\n                                    save_trajectories = TRUE)\nposterior &lt;- likelihood + prior\nsamples &lt;- monty_sample(posterior, sampler, 1000, n_chains = 4)"
+  },
+  {
+    "objectID": "fitting.html#trajectories-1",
+    "href": "fitting.html#trajectories-1",
+    "title": "Fitting odin models with monty",
+    "section": "Trajectories",
+    "text": "Trajectories\n\nCodePlot\n\n\n\ntrajectories &lt;- dust_unpack_state(filter,\n                                  samples$observations$trajectories)\nmatplot(data$time, trajectories$incidence[, , 1], type = \"l\", lty = 1,\n        col = \"#00000044\", xlab = \"Time\", ylab = \"Infection incidence\")\npoints(data, pch = 19, col = \"red\")"
+  },
+  {
+    "objectID": "fitting.html#trajectories-2",
+    "href": "fitting.html#trajectories-2",
+    "title": "Fitting odin models with monty",
+    "section": "Trajectories",
+    "text": "Trajectories\nTrajectories are 4-dimensional\n\n\n# (4 states x 20 time points x 1000 samples x 4 chains)\ndim(samples$observations$trajectories)\n#&gt; [1]    4   20 1000    4\n\n\nThese can get very large quickly - there are two main ways to help reduce this:\n\nSaving only a subset of the states\nThinning"
+  },
+  {
+    "objectID": "fitting.html#saving-a-subset-of-trajectories",
+    "href": "fitting.html#saving-a-subset-of-trajectories",
+    "title": "Fitting odin models with monty",
+    "section": "Saving a subset of trajectories",
+    "text": "Saving a subset of trajectories\nYou can save a subset via specifying a named vector\n\n\nlikelihood &lt;- dust_likelihood_monty(filter, packer, \n                                    save_trajectories = c(\"I\", \"incidence\"))\nposterior &lt;- likelihood + prior\nsamples2 &lt;- monty_sample(posterior, sampler, 100, initial = samples)\ndim(samples2$observations$trajectories)\n#&gt; [1]   2  20 100   1"
+  },
+  {
+    "objectID": "fitting.html#thinning",
+    "href": "fitting.html#thinning",
+    "title": "Fitting odin models with monty",
+    "section": "Thinning",
+    "text": "Thinning\n\nWhile running\nsamples &lt;- monty_sample(...,\n                        burnin = 100,\n                        thinning_factor = 2)\n\nAfter running\n\n\nsamples &lt;- monty_samples_thin(samples,\n                              burnin = 500,\n                              thinning_factor = 2)\n\n\n\nThinning while running faster and uses less memory\nAfter running is more flexible (e.g. can plot full chains of parameters between running and thinning)"
+  },
+  {
+    "objectID": "fitting.html#dealing-with-sticky-chains",
+    "href": "fitting.html#dealing-with-sticky-chains",
+    "title": "Fitting odin models with monty",
+    "section": "Dealing with sticky chains",
+    "text": "Dealing with sticky chains\n\nChains can get stuck when the variance of the marginal likelihood estimate is large\nThe chain has obtained a high-end marginal likelihood estimate at one parameter set and needs another high-end estimate at another parameter set to accept\nYou can increase the number of particles to reduce variance, but note this will take longer to run\nIn monty_sampler_random_walk you can rerun the particle filter at the current parameter set with the aim of calculating a lower estimate\n\nrerun_every sets how often you rerun (rerun_every = 1000 means once every 1000 iterations)\nrerun_random defines whether this occurs randomly (TRUE) or at fixed intervals (FALSE)\nusing the rerun comes at cost of some bias in the results\nalso some extra runtime cost (increasing the more frequently you rerun)"
+  },
+  {
+    "objectID": "fitting.html#deterministic-models-from-stochastic",
+    "href": "fitting.html#deterministic-models-from-stochastic",
+    "title": "Fitting odin models with monty",
+    "section": "Deterministic models from stochastic",
+    "text": "Deterministic models from stochastic\n\nStochastic models written in odin, can be run deterministically\nRuns by taking the expectation of any random draws\nThis gives two models for the price of one\nHowever it might not be suitable for all models"
+  },
+  {
+    "objectID": "fitting.html#fitting-in-deterministic-mode",
+    "href": "fitting.html#fitting-in-deterministic-mode",
+    "title": "Fitting odin models with monty",
+    "section": "Fitting in deterministic mode",
+    "text": "Fitting in deterministic mode\nThe key difference is to use dust_unfilter_create\n\n\nunfilter &lt;- dust_unfilter_create(sir, data = data, time_start = 0, dt = 0.25)\n\n\nNote as this is deterministic it produces the same likelihood every time\n\n\ndust_likelihood_run(unfilter, list(beta = 0.4, gamma = 0.2))\n#&gt; [1] -371.9752\ndust_likelihood_run(unfilter, list(beta = 0.4, gamma = 0.2))\n#&gt; [1] -371.9752\n\n\nYou should use the same setup if you have an ODE model (which is automatically deterministic)"
+  },
+  {
+    "objectID": "fitting.html#fitting-in-deterministic-mode-1",
+    "href": "fitting.html#fitting-in-deterministic-mode-1",
+    "title": "Fitting odin models with monty",
+    "section": "Fitting in deterministic mode",
+    "text": "Fitting in deterministic mode\n\n\nlikelihood &lt;- dust_likelihood_monty(unfilter, packer, save_trajectories = TRUE)\nposterior &lt;- likelihood + prior\nsamples_det &lt;- monty_sample(posterior, sampler, 1000, n_chains = 4)\nsamples_det &lt;- monty_samples_thin(samples_det,\n                                  burnin = 500,\n                                  thinning_factor = 2)"
+  },
+  {
+    "objectID": "fitting.html#stochastic-v-deterministic-comparison",
+    "href": "fitting.html#stochastic-v-deterministic-comparison",
+    "title": "Fitting odin models with monty",
+    "section": "Stochastic v deterministic comparison",
+    "text": "Stochastic v deterministic comparison\n\nCodePlot 1Plot 2\n\n\n\ny &lt;- dust2::dust_unpack_state(filter, samples$observations$trajectories)\nincidence &lt;- array(y$incidence, c(20, 1000))\nmatplot(data$time, incidence, type = \"l\", lty = 1, col = \"#00000044\",\n        xlab = \"Time\", ylab = \"Infection incidence\", ylim = c(0, 75),\n        main = \"Stochastic fit\")\npoints(data, pch = 19, col = \"red\")\n\ny &lt;- dust2::dust_unpack_state(unfilter, samples_det$observations$trajectories)\nincidence &lt;- array(y$incidence, c(20, 1000))\nmatplot(data$time, incidence, type = \"l\", lty = 1, col = \"#00000044\",\n        xlab = \"Time\", ylab = \"Infection incidence\", ylim = c(0, 75),\n        main = \"Deterministic fit\")\npoints(data, pch = 19, col = \"red\")"
+  },
+  {
+    "objectID": "fitting.html#stochastic-v-deterministic-comparison-1",
+    "href": "fitting.html#stochastic-v-deterministic-comparison-1",
+    "title": "Fitting odin models with monty",
+    "section": "Stochastic v deterministic comparison",
+    "text": "Stochastic v deterministic comparison\n\nCodePlot\n\n\n\npars_stochastic &lt;- array(samples$pars, c(2, 500))\npars_deterministic &lt;- array(samples_det$pars, c(2, 500))\nplot(pars_stochastic[1, ], pars_stochastic[2, ], ylab = \"gamma\", xlab = \"beta\",\n     pch = 19, col = \"blue\")\npoints(pars_deterministic[1, ], pars_deterministic[2, ], pch = 19, col = \"red\")\nlegend(\"bottomright\", c(\"stochastic fit\", \"deterministic fit\"), pch = c(19, 19), \n       col = c(\"blue\", \"red\"))"
+  },
+  {
+    "objectID": "fitting.html#fitting-a-time-varying-parameter",
+    "href": "fitting.html#fitting-a-time-varying-parameter",
+    "title": "Fitting odin models with monty",
+    "section": "Fitting a time-varying parameter",
+    "text": "Fitting a time-varying parameter\nLet’s look at another dataset (the file can be downloaded here)\n\n\ndata &lt;- read.csv(\"data/incidence2.csv\")\nhead(data)\n#&gt;   time cases\n#&gt; 1    1     2\n#&gt; 2    2     1\n#&gt; 3    3     2\n#&gt; 4    4     0\n#&gt; 5    5     1\n#&gt; 6    6     7"
+  },
+  {
+    "objectID": "fitting.html#fitting-a-time-varying-parameter-1",
+    "href": "fitting.html#fitting-a-time-varying-parameter-1",
+    "title": "Fitting odin models with monty",
+    "section": "Fitting a time-varying parameter",
+    "text": "Fitting a time-varying parameter\n\n\nplot(data, pch = 19, col = \"red\")"
+  },
+  {
+    "objectID": "fitting.html#fitting-a-time-varying-parameter-2",
+    "href": "fitting.html#fitting-a-time-varying-parameter-2",
+    "title": "Fitting odin models with monty",
+    "section": "Fitting a time-varying parameter",
+    "text": "Fitting a time-varying parameter\nWe’ll fit these data to a model with a piecewise constant beta using interpolate\n\nsir &lt;- odin({\n  update(S) &lt;- S - n_SI\n  update(I) &lt;- I + n_SI - n_IR\n  update(R) &lt;- R + n_IR\n  update(incidence) &lt;- incidence + n_SI\n  \n  beta_t &lt;- interpolate(beta_time, beta, \"constant\")\n  beta &lt;- parameter()\n  beta_time &lt;- parameter()\n  dim(beta, beta_time) &lt;- parameter(rank = 1)\n  \n  p_SI &lt;- 1 - exp(-beta_t * I / N * dt)\n  p_IR &lt;- 1 - exp(-gamma * dt)\n  n_SI &lt;- Binomial(S, p_SI)\n  n_IR &lt;- Binomial(I, p_IR)\n  \n  initial(S) &lt;- N - I0\n  initial(I) &lt;- I0\n  initial(R) &lt;- 0\n  initial(incidence, zero_every = 1) &lt;- 0\n  \n  N &lt;- parameter(1000)\n  I0 &lt;- parameter(10)\n  gamma &lt;- parameter(0.1)\n  \n  cases &lt;- data()\n  cases ~ Poisson(incidence)\n})"
+  },
+  {
+    "objectID": "fitting.html#fitting-a-time-varying-parameter-3",
+    "href": "fitting.html#fitting-a-time-varying-parameter-3",
+    "title": "Fitting odin models with monty",
+    "section": "Fitting a time-varying parameter",
+    "text": "Fitting a time-varying parameter\nLet’s create our packer - we’ll fit gamma and 2 values for beta (with changepoints at time = 0 and time = 20)\n\n\npacker &lt;- monty_packer(\"gamma\", array = list(beta = 2),\n                       fixed = list(beta_time = c(0, 20)))"
+  },
+  {
+    "objectID": "fitting.html#fitting-a-time-varying-parameter-4",
+    "href": "fitting.html#fitting-a-time-varying-parameter-4",
+    "title": "Fitting odin models with monty",
+    "section": "Fitting a time-varying parameter",
+    "text": "Fitting a time-varying parameter\nLet’s create our filter and likelihood model\n\n\ndata &lt;- dust_filter_data(data, time = \"time\")\nfilter &lt;- dust_filter_create(sir, data = data, time_start = 0,\n                             n_particles = 200, dt = 0.25)\nlikelihood &lt;- dust_likelihood_monty(filter, packer, save_trajectories = TRUE)\n\n\nand create a prior model. then combine to create our posterior model\n\n\nprior &lt;- monty_dsl({\n  beta[] ~ Exponential(mean = 0.3)\n  gamma ~ Exponential(mean = 0.1)\n  dim(beta) &lt;- n_beta\n}, fixed = list(n_beta = 2), gradient = FALSE)"
+  },
+  {
+    "objectID": "fitting.html#fitting-a-time-varying-parameter-5",
+    "href": "fitting.html#fitting-a-time-varying-parameter-5",
+    "title": "Fitting odin models with monty",
+    "section": "Fitting a time-varying parameter",
+    "text": "Fitting a time-varying parameter\nCombine to create our posterior model\n\n\nposterior &lt;- likelihood + prior\nposterior\n#&gt; \n#&gt; ── &lt;monty_model&gt; ───────────────────────────────────────────────────────────────\n#&gt; ℹ Model has 3 parameters: 'gamma', 'beta[1]', and 'beta[2]'\n#&gt; ℹ This model:\n#&gt; • can be directly sampled from\n#&gt; • is stochastic\n#&gt; • has an observer\n#&gt; ℹ See `?monty_model()` for more information\n\n\nCreate a sampler and then sample\n\n\nvcv &lt;- diag(c(0.005, 0.01, 0.01))\nsampler &lt;- monty_sampler_random_walk(vcv)\nsamples &lt;- monty_sample(posterior, sampler, 1000, initial = c(0.1, 0.5, 0.5), n_chains = 4)\nsamples &lt;- monty_samples_thin(samples, thinning_factor = 2, burnin = 500)"
+  },
+  {
+    "objectID": "fitting.html#fitting-a-time-varying-parameter-6",
+    "href": "fitting.html#fitting-a-time-varying-parameter-6",
+    "title": "Fitting odin models with monty",
+    "section": "Fitting a time-varying parameter",
+    "text": "Fitting a time-varying parameter\n\nCodePlot\n\n\n\ny &lt;- dust_unpack_state(filter, samples$observations$trajectories)\nincidence &lt;- array(y$incidence, c(50, 1000))\nmatplot(data$time, incidence, type = \"l\", lty = 1,\n        col = \"#00000044\", xlab = \"Time\", ylab = \"Infection incidence\")\npoints(data, pch = 19, col = \"red\")"
+  },
+  {
+    "objectID": "fitting.html#fitting-to-vectorarray-data",
+    "href": "fitting.html#fitting-to-vectorarray-data",
+    "title": "Fitting odin models with monty",
+    "section": "Fitting to vector/array data",
+    "text": "Fitting to vector/array data\nSuppose we have some data on the daily incidence of cases by age group (the file can be downloaded here)\n\n\ndata_age &lt;- read.csv(\"data/incidence-age.csv\")\nhead(data_age)\n#&gt;   time cases_children cases_adult\n#&gt; 1    1              4           0\n#&gt; 2    2              1           0\n#&gt; 3    3              5           1\n#&gt; 4    4              2           0\n#&gt; 5    5              5           2\n#&gt; 6    6              6           0\n\n\n Let’s think of the cases data at each time point as a vector of length 2 (for the 2 age groups)"
+  },
+  {
+    "objectID": "fitting.html#fitting-to-vectorarray-data-1",
+    "href": "fitting.html#fitting-to-vectorarray-data-1",
+    "title": "Fitting odin models with monty",
+    "section": "Fitting to vector/array data",
+    "text": "Fitting to vector/array data\nWe’ll fit these data to a model with age stratification\n\nsir_age &lt;- odin({\n  # Equations for transitions between compartments by age group\n  update(S[]) &lt;- S[i] - n_SI[i]\n  update(I[]) &lt;- I[i] + n_SI[i] - n_IR[i]\n  update(R[]) &lt;- R[i] + n_IR[i]\n  update(incidence[]) &lt;- incidence[i] + n_SI[i]\n  \n  # Individual probabilities of transition:\n  p_SI[] &lt;- 1 - exp(-lambda[i] * dt) # S to I\n  p_IR &lt;- 1 - exp(-gamma * dt) # I to R\n  \n  # Calculate force of infection\n  \n  # age-structured contact matrix: m[i, j] is mean number\n  # of contacts an individual in group i has with an\n  # individual in group j per time unit\n  m &lt;- parameter()\n  \n  # here s_ij[i, j] gives the mean number of contacts an\n  # individual in group i will have with the currently\n  # infectious individuals of group j\n  s_ij[, ] &lt;- m[i, j] * I[j]\n  \n  # lambda[i] is the total force of infection on an\n  # individual in group i\n  lambda[] &lt;- beta * sum(s_ij[i, ])\n  \n  # Draws from binomial distributions for numbers\n  # changing between compartments:\n  n_SI[] &lt;- Binomial(S[i], p_SI[i])\n  n_IR[] &lt;- Binomial(I[i], p_IR)\n  \n  initial(S[]) &lt;- S0[i]\n  initial(I[]) &lt;- I0[i]\n  initial(R[]) &lt;- 0\n  initial(incidence[], zero_every = 1) &lt;- 0\n  \n  S0 &lt;- parameter()\n  I0 &lt;- parameter()\n  beta &lt;- parameter(0.2)\n  gamma &lt;- parameter(0.1)\n  \n  n_age &lt;- parameter()\n  dim(S, S0, n_SI, p_SI, incidence) &lt;- n_age\n  dim(I, I0, n_IR) &lt;- n_age\n  dim(R) &lt;- n_age\n  dim(m, s_ij) &lt;- c(n_age, n_age)\n  dim(lambda) &lt;- n_age\n  \n  \n  ## Likelihood\n  cases &lt;- data()\n  dim(cases) &lt;- n_age\n  cases[] ~ Poisson(incidence[i])\n})"
+  },
+  {
+    "objectID": "fitting.html#fitting-to-vectorarray-data-2",
+    "href": "fitting.html#fitting-to-vectorarray-data-2",
+    "title": "Fitting odin models with monty",
+    "section": "Fitting to vector/array data",
+    "text": "Fitting to vector/array data\nWe are treating the data cases as a vector that relates to incidence from the model\n\ncases &lt;- data()\ndim(cases) &lt;- n_age\ncases[] ~ Poisson(incidence[i])\n\n\nWe can extend this to higher-dimensional arrays\nAll datastreams that are arrays require dim() equations\n\n\nIn the book: Data"
+  },
+  {
+    "objectID": "fitting.html#formatting-array-data-in-the-data-frame",
+    "href": "fitting.html#formatting-array-data-in-the-data-frame",
+    "title": "Fitting odin models with monty",
+    "section": "Formatting array data in the data frame",
+    "text": "Formatting array data in the data frame\nNormally, you could setup a data.frame by writing:\n\n\ndata.frame(time = c(1, 2, 3, 4), cases = c(0, 4, 6, 10))\n#&gt;   time cases\n#&gt; 1    1     0\n#&gt; 2    2     4\n#&gt; 3    3     6\n#&gt; 4    4    10"
+  },
+  {
+    "objectID": "fitting.html#formatting-array-data-in-the-data-frame-1",
+    "href": "fitting.html#formatting-array-data-in-the-data-frame-1",
+    "title": "Fitting odin models with monty",
+    "section": "Formatting array data in the data frame",
+    "text": "Formatting array data in the data frame\nArray data can be handled with a list-column.\nFor a list-column you pass in a list with the same number of elements as there are rows, with each list element being an array of the right size\n\n\ndata.frame(time = c(1, 2, 3, 4),\n           cases = I(list(c(0, 1), c(4, 3), c(6, 7), c(10, 11))))\n#&gt;   time  cases\n#&gt; 1    1   0, 1\n#&gt; 2    2   4, 3\n#&gt; 3    3   6, 7\n#&gt; 4    4 10, 11\n\n\nNote we need to wrap with I()!\n\nIn the book: Data"
+  },
+  {
+    "objectID": "fitting.html#formatting-array-data-in-the-data-frame-2",
+    "href": "fitting.html#formatting-array-data-in-the-data-frame-2",
+    "title": "Fitting odin models with monty",
+    "section": "Formatting array data in the data frame",
+    "text": "Formatting array data in the data frame\nLet’s convert our case columns to a single list-column (and then drop the separated case columns)\n\n\ndata_age$cases &lt;- I(asplit(data_age[, c(\"cases_children\", \"cases_adult\")], 1))\ndata_age$cases_children &lt;- NULL\ndata_age$cases_adult &lt;- NULL\nhead(data_age)\n#&gt;   time cases\n#&gt; 1    1  4, 0\n#&gt; 2    2  1, 0\n#&gt; 3    3  5, 1\n#&gt; 4    4  2, 0\n#&gt; 5    5  5, 2\n#&gt; 6    6  6, 0"
+  },
+  {
+    "objectID": "fitting.html#fitting-the-age-stratified-model",
+    "href": "fitting.html#fitting-the-age-stratified-model",
+    "title": "Fitting odin models with monty",
+    "section": "Fitting the age-stratified model",
+    "text": "Fitting the age-stratified model\nLet’s create our packer - we’ll fit beta and gamma and assume we know everything else\n\n\npacker &lt;- monty_packer(c(\"beta\", \"gamma\"),\n                       fixed = list(S0 = c(990, 1000),\n                                    I0 = c(10, 0),\n                                    m = matrix(c(1.8, 0.4, 0.4, 1.2) / 2000, 2, 2),\n                                    n_age = 2))"
+  },
+  {
+    "objectID": "fitting.html#fitting-the-age-stratified-model-1",
+    "href": "fitting.html#fitting-the-age-stratified-model-1",
+    "title": "Fitting odin models with monty",
+    "section": "Fitting the age-stratified model",
+    "text": "Fitting the age-stratified model\nLet’s create our filter and likelihood model\n\n\ndata_age &lt;- dust_filter_data(data_age, time = \"time\")\nfilter &lt;- dust_filter_create(sir_age, data = data_age, time_start = 0,\n                             n_particles = 200, dt = 0.25)\nlikelihood &lt;- dust_likelihood_monty(filter, packer, save_trajectories = TRUE)\n\n\nand create a prior model, then combine to create our posterior model\n\n\nprior &lt;- monty_dsl({\n  beta ~ Exponential(mean = 0.3)\n  gamma ~ Exponential(mean = 0.1)\n})\nposterior &lt;- likelihood + prior"
+  },
+  {
+    "objectID": "fitting.html#fitting-the-age-stratified-model-2",
+    "href": "fitting.html#fitting-the-age-stratified-model-2",
+    "title": "Fitting odin models with monty",
+    "section": "Fitting the age-stratified model",
+    "text": "Fitting the age-stratified model\nCreate a sampler and then sample\n\n\nvcv &lt;- matrix(c(0.01, 0.005, 0.005, 0.005), 2, 2)\nsampler &lt;- monty_sampler_random_walk(vcv)\nsamples &lt;- monty_sample(posterior, sampler, 500, \n                        initial = c(0.3, 0.1), n_chains = 4)"
+  },
+  {
+    "objectID": "fitting.html#fitting-the-age-stratified-model-3",
+    "href": "fitting.html#fitting-the-age-stratified-model-3",
+    "title": "Fitting odin models with monty",
+    "section": "Fitting the age-stratified model",
+    "text": "Fitting the age-stratified model\n\nCodePlot 1Plot 2\n\n\n\ny &lt;- dust_unpack_state(filter, samples$observations$trajectories)\nincidence &lt;- array(y$incidence, c(2, 100, 2000))\n\nmatplot(data_age$time, incidence[1, , ], type = \"l\", col = \"#00000044\", lty = 1,\n        xlab = \"Time\", ylab = \"Incidence (children)\")\ncases_children &lt;- vapply(data_age$cases, \"[[\", numeric(1), \"cases_children\")\npoints(data_age$time, cases_children, pch = 19, col = \"red\")\n\nmatplot(data_age$time, incidence[2, , ], type = \"l\", col = \"#00000044\", lty = 1,\n        xlab = \"Time\", ylab = \"Incidence (adults)\")\ncases_adult &lt;- vapply(data_age$cases, \"[[\", numeric(1), \"cases_adult\")\npoints(data_age$time, cases_adult, pch = 19, col = \"red\")"
+  },
+  {
+    "objectID": "fitting.html#projections-and-counterfactuals",
+    "href": "fitting.html#projections-and-counterfactuals",
+    "title": "Fitting odin models with monty",
+    "section": "Projections and counterfactuals",
+    "text": "Projections and counterfactuals\nLet’s use some new data (the file can be downloaded here)\n\n\ndata &lt;- read.csv(\"data/schools.csv\")\nplot(data, pch = 19, col = \"red\")\n\n\n\n\n\n\n\n\n\n\nIn the book: Projections and counterfactuals"
+  },
+  {
+    "objectID": "fitting.html#projections-and-counterfactuals-1",
+    "href": "fitting.html#projections-and-counterfactuals-1",
+    "title": "Fitting odin models with monty",
+    "section": "Projections and counterfactuals",
+    "text": "Projections and counterfactuals\nWe’ll fit the data to an SIS model incorporating schools opening/closing\n\nsis &lt;- odin({\n  update(S) &lt;- S - n_SI + n_IS\n  update(I) &lt;- I + n_SI - n_IS\n  update(incidence) &lt;- incidence + n_SI\n  \n  initial(S) &lt;- N - I0\n  initial(I) &lt;- I0\n  initial(incidence, zero_every = 1) &lt;- 0\n  \n  schools &lt;- interpolate(schools_time, schools_open, \"constant\")\n  schools_time &lt;- parameter()\n  schools_open &lt;- parameter()\n  dim(schools_time, schools_open) &lt;- parameter(rank = 1)\n  \n  beta &lt;- ((1 - schools) * (1 - schools_modifier) + schools) * beta0\n  \n  p_SI &lt;- 1 - exp(-beta * I / N * dt)\n  p_IS &lt;- 1 - exp(-gamma * dt)\n  n_SI &lt;- Binomial(S, p_SI)\n  n_IS &lt;- Binomial(I, p_IS)\n  \n  N &lt;- parameter(1000)\n  I0 &lt;- parameter(10)\n  beta0 &lt;- parameter(0.2)\n  gamma &lt;- parameter(0.1)\n  schools_modifier &lt;- parameter(0.6)\n  \n  cases &lt;- data()\n  cases ~ Poisson(incidence)\n})\n\n\nIn the book: Projections and counterfactuals"
+  },
+  {
+    "objectID": "fitting.html#projections-and-counterfactuals-2",
+    "href": "fitting.html#projections-and-counterfactuals-2",
+    "title": "Fitting odin models with monty",
+    "section": "Projections and counterfactuals",
+    "text": "Projections and counterfactuals\n\n\nschools_time &lt;- c(0, 50, 60, 120, 130, 170, 180)\nschools_open &lt;- c(1,  0,  1,   0,   1,   0,   1)\n\n\nWe will\n\nproject forward from the end of the fits (day 150) to day 200\nrun a counterfactual where the schools did not reopen on day 60, reopening on day 130\n\n\nIn the book: Projections and counterfactuals"
+  },
+  {
+    "objectID": "fitting.html#fitting-to-the-sis-model",
+    "href": "fitting.html#fitting-to-the-sis-model",
+    "title": "Fitting odin models with monty",
+    "section": "Fitting to the SIS model",
+    "text": "Fitting to the SIS model\n\n\npacker &lt;- monty_packer(c(\"beta0\", \"gamma\", \"schools_modifier\"),\n                       fixed = list(schools_time = schools_time,\n                                    schools_open = schools_open))\n\ndata &lt;- dust_filter_data(data, time = \"time\")\nfilter &lt;- dust_filter_create(sis, time_start = 0, dt = 0.25,\n                             data = data, n_particles = 200)\n\nprior &lt;- monty_dsl({\n  beta0 ~ Exponential(mean = 0.3)\n  gamma ~ Exponential(mean = 0.1)\n  schools_modifier ~ Uniform(0, 1)\n})\n\nvcv &lt;- diag(c(2e-4, 2e-4, 4e-4))\nsampler &lt;- monty_sampler_random_walk(vcv)\n\n\n\nIn the book: Projections and counterfactuals"
+  },
+  {
+    "objectID": "fitting.html#fitting-to-the-sis-model-1",
+    "href": "fitting.html#fitting-to-the-sis-model-1",
+    "title": "Fitting odin models with monty",
+    "section": "Fitting to the SIS model",
+    "text": "Fitting to the SIS model\nWe want to save the end state, and a snapshot at day 60 (where the counterfactual will diverge)\n\n\nlikelihood &lt;- dust_likelihood_monty(filter, packer, save_trajectories = TRUE,\n                                    save_state = TRUE, save_snapshots = 60)\n\nposterior &lt;- likelihood + prior\n\nsamples &lt;- monty_sample(posterior, sampler, 500, initial = c(0.3, 0.1, 0.5),\n                        n_chains = 4)\nsamples &lt;- monty_samples_thin(samples, burnin = 100, thinning_factor = 8)\n\n\n\nIn the book: Projections and counterfactuals"
+  },
+  {
+    "objectID": "fitting.html#fit-to-data",
+    "href": "fitting.html#fit-to-data",
+    "title": "Fitting odin models with monty",
+    "section": "Fit to data",
+    "text": "Fit to data\n\nCodePlot\n\n\n\ny &lt;- dust_unpack_state(filter, samples$observations$trajectories)\nincidence &lt;- array(y$incidence, c(150, 200))\nmatplot(data$time, incidence, type = \"l\", col = \"#00000044\", lty = 1,\n        xlab = \"Time\", ylab = \"Incidence\")\npoints(data, pch = 19, col = \"red\")\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nIn the book: Projections and counterfactuals"
+  },
+  {
+    "objectID": "fitting.html#running-projection-using-the-end-state",
+    "href": "fitting.html#running-projection-using-the-end-state",
+    "title": "Fitting odin models with monty",
+    "section": "Running projection using the end state",
+    "text": "Running projection using the end state\n\n\nstate &lt;- array(samples$observations$state, c(3, 200))\npars &lt;- array(samples$pars, c(3, 200))\npars &lt;- lapply(seq_len(200), function(i) packer$unpack(pars[, i]))\n\nsys &lt;- dust_system_create(sis, pars, n_groups = length(pars), dt = 1)\n\ndust_system_set_state(sys, state)\nt &lt;- seq(150, 200)\ny &lt;- dust_system_simulate(sys, t)\ny &lt;- dust_unpack_state(sys, y)\n\n\n\nIn the book: Projections and counterfactuals"
+  },
+  {
+    "objectID": "fitting.html#running-projection-using-the-end-state-1",
+    "href": "fitting.html#running-projection-using-the-end-state-1",
+    "title": "Fitting odin models with monty",
+    "section": "Running projection using the end state",
+    "text": "Running projection using the end state\n\nCodePlot\n\n\n\nmatplot(data$time, incidence, type = \"l\", col = \"#00000044\", lty = 1,\n        xlab = \"Time\", ylab = \"Incidence\", xlim = c(0, 200))\nmatlines(t, t(y$incidence), col = \"blue\")\npoints(data, pch = 19, col = \"red\")\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nIn the book: Projections and counterfactuals"
+  },
+  {
+    "objectID": "fitting.html#running-counterfactual-using-the-snapshot",
+    "href": "fitting.html#running-counterfactual-using-the-snapshot",
+    "title": "Fitting odin models with monty",
+    "section": "Running counterfactual using the snapshot",
+    "text": "Running counterfactual using the snapshot\n\n\nsnapshot &lt;- array(samples$observations$snapshots, c(3, 200))\npars &lt;- array(samples$pars, c(3, 200))\nf &lt;- function(i) {\n  p &lt;- packer$unpack(pars[, i])\n  p$schools_time &lt;- c(0, 50, 130, 170, 180)\n  p$schools_open &lt;- c(1, 0, 1, 0, 1)\n  p\n}\npars &lt;- lapply(seq_len(200), f)\nsys &lt;- dust_system_create(sis, pars, n_groups = length(pars), dt = 1)\n\ndust_system_set_state(sys, snapshot)\nt &lt;- seq(60, 150)\ny &lt;- dust_system_simulate(sys, t)\ny &lt;- dust_unpack_state(sys, y)\n\n\n\nIn the book: Projections and counterfactuals"
+  },
+  {
+    "objectID": "fitting.html#running-counterfactual-using-the-snapshot-1",
+    "href": "fitting.html#running-counterfactual-using-the-snapshot-1",
+    "title": "Fitting odin models with monty",
+    "section": "Running counterfactual using the snapshot",
+    "text": "Running counterfactual using the snapshot\n\nCodePlot\n\n\n\nmatplot(data$time, incidence, type = \"l\", col = \"#00000044\", lty = 1,\n        xlab = \"Time\", ylab = \"Incidence\")\nmatlines(t, t(y$incidence), col = \"blue\")\npoints(data, pch = 19, col = \"red\")\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nIn the book: Projections and counterfactuals"
+  },
+  {
+    "objectID": "building-odin-models.html#ode-models",
+    "href": "building-odin-models.html#ode-models",
+    "title": "Building a model with odin",
+    "section": "ODE models",
+    "text": "ODE models\n\n\n\nderiv(S) &lt;- -beta * S * I / N\nderiv(I) &lt;- beta * S * I / N - gamma * I\nderiv(R) &lt;- gamma * I\n\ninitial(S) &lt;- N - I0\ninitial(I) &lt;- I0\ninitial(R) &lt;- 0\n\nN &lt;- parameter(1000)\nI0 &lt;- parameter(10)\nbeta &lt;- parameter(0.2)\ngamma &lt;- parameter(0.1)\n\n\n\\[\\begin{gather*}\n\\frac{dS}{dt} = -\\beta S \\frac{I}{N}\\\\\n\\frac{dI}{dt} = \\beta S \\frac{I}{N} - \\gamma I\\\\\n\\frac{dR}{dt} = \\gamma I\n\\end{gather*}\\]\n\n\nIn the book: Getting started with odin\n\n\nThings to note:\n\nout of order definition\nevery variable has initial and deriv pair\nparameters declared with parameter(), default values can be given in brackets though not required"
+  },
+  {
+    "objectID": "building-odin-models.html#compiling-the-model-with-odin2",
+    "href": "building-odin-models.html#compiling-the-model-with-odin2",
+    "title": "Building a model with odin",
+    "section": "Compiling the model with odin2",
+    "text": "Compiling the model with odin2\n\nsir_ode &lt;- odin({\n  deriv(S) &lt;- -beta * S * I / N\n  deriv(I) &lt;- beta * S * I / N - gamma * I\n  deriv(R) &lt;- gamma * I\n  \n  initial(S) &lt;- N - I0\n  initial(I) &lt;- I0\n  initial(R) &lt;- 0\n  \n  N &lt;- parameter(1000)\n  I0 &lt;- parameter(10)\n  beta &lt;- parameter(0.2)\n  gamma &lt;- parameter(0.1)\n})\n\n You can also compile code from a file by its path e.g. odin(\"models/sir-basic.R\").\n\nThe odin call generates C code, compiles it with gcc or clang to create a shared library, and loads that plus support code into R to create a generator object gen\n\n\nIn the book: Getting started with odin"
+  },
+  {
+    "objectID": "building-odin-models.html#running-the-model-with-dust2",
+    "href": "building-odin-models.html#running-the-model-with-dust2",
+    "title": "Building a model with odin",
+    "section": "Running the model with dust2",
+    "text": "Running the model with dust2\n\n\nsys &lt;- dust_system_create(sir_ode, pars = list())\ndust_system_set_state_initial(sys)\nt &lt;- seq(0, 100)\ny &lt;- dust_system_simulate(sys, t)\n\n\n The output has dimensions number of states x number of timepoints\n\n\ndim(y)\n#&gt; [1]   3 101\n\n\n\nIn the book: Getting started with odin"
+  },
+  {
+    "objectID": "building-odin-models.html#unpacking-states",
+    "href": "building-odin-models.html#unpacking-states",
+    "title": "Building a model with odin",
+    "section": "Unpacking states",
+    "text": "Unpacking states\nOutput can be nicely unpacked into the different states using dust_unpack_state\n\nCodePlot\n\n\n\ny &lt;- dust_unpack_state(sys, y)\n\nplot(t, y$I, type = \"l\", xlab = \"Time\", ylab = \"I\")\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nIn the book: Getting started with odin\n\n\nFrom the generator object gen we can construct a model (mod), here using no parameters – just using default parameters as defined above. We run over a set of times and output the value of the system at a number of intermediate times."
+  },
+  {
+    "objectID": "building-odin-models.html#setting-the-state",
+    "href": "building-odin-models.html#setting-the-state",
+    "title": "Building a model with odin",
+    "section": "Setting the state",
+    "text": "Setting the state\nUpon creation all systems start with a state full of zeros.\nTypically we need to set the state. We used\n\ndust_system_set_state_initial(sys)\n\nto set the state according to the initial conditions defined in the odin code. We can also set the state using a new state vector e.g.\n\ndust_system_set_state(sys, c(990, 10, 0))\n\n\nIn the book: Getting started with odin"
+  },
+  {
+    "objectID": "building-odin-models.html#setting-the-state-1",
+    "href": "building-odin-models.html#setting-the-state-1",
+    "title": "Building a model with odin",
+    "section": "Setting the state",
+    "text": "Setting the state\nThe order of states in a system can be found via\n\n\ndust_unpack_index(sys)\n#&gt; $S\n#&gt; [1] 1\n#&gt; \n#&gt; $I\n#&gt; [1] 2\n#&gt; \n#&gt; $R\n#&gt; [1] 3\n\n\nor\n\n\nsys$packer_state$names()\n#&gt; [1] \"S\" \"I\" \"R\"\n\n\n\nIn the book: Getting started with odin"
+  },
+  {
+    "objectID": "building-odin-models.html#inputting-parameters-pars",
+    "href": "building-odin-models.html#inputting-parameters-pars",
+    "title": "Building a model with odin",
+    "section": "Inputting parameters (pars)",
+    "text": "Inputting parameters (pars)\n\n\nWe created our system with pars = list() - an empty list\nThis means we use all default values for parameters in the odin code\n\n\n\n\nWe can pass in a named list of parameters to use non-default values\ne.g. pars = list(beta = 0.35, gamma = 0.15) would use those values for beta and gamma and the default values for all other parameters\nYou will need to include values for any parameters without default values!\n\n\n\nIn the book: Getting started with odin"
+  },
+  {
+    "objectID": "building-odin-models.html#stochastic-models",
+    "href": "building-odin-models.html#stochastic-models",
+    "title": "Building a model with odin",
+    "section": "Stochastic models",
+    "text": "Stochastic models\n\n\n\nupdate(S) &lt;- S - n_SI\nupdate(I) &lt;- I + n_SI - n_IR\nupdate(R) &lt;- R + n_IR\n\ninitial(S) &lt;- N - I0\ninitial(I) &lt;- I0\ninitial(R) &lt;- 0\n\np_SI &lt;- 1 - exp(-beta * I / N * dt)\np_IR &lt;- 1 - exp(-gamma * dt)\nn_SI &lt;- Binomial(S, p_SI)\nn_IR &lt;- Binomial(I, p_IR)\n\nN &lt;- parameter(1000)\nI0 &lt;- parameter(10)\nbeta &lt;- parameter(0.2)\ngamma &lt;- parameter(0.1)\n\n\n\\[\\begin{gather*}\nS(t + \\Delta t) = S(t) - n_{SI}\\\\\nI(t + \\Delta t) = I(t) + n_{SI} - n_{IR}\\\\\nR(t + \\Delta t) = R(t) + n_{IR}\n\\end{gather*}\\]\n\n\n\ndt is a special parameter\nevery variable has initial and update pair\n\n\nIn the book: Stochasticity"
+  },
+  {
+    "objectID": "building-odin-models.html#compared-with-ode-models",
+    "href": "building-odin-models.html#compared-with-ode-models",
+    "title": "Building a model with odin",
+    "section": "…compared with ODE models",
+    "text": "…compared with ODE models\n\n\nupdate(S) &lt;- S - n_SI\nupdate(I) &lt;- I + n_SI - n_IR\nupdate(R) &lt;- R + n_IR\n\ninitial(S) &lt;- N - I0\ninitial(I) &lt;- I0\ninitial(R) &lt;- 0\n\np_SI &lt;- 1 - exp(-beta * I / N * dt)\np_IR &lt;- 1 - exp(-gamma * dt)\nn_SI &lt;- Binomial(S, p_SI)\nn_IR &lt;- Binomial(I, p_IR)\n\nN &lt;- parameter(1000)\nI0 &lt;- parameter(10)\nbeta &lt;- parameter(0.2)\ngamma &lt;- parameter(0.1)\n\nderiv(S) &lt;- -beta * S * I / N\nderiv(I) &lt;- beta * S * I / N - gamma * I\nderiv(R) &lt;- gamma * I\n\ninitial(S) &lt;- N - I0\ninitial(I) &lt;- I0\ninitial(R) &lt;- 0\n\nN &lt;- parameter(1000)\nI0 &lt;- parameter(10)\nbeta &lt;- parameter(0.2)\ngamma &lt;- parameter(0.1)\n\n\nIn the book: Stochasticity"
+  },
+  {
+    "objectID": "building-odin-models.html#compiling-with-odin2",
+    "href": "building-odin-models.html#compiling-with-odin2",
+    "title": "Building a model with odin",
+    "section": "Compiling with odin2",
+    "text": "Compiling with odin2\nsir &lt;- odin({\n  update(S) &lt;- S - n_SI\n  update(I) &lt;- I + n_SI - n_IR\n  update(R) &lt;- R + n_IR\n  \n  initial(S) &lt;- N - I0\n  initial(I) &lt;- I0\n  initial(R) &lt;- 0\n  \n  p_SI &lt;- 1 - exp(-beta * I / N * dt)\n  p_IR &lt;- 1 - exp(-gamma * dt)\n  n_SI &lt;- Binomial(S, p_SI)\n  n_IR &lt;- Binomial(I, p_IR)\n  \n  N &lt;- parameter(1000)\n  I0 &lt;- parameter(10)\n  beta &lt;- parameter(0.2)\n  gamma &lt;- parameter(0.1)\n})\n\nIn the book: Stochasticity"
+  },
+  {
+    "objectID": "building-odin-models.html#functions-in-odin2",
+    "href": "building-odin-models.html#functions-in-odin2",
+    "title": "Building a model with odin",
+    "section": "Functions in odin2",
+    "text": "Functions in odin2\n\n\nwe have used the exponential function exp()\nmany mathematical functions are supported in odin2 - a full list can be found here\n\n\n\n\nwe have used Binomial(S, p_SI) for a Binomial random draw with size = S and prob = p_SI\nmany distributions are supported - a full list with their names and parameterisations can be found here"
+  },
+  {
+    "objectID": "building-odin-models.html#time-in-odin",
+    "href": "building-odin-models.html#time-in-odin",
+    "title": "Building a model with odin",
+    "section": "time in odin",
+    "text": "time in odin\n\ntime is a special (continuous) variable in odin models\nIn discrete-time (stochastic) models, time is updated in increments of size dt\n\n\nIn the book: On the nature of time"
+  },
+  {
+    "objectID": "building-odin-models.html#running-a-single-simulation",
+    "href": "building-odin-models.html#running-a-single-simulation",
+    "title": "Building a model with odin",
+    "section": "Running a single simulation",
+    "text": "Running a single simulation\n\nCodePlot\n\n\n\nsys &lt;- dust_system_create(sir, pars = list(), dt = 0.25)\ndust_system_set_state_initial(sys)\nt &lt;- seq(0, 100)\ny &lt;- dust_system_simulate(sys, t)\ny &lt;- dust_unpack_state(sys, y)\n\nplot(t, y$I, type = \"l\", xlab = \"Time\", ylab = \"Infected population\")\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nIn the book: Stochasticity"
+  },
+  {
+    "objectID": "building-odin-models.html#running-multiple-simulations",
+    "href": "building-odin-models.html#running-multiple-simulations",
+    "title": "Building a model with odin",
+    "section": "Running multiple simulations",
+    "text": "Running multiple simulations\n\nCodePlot\n\n\n\nsys &lt;- dust_system_create(sir, pars = list(), n_particles = 50,\n                                 dt = 0.25)\ndust_system_set_state_initial(sys)\nt &lt;- seq(0, 100)\ny &lt;- dust_system_simulate(sys, t)\ny &lt;- dust_unpack_state(sys, y)\nmatplot(t, t(y$I), type = \"l\", lty = 1, col = \"#00000044\",\n        xlab = \"Time\", ylab = \"Infected population\")\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nIn the book: Stochasticity"
+  },
+  {
+    "objectID": "building-odin-models.html#calculating-incidence-with-zero_every",
+    "href": "building-odin-models.html#calculating-incidence-with-zero_every",
+    "title": "Building a model with odin",
+    "section": "Calculating incidence with zero_every",
+    "text": "Calculating incidence with zero_every\nsir &lt;- odin({\n  update(S) &lt;- S - n_SI\n  update(I) &lt;- I + n_SI - n_IR\n  update(R) &lt;- R + n_IR\n  update(incidence) &lt;- incidence + n_SI\n  \n  p_SI &lt;- 1 - exp(-beta * I / N * dt)\n  p_IR &lt;- 1 - exp(-gamma * dt)\n  n_SI &lt;- Binomial(S, p_SI)\n  n_IR &lt;- Binomial(I, p_IR)\n  \n  initial(S) &lt;- N - I0\n  initial(I) &lt;- I0\n  initial(R) &lt;- 0\n  initial(incidence, zero_every = 1) &lt;- 0\n  \n  N &lt;- parameter(1000)\n  I0 &lt;- parameter(10)\n  beta &lt;- parameter(0.2)\n  gamma &lt;- parameter(0.1)\n})\n\nIn the book: On the nature of time"
+  },
+  {
+    "objectID": "building-odin-models.html#incidence-accumulates-then-resets",
+    "href": "building-odin-models.html#incidence-accumulates-then-resets",
+    "title": "Building a model with odin",
+    "section": "Incidence accumulates then resets",
+    "text": "Incidence accumulates then resets\n\nCodePlot\n\n\n\nsys &lt;- dust_system_create(sir, pars = list(), dt = 1 / 128)\ndust_system_set_state_initial(sys)\nt &lt;- seq(0, 20, by = 1 / 128)\ny &lt;- dust_system_simulate(sys, t)\ny &lt;- dust_unpack_state(sys, y)\n\nplot(t[t %% 1 == 0], y$incidence[t %% 1 == 0], type = \"o\", pch = 19,\n     ylab = \"Infection incidence\", xlab = \"Time\")\nlines(t, y$incidence, col = \"red\")\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nIn the book: On the nature of time"
+  },
+  {
+    "objectID": "building-odin-models.html#time-varying-inputs-using-time",
+    "href": "building-odin-models.html#time-varying-inputs-using-time",
+    "title": "Building a model with odin",
+    "section": "Time-varying inputs: using time",
+    "text": "Time-varying inputs: using time\nsir &lt;- odin({\n  update(S) &lt;- S - n_SI\n  update(I) &lt;- I + n_SI - n_IR\n  update(R) &lt;- R + n_IR\n  update(incidence) &lt;- incidence + n_SI\n  \n  seed &lt;- if (time == seed_time) seed_size else 0\n  \n  p_SI &lt;- 1 - exp(-beta * I / N * dt)\n  p_IR &lt;- 1 - exp(-gamma * dt)\n  n_SI &lt;- min(seed + Binomial(S, p_SI), S)\n  n_IR &lt;- Binomial(I, p_IR)\n  \n  initial(S) &lt;- N\n  initial(I) &lt;- 0\n  initial(R) &lt;- 0\n  initial(incidence, zero_every = 1) &lt;- 0\n  \n  N &lt;- parameter(1000)\n  beta &lt;- parameter(0.2)\n  gamma &lt;- parameter(0.1)\n  seed_time &lt;- parameter()\n  seed_size &lt;- parameter()\n})\n\nIn the book: Inputs that vary over time"
+  },
+  {
+    "objectID": "building-odin-models.html#time-varying-inputs-using-time-1",
+    "href": "building-odin-models.html#time-varying-inputs-using-time-1",
+    "title": "Building a model with odin",
+    "section": "Time-varying inputs: using time",
+    "text": "Time-varying inputs: using time\n\nCodePlot\n\n\n\npars &lt;- list(seed_time = 10, seed_size = 15)\nsys &lt;- dust_system_create(sir, pars = pars, dt = 0.25)\ndust_system_set_state_initial(sys)\nt &lt;- seq(0, 100)\ny &lt;- dust_system_simulate(sys, t)\ny &lt;- dust_unpack_state(sys, y)\n\nplot(t, y$I, type = \"l\", xlab = \"Time\", ylab = \"Infected population\")\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nIn the book: Inputs that vary over time"
+  },
+  {
+    "objectID": "building-odin-models.html#time-varying-inputs-using-interpolate",
+    "href": "building-odin-models.html#time-varying-inputs-using-interpolate",
+    "title": "Building a model with odin",
+    "section": "Time-varying inputs: using interpolate",
+    "text": "Time-varying inputs: using interpolate\nThe interpolate function in odin can be used for time-varying parameters, with specification of\n\nthe times of changepoints\nthe values at those changepoints\nthe type of interpolation: linear, constant or spline\n\n\nIn the book: Inputs that vary over time"
+  },
+  {
+    "objectID": "building-odin-models.html#time-varying-inputs-using-interpolate-1",
+    "href": "building-odin-models.html#time-varying-inputs-using-interpolate-1",
+    "title": "Building a model with odin",
+    "section": "Time-varying inputs: using interpolate",
+    "text": "Time-varying inputs: using interpolate\nsir &lt;- odin({\n  update(S) &lt;- S - n_SI\n  update(I) &lt;- I + n_SI - n_IR\n  update(R) &lt;- R + n_IR\n  update(incidence) &lt;- incidence + n_SI\n  \n  beta &lt;- interpolate(beta_time, beta_value, \"constant\")\n  beta_time &lt;- parameter()\n  beta_value &lt;- parameter()\n  dim(beta_time, beta_value) &lt;- parameter(rank = 1)\n  \n  p_SI &lt;- 1 - exp(-beta * I / N * dt)\n  p_IR &lt;- 1 - exp(-gamma * dt)\n  n_SI &lt;- Binomial(S, p_SI)\n  n_IR &lt;- Binomial(I, p_IR)\n  \n  initial(S) &lt;- N - I0\n  initial(I) &lt;- I0\n  initial(R) &lt;- 0\n  initial(incidence, zero_every = 1) &lt;- 0\n  \n  N &lt;- parameter(1000)\n  I0 &lt;- parameter(10)\n  gamma &lt;- parameter(0.1)\n})\n\nIn the book: Inputs that vary over time"
+  },
+  {
+    "objectID": "building-odin-models.html#time-varying-inputs-using-interpolate-2",
+    "href": "building-odin-models.html#time-varying-inputs-using-interpolate-2",
+    "title": "Building a model with odin",
+    "section": "Time-varying inputs: using interpolate",
+    "text": "Time-varying inputs: using interpolate\n\nCodePlot\n\n\n\npars &lt;- list(beta_time = c(0, 30), beta_value = c(0.2, 1))\nsys &lt;- dust_system_create(sir, pars = pars, dt = 0.25)\ndust_system_set_state_initial(sys)\nt &lt;- seq(0, 100)\ny &lt;- dust_system_simulate(sys, t)\ny &lt;- dust_unpack_state(sys, y)\n\nplot(t, y$I, type = \"l\", xlab = \"Time\", ylab = \"Infected population\")\nabline(v = 30, lty = 3)\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nIn the book: Inputs that vary over time"
+  },
+  {
+    "objectID": "building-odin-models.html#using-arrays",
+    "href": "building-odin-models.html#using-arrays",
+    "title": "Building a model with odin",
+    "section": "Using arrays",
+    "text": "Using arrays\nsir_age &lt;- odin({\n  # Equations for transitions between compartments by age group\n  update(S[]) &lt;- S[i] - n_SI[i]\n  update(I[]) &lt;- I[i] + n_SI[i] - n_IR[i]\n  update(R[]) &lt;- R[i] + n_IR[i]\n  update(incidence) &lt;- incidence + sum(n_SI)\n  \n  # Individual probabilities of transition:\n  p_SI[] &lt;- 1 - exp(-lambda[i] * dt) # S to I\n  p_IR &lt;- 1 - exp(-gamma * dt) # I to R\n  \n  # Calculate force of infection\n  \n  # age-structured contact matrix: m[i, j] is mean number\n  # of contacts an individual in group i has with an\n  # individual in group j per time unit\n  m &lt;- parameter()\n  \n  # here s_ij[i, j] gives the mean number of contacts an\n  # individual in group i will have with the currently\n  # infectious individuals of group j\n  s_ij[, ] &lt;- m[i, j] * I[j]\n  \n  # lambda[i] is the total force of infection on an\n  # individual in group i\n  lambda[] &lt;- beta * sum(s_ij[i, ])\n  \n  # Draws from binomial distributions for numbers\n  # changing between compartments:\n  n_SI[] &lt;- Binomial(S[i], p_SI[i])\n  n_IR[] &lt;- Binomial(I[i], p_IR)\n  \n  initial(S[]) &lt;- S0[i]\n  initial(I[]) &lt;- I0[i]\n  initial(R[]) &lt;- 0\n  initial(incidence, zero_every = 1) &lt;- 0\n  \n  S0 &lt;- parameter()\n  I0 &lt;- parameter()\n  beta &lt;- parameter(0.2)\n  gamma &lt;- parameter(0.1)\n  \n  n_age &lt;- parameter()\n  dim(S, S0, n_SI, p_SI) &lt;- n_age\n  dim(I, I0, n_IR) &lt;- n_age\n  dim(R) &lt;- n_age\n  dim(m, s_ij) &lt;- c(n_age, n_age)\n  dim(lambda) &lt;- n_age\n})\n\nIn the book: Arrays"
+  },
+  {
+    "objectID": "building-odin-models.html#using-arrays-1",
+    "href": "building-odin-models.html#using-arrays-1",
+    "title": "Building a model with odin",
+    "section": "Using arrays",
+    "text": "Using arrays\n\n\npars &lt;- list(S0 = c(990, 1000),\n             I0 = c(10, 0),\n             m = matrix(c(1.8, 0.4, 0.4, 1.2) / 2000, 2, 2),\n             beta = 0.2,\n             gamma = 0.1,\n             n_age = 2)\n\n\n Here m[i, j] is the mean number of contacts per time unit for an individual in group i has with an individual in group j\n\nIn the book: Arrays"
+  },
+  {
+    "objectID": "building-odin-models.html#using-arrays-2",
+    "href": "building-odin-models.html#using-arrays-2",
+    "title": "Building a model with odin",
+    "section": "Using arrays",
+    "text": "Using arrays\n\nCodePlot\n\n\n\nsys &lt;- dust_system_create(sir_age, pars = pars, dt = 0.25)\ndust_system_set_state_initial(sys)\nt &lt;- seq(0, 100)\ny &lt;- dust_system_simulate(sys, t)\ny &lt;- dust_unpack_state(sys, y)\n\nmatplot(t, t(y$I), type = \"l\", lty = 1, col = c(\"red\", \"blue\"),\n        xlab = \"Time\", ylab = \"Infected population\")\nlegend(\"topright\", c(\"children\", \"adults\"), col = c(\"red\", \"blue\"), lty = 1)\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nIn the book: Arrays"
+  },
+  {
+    "objectID": "building-odin-models.html#key-features-of-arrays",
+    "href": "building-odin-models.html#key-features-of-arrays",
+    "title": "Building a model with odin",
+    "section": "Key features of arrays",
+    "text": "Key features of arrays\n\nAll arrays (whether state variable or parameter) need a dim equation\nNo use of i, j etc on LHS - indexing on the LHS is implicit\nSupport for up to 8 dimensions, with index variables i, j, k, l, i5, i6, i7, i8\nFunctions for reducing arrays such as sum, prod, min, max - can be applied over entire array or slices\n\n\nIn the book: Arrays"
+  },
+  {
+    "objectID": "building-odin-models.html#arrays-model-with-age-and-vaccine",
+    "href": "building-odin-models.html#arrays-model-with-age-and-vaccine",
+    "title": "Building a model with odin",
+    "section": "Arrays: model with age and vaccine",
+    "text": "Arrays: model with age and vaccine\nsir_age_vax &lt;- odin({\n  # Equations for transitions between compartments by age group\n  update(S[, ]) &lt;- new_S[i, j]\n  update(I[, ]) &lt;- I[i, j] + n_SI[i, j] - n_IR[i, j]\n  update(R[, ]) &lt;- R[i, j] + n_IR[i, j]\n  update(incidence) &lt;- incidence + sum(n_SI)\n  \n  # Individual probabilities of transition:\n  p_SI[, ] &lt;- 1 - exp(-rel_susceptibility[j] * lambda[i] * dt) # S to I\n  p_IR &lt;- 1 - exp(-gamma * dt) # I to R\n  p_vax[, ] &lt;- 1 - exp(-eta[i, j] * dt)\n  \n  # Force of infection\n  m &lt;- parameter() # age-structured contact matrix\n  s_ij[, ] &lt;- m[i, j] * sum(I[j, ])\n  lambda[] &lt;- beta * sum(s_ij[i, ])\n  \n  # Draws from binomial distributions for numbers changing between\n  # compartments:\n  n_SI[, ] &lt;- Binomial(S[i, j], p_SI[i, j])\n  n_IR[, ] &lt;- Binomial(I[i, j], p_IR)\n  \n  # Nested binomial draw for vaccination in S\n  # Assume you cannot move vaccine class and get infected in same step\n  n_S_vax[, ] &lt;- Binomial(S[i, j] - n_SI[i, j], p_vax[i, j])\n  new_S[, 1] &lt;- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, n_vax]\n  new_S[, 2:n_vax] &lt;- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, j - 1]\n  \n  initial(S[, ]) &lt;- S0[i, j]\n  initial(I[, ]) &lt;- I0[i, j]\n  initial(R[, ]) &lt;- 0\n  initial(incidence, zero_every = 1) &lt;- 0\n  \n  # User defined parameters - default in parentheses:\n  S0 &lt;- parameter()\n  I0 &lt;- parameter()\n  beta &lt;- parameter(0.0165)\n  gamma &lt;- parameter(0.1)\n  eta &lt;- parameter()\n  rel_susceptibility &lt;- parameter()\n  \n  # Dimensions of arrays\n  n_age &lt;- parameter()\n  n_vax &lt;- parameter()\n  dim(S, S0, n_SI, p_SI) &lt;- c(n_age, n_vax)\n  dim(I, I0, n_IR) &lt;- c(n_age, n_vax)\n  dim(R) &lt;- c(n_age, n_vax)\n  dim(m, s_ij) &lt;- c(n_age, n_age)\n  dim(lambda) &lt;- n_age\n  dim(eta) &lt;- c(n_age, n_vax)\n  dim(rel_susceptibility) &lt;- c(n_vax)\n  dim(p_vax, n_S_vax, new_S) &lt;- c(n_age, n_vax)\n})\n\nIn the book: Arrays"
+  },
+  {
+    "objectID": "building-odin-models.html#arrays-boundary-conditions",
+    "href": "building-odin-models.html#arrays-boundary-conditions",
+    "title": "Building a model with odin",
+    "section": "Arrays: boundary conditions",
+    "text": "Arrays: boundary conditions\nMultiline equations can be used to deal with boundary conditions, e.g. we have\n\nnew_S[, 1] &lt;- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, n_vax]\nnew_S[, 2:n_vax] &lt;- S[i, j] - n_SI[i, j] - n_S_vax[i, j] + n_S_vax[i, j - 1]\n\nwhich we could also write as\n\nnew_S[, ] &lt;- S[i, j] - n_SI[i, j] - n_S_vax[i, j]\nnew_S[, 1] &lt;- new_S[i, j] + n_S_vax[i, n_vax]\nnew_S[, 2:n_vax] &lt;- new_S[i, j] + n_S_vax[i, j - 1]\n\nor another way of writing this would be to use if ... else\n\nnew_S[, ] &lt;- S[i, j] - n_SI[i, j] - n_S_vax[i, j] +\n    (if (j == 1) n_S_vax[i, n_vax] else n_S_vax[i, j - 1])\n\n\nIn the book: Arrays"
+  },
+  {
+    "objectID": "building-odin-models.html#dimensions",
+    "href": "building-odin-models.html#dimensions",
+    "title": "Building a model with odin",
+    "section": "Dimensions",
+    "text": "Dimensions\nDimensions can be hard-coded:\n\ndim(S) &lt;- 2\n\nor can be soft-coded via parameters:\n\ndim(S) &lt;- n_age\nn_age &lt;- parameter()\n\n\nIn the book: Arrays"
+  },
+  {
+    "objectID": "building-odin-models.html#dimensions-1",
+    "href": "building-odin-models.html#dimensions-1",
+    "title": "Building a model with odin",
+    "section": "Dimensions",
+    "text": "Dimensions\nArray parameters can have dimensions explicitly declared\n\nm &lt;- parameter()\ndim(m) &lt;- c(n_age, n_age)\nn_age &lt;- parameter()\n\nor detected when the parameters are passed into the system - but a dim equation is needed where you must explicitly state the rank:\n\ndim(m) &lt;- parameter(rank = 2)\n\n\nIn the book: Arrays"
+  },
+  {
+    "objectID": "building-odin-models.html#dimensions-2",
+    "href": "building-odin-models.html#dimensions-2",
+    "title": "Building a model with odin",
+    "section": "Dimensions",
+    "text": "Dimensions\nDimensions of one array can be declared as the same as the dimensions of another:\n\ndim(m) &lt;- c(n_age, n_age)\ndim(s_ij) &lt;- dim(m)\n\nor dimensions of arrays that have the same dimensions can be declared collectively:\n\ndim(m, s_ij) &lt;- c(n_age, n_age)\n\n\nIn the book: Arrays"
+  },
+  {
+    "objectID": "building-odin-models.html#compilation-error-messages",
+    "href": "building-odin-models.html#compilation-error-messages",
+    "title": "Building a model with odin",
+    "section": "Compilation error messages",
+    "text": "Compilation error messages\nLet’s revisit the stochastic SIR model, which compiles successfully:\n\n\nsir &lt;- odin({\n  update(S) &lt;- S - n_SI\n  update(I) &lt;- I + n_SI - n_IR\n  update(R) &lt;- R + n_IR\n  update(incidence) &lt;- incidence + n_SI\n\n  p_SI &lt;- 1 - exp(-beta * I / N * dt)\n  p_IR &lt;- 1 - exp(-gamma * dt)\n  n_SI &lt;- Binomial(S, p_SI)\n  n_IR &lt;- Binomial(I, p_IR)\n\n  initial(S) &lt;- N - I0\n  initial(I) &lt;- I0\n  initial(R) &lt;- 0\n  initial(incidence, zero_every = 1) &lt;- 0\n\n  N &lt;- parameter(1000)\n  I0 &lt;- parameter(10)\n  beta &lt;- parameter(0.2)\n  gamma &lt;- parameter(0.1)\n})\n\nsir\n#&gt; \n#&gt; ── &lt;dust_system_generator: odin_system&gt; ────────────────────────────────────────\n#&gt; ℹ This system runs in discrete time with a default dt of 1\n#&gt; ℹ This system has 4 parameters\n#&gt; → 'N', 'I0', 'beta', and 'gamma'\n#&gt; ℹ Use dust2::dust_system_create() (`?dust2::dust_system_create()`) to create a system with this generator\n#&gt; ℹ Use coef() (`?stats::coef()`) to get more information on parameters\n\n\n\nIn the book: Debugging"
+  },
+  {
+    "objectID": "building-odin-models.html#compilation-error-messages-1",
+    "href": "building-odin-models.html#compilation-error-messages-1",
+    "title": "Building a model with odin",
+    "section": "Compilation error messages",
+    "text": "Compilation error messages\nNow let’s remove the initial(R) equation\n\n\nsir &lt;- odin({\n  update(S) &lt;- S - n_SI\n  update(I) &lt;- I + n_SI - n_IR\n  update(R) &lt;- R + n_IR\n  update(incidence) &lt;- incidence + n_SI\n\n  p_SI &lt;- 1 - exp(-beta * I / N * dt)\n  p_IR &lt;- 1 - exp(-gamma * dt)\n  n_SI &lt;- Binomial(S, p_SI)\n  n_IR &lt;- Binomial(I, p_IR)\n\n  initial(S) &lt;- N - I0\n  initial(I) &lt;- I0\n  initial(incidence, zero_every = 1) &lt;- 0\n\n  N &lt;- parameter(1000)\n  I0 &lt;- parameter(10)\n  beta &lt;- parameter(0.2)\n  gamma &lt;- parameter(0.1)\n})\n#&gt; Error in `odin()`:\n#&gt; ! Variables used in 'update()' do not have 'initial()' calls\n#&gt; ✖ Did not find 'initial()' calls for 'R'\n#&gt; → Context:\n#&gt; update(R) &lt;- R + n_IR\n#&gt; ℹ For more information, run `odin2::odin_error_explain(\"E2003\")`\n\n\n\nIn the book: Debugging"
+  },
+  {
+    "objectID": "building-odin-models.html#compilation-error-messages-2",
+    "href": "building-odin-models.html#compilation-error-messages-2",
+    "title": "Building a model with odin",
+    "section": "Compilation error messages",
+    "text": "Compilation error messages\nWe can run odin_error_explain() with the corresponding error code as suggested (clickable in RStudio) for more information\n\n\nodin_error_explain(\"E2003\")\n#&gt; \n#&gt; ── E2003 ───────────────────────────────────────────────────────────────────────\n#&gt; Variables are missing initial conditions.\n#&gt; \n#&gt; All variables used in `deriv()` or `update()` require a corresponding entry in\n#&gt; `initial()` to set their initial conditions.  The error will highlight all\n#&gt; lines that have a `deriv()` or `update()` call that lacks a call to\n#&gt; `initial()`.  This can sometimes be because you have a spelling error in your\n#&gt; call to `initial()`.\n#&gt; \n\n\n\nIn the book: Debugging"
+  },
+  {
+    "objectID": "building-odin-models.html#debugging",
+    "href": "building-odin-models.html#debugging",
+    "title": "Building a model with odin",
+    "section": "Debugging",
+    "text": "Debugging\nHere’s a model that compiles but has a bug\n\n\nsir &lt;- odin({\n  update(S) &lt;- S - n_SI\n  update(I) &lt;- I + n_SI\n  update(R) &lt;- R + n_IR\n  update(incidence) &lt;- incidence + n_SI\n\n  p_SI &lt;- 1 - exp(-beta * I / N * dt)\n  p_IR &lt;- 1 - exp(-gamma * dt)\n  n_SI &lt;- Binomial(S, p_SI)\n  n_IR &lt;- Binomial(I, p_IR)\n\n  initial(S) &lt;- N - I0\n  initial(I) &lt;- I0\n  initial(R) &lt;- 0\n  initial(incidence, zero_every = 1) &lt;- 0\n\n  N &lt;- parameter(1000)\n  I0 &lt;- parameter(10)\n  beta &lt;- parameter(0.2)\n  gamma &lt;- parameter(0.1)\n})\n\nsir\n#&gt; ── &lt;dust_system_generator: odin_system&gt; ────────────────────────────────────────\n#&gt; ℹ This system runs in discrete time with a default dt of 1\n#&gt; ℹ This system has 4 parameters\n#&gt; → 'N', 'I0', 'beta', and 'gamma'\n#&gt; ℹ Use dust2::dust_system_create() (`?dust2::dust_system_create()`) to create a system with this generator\n#&gt; ℹ Use coef() (`?stats::coef()`) to get more information on parameters\n\n\n\nIn the book: Debugging"
+  },
+  {
+    "objectID": "building-odin-models.html#debugging-1",
+    "href": "building-odin-models.html#debugging-1",
+    "title": "Building a model with odin",
+    "section": "Debugging",
+    "text": "Debugging\nLet’s run it\n\n\nsys &lt;- dust_system_create(sir)\ndust_system_set_state_initial(sys)\nt &lt;- 50\nres &lt;- dust_system_simulate(sys, t)\ndust_unpack_state(sys, res)\n#&gt; $S\n#&gt; [1] 7\n#&gt; \n#&gt; $I\n#&gt; [1] 993\n#&gt; \n#&gt; $R\n#&gt; [1] 2469\n#&gt; \n#&gt; $incidence\n#&gt; [1] 2\n\n\nThe number of individuals in the R compartment has exceeded N!\n\nIn the book: Debugging"
+  },
+  {
+    "objectID": "building-odin-models.html#debugging-2",
+    "href": "building-odin-models.html#debugging-2",
+    "title": "Building a model with odin",
+    "section": "Debugging",
+    "text": "Debugging\nYou can stare at the code and hope to spot what’s wrong, but that can be like trying to find a needle in a haystack, especially for larger models.\nSo there are tools to help you:\n\nYou can print() the values of variables in your model as it runs\nYou can use the browser() function in the same way as you would in R.\n\n\nIn the book: Debugging"
+  },
+  {
+    "objectID": "building-odin-models.html#debugging-using-print",
+    "href": "building-odin-models.html#debugging-using-print",
+    "title": "Building a model with odin",
+    "section": "Debugging: using print()",
+    "text": "Debugging: using print()\nWith print() we can tell it what to print and (optionally) conditions for when to print.\n\n\nsir &lt;- odin({\n  update(S) &lt;- S - n_SI\n  update(I) &lt;- I + n_SI\n  update(R) &lt;- R + n_IR\n  update(incidence) &lt;- incidence + n_SI\n\n  p_SI &lt;- 1 - exp(-beta * I / N * dt)\n  p_IR &lt;- 1 - exp(-gamma * dt)\n  n_SI &lt;- Binomial(S, p_SI)\n  n_IR &lt;- Binomial(I, p_IR)\n\n  initial(S) &lt;- N - I0\n  initial(I) &lt;- I0\n  initial(R) &lt;- 0\n  initial(incidence, zero_every = 1) &lt;- 0\n\n  N &lt;- parameter(1000)\n  I0 &lt;- parameter(10)\n  beta &lt;- parameter(0.2)\n  gamma &lt;- parameter(0.1)\n  \n  print(\"S + I: {S + I}, R: {R}\", when = S + I + R &gt; N && time &gt; 5)\n})\n\n\n\nIn the book: Debugging"
+  },
+  {
+    "objectID": "building-odin-models.html#debugging-using-print-1",
+    "href": "building-odin-models.html#debugging-using-print-1",
+    "title": "Building a model with odin",
+    "section": "Debugging: using print()",
+    "text": "Debugging: using print()\nThen when we run it prints what we wanted with the times in square brackets:\n\n\nsys &lt;- dust_system_create(sir)\ndust_system_set_state_initial(sys)\ndust_system_run_to_time(sys, 10)\n#&gt; [6.000000] S + I: 1000.000000, R: 15.000000\n#&gt; [7.000000] S + I: 1000.000000, R: 17.000000\n#&gt; [8.000000] S + I: 1000.000000, R: 21.000000\n#&gt; [9.000000] S + I: 1000.000000, R: 26.000000\n\n\n This may help us spot that we’re not removing individuals from I when they move to R!\n\nIn the book: Debugging"
+  },
+  {
+    "objectID": "building-odin-models.html#debugging-using-browser",
+    "href": "building-odin-models.html#debugging-using-browser",
+    "title": "Building a model with odin",
+    "section": "Debugging: using browser()",
+    "text": "Debugging: using browser()\nWith the browser() we need to declare the phase for inserting (deriv for ODE models, update for stochastic models) and optionally when to trigger it.\n\n\nsir &lt;- odin({\n  update(S) &lt;- S - n_SI\n  update(I) &lt;- I + n_SI\n  update(R) &lt;- R + n_IR\n  update(incidence) &lt;- incidence + n_SI\n\n  p_SI &lt;- 1 - exp(-beta * I / N * dt)\n  p_IR &lt;- 1 - exp(-gamma * dt)\n  n_SI &lt;- Binomial(S, p_SI)\n  n_IR &lt;- Binomial(I, p_IR)\n\n  initial(S) &lt;- N - I0\n  initial(I) &lt;- I0\n  initial(R) &lt;- 0\n  initial(incidence, zero_every = 1) &lt;- 0\n\n  N &lt;- parameter(1000)\n  I0 &lt;- parameter(10)\n  beta &lt;- parameter(0.2)\n  gamma &lt;- parameter(0.1)\n  \n  browser(phase = \"update\", when = S + I + R &gt; N)\n})\n\n\n\nIn the book: Debugging"
+  },
+  {
+    "objectID": "building-odin-models.html#debugging-using-browser-1",
+    "href": "building-odin-models.html#debugging-using-browser-1",
+    "title": "Building a model with odin",
+    "section": "Debugging: using browser()",
+    "text": "Debugging: using browser()\nWhen we try to run it will pause during evaluation:\n\nsys &lt;- dust_system_create(sir)\ndust_system_set_state_initial(sys)\ndust_system_run_to_time(sys, 50)\nℹ dust debug ('update'; time = 2): see dust_browser for help\nCalled from: eval(substitute(expr), data, enclos = parent.frame())\nBrowse[1]&gt; \n\n You can list all the variables\n\nBrowse[1]&gt; ls()\n [1] \"beta\"      \"gamma\"     \"I\"         \"I0\"        \"incidence\" \"N\"         \"n_IR\"      \"n_SI\"      \"p_IR\"     \n[10] \"p_SI\"      \"R\"         \"S\"         \"time\"  \n\n\nIn the book: Debugging"
+  },
+  {
+    "objectID": "building-odin-models.html#debugging-using-browser-2",
+    "href": "building-odin-models.html#debugging-using-browser-2",
+    "title": "Building a model with odin",
+    "section": "Debugging: using browser()",
+    "text": "Debugging: using browser()\nYou can inspect values and perform calculations\n\nBrowse[1]&gt; N\n[1] 1000\nBrowse[1]&gt; I\n[1] 18\nBrowse[1]&gt; S\n[1] 982\nBrowse[1]&gt; I / N\n[1] 0.018\n\n\nIn the book: Debugging"
+  },
+  {
+    "objectID": "building-odin-models.html#debugging-using-browser-3",
+    "href": "building-odin-models.html#debugging-using-browser-3",
+    "title": "Building a model with odin",
+    "section": "Debugging: using browser()",
+    "text": "Debugging: using browser()\n\nEnter c or n, to continue until the next time the browser() is triggered\n\nIf your model has a variable called n, you would need to type message(n) to see its value\nEnter Q to immediately exit to the console with an error.\nRun dust_browser_continue() to cancel all future browser() calls and continue running the model\n\n\nIn the book: Debugging"
+  },
+  {
+    "objectID": "building-odin-models.html#next-steps",
+    "href": "building-odin-models.html#next-steps",
+    "title": "Building a model with odin",
+    "section": "Next steps",
+    "text": "Next steps\n\nGet started fitting odin models with monty\nLearn how to use delay() for delay differential equations\nUnderstand the order of events for discrete-time stochastic models\nFor larger odin models, learn about packaging them"
+  }
+]
