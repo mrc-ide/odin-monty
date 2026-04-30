@@ -1333,7 +1333,7 @@ sir <- odin("models/sir-interpolate-compare.R")
 
 ## Fitting a time-varying parameter {.smaller}
 
-Let's create our packer - we'll fit `gamma` and 2 values for `beta` (with changepoints at `time = 0` and `time = 30`)
+Let's create our packer - we'll fit `gamma` and 2 values for `beta` (with changepoints at `time = 0` and `time = 20`)
 
 ::: {style="font-size: 1.5em"}
 
