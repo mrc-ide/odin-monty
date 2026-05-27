@@ -58,7 +58,7 @@ sis <- odin({
 })
 ```
 
-We will fit this model to some case data.
+We will fit this model to case data from the (synthetic) data set [`data/schools.csv`](data/schools.csv).
 
 ```{r}
 data <- read.csv("data/schools.csv")
