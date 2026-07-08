@@ -1820,7 +1820,7 @@ points(data, pch = 19, col = "red")
 ```{r, cache = TRUE}
 #| echo: false
 y_fit <- dust_unpack_state(filter, samples$observations$trajectories)
-matplot(data$time, Y_fit$incidence, type = "l", col = "#00000044", lty = 1,
+matplot(data$time, y_fit$incidence, type = "l", col = "#00000044", lty = 1,
         xlab = "Time", ylab = "Incidence")
 points(data, pch = 19, col = "red")
 ```
