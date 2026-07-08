@@ -292,7 +292,24 @@ dim(samples2$observations$trajectories)
 
 samples <- monty_samples_thin(samples,
                               burnin = 500,
-                              thinning_factor = 2)
+                              thinning_factor = 2,
+                              save_full_chain = TRUE)
+
+
+dim(samples$pars)
+dim(samples$density)
+dim(samples$observations$trajectories)
+dim(samples$full_chains$pars)
+dim(samples$full_chains$density)
+samples$full_chains$observations$trajectories
+
+
+
+## Flattening chains
+
+samples <- monty_flatten_chains(samples)
+dim(samples$pars)
+dim(samples$observations$trajectories)
 
 
 
@@ -305,7 +322,8 @@ dust_likelihood_run(unfilter, list(beta = 0.4, gamma = 0.2))
 
 likelihood <- dust_likelihood_monty(unfilter, packer, save_trajectories = TRUE)
 posterior <- likelihood + prior
-samples_det <- monty_sample(posterior, sampler, 1000, n_chains = 4)
+samples_det <- monty_sample(posterior, sampler, 1000, n_chains = 4,
+                            flatten_chains = TRUE)
 samples_det <- monty_samples_thin(samples_det,
                                   burnin = 500,
                                   thinning_factor = 2)
@@ -315,24 +333,20 @@ samples_det <- monty_samples_thin(samples_det,
 ## Stochastic v deterministic comparison
 
 y <- dust2::dust_unpack_state(filter, samples$observations$trajectories)
-incidence <- array(y$incidence, c(20, 1000))
-matplot(data$time, incidence, type = "l", lty = 1, col = "#00000044",
+matplot(data$time, y$incidence, type = "l", lty = 1, col = "#00000044",
         xlab = "Time", ylab = "Infection incidence", ylim = c(0, 75),
-        main ="Stochastic fit")
+        main = "Stochastic fit")
 points(data, pch = 19, col = "red")
 
-y <- dust2::dust_unpack_state(filter, samples_det$observations$trajectories)
-incidence <- array(y$incidence, c(20, 1000))
-matplot(data$time, incidence, type = "l", lty = 1, col = "#00000044",
+y <- dust2::dust_unpack_state(unfilter, samples_det$observations$trajectories)
+matplot(data$time, y$incidence, type = "l", lty = 1, col = "#00000044",
         xlab = "Time", ylab = "Infection incidence", ylim = c(0, 75),
-        main ="Deterministic fit")
+        main = "Deterministic fit")
 points(data, pch = 19, col = "red")
 
-pars_stochastic <- array(samples$pars, c(2, 500))
-pars_deterministic <- array(samples_det$pars, c(2, 500))
-plot(pars_stochastic[1, ], pars_stochastic[2, ], ylab = "gamma", xlab = "beta",
+plot(samples$pars[1, ], samples$pars[2, ], ylab = "gamma", xlab = "beta",
      pch = 19, col = "blue")
-points(pars_deterministic[1, ], pars_deterministic[2, ], pch = 19, col = "red")
+points(samples_det$pars[1, ], samples_det$pars[2, ], pch = 19, col = "red")
 legend("bottomright", c("stochastic fit", "deterministic fit"), pch = c(19, 19), 
        col = c("blue", "red"))
 
@@ -393,12 +407,12 @@ posterior
 
 vcv <- diag(c(0.005, 0.01, 0.01))
 sampler <- monty_sampler_random_walk(vcv)
-samples <- monty_sample(posterior, sampler, 1000, initial = c(0.1, 0.5, 0.5), n_chains = 4)
+samples <- monty_sample(posterior, sampler, 1000, initial = c(0.1, 0.5, 0.5), n_chains = 4,
+                        flatten_chains = TRUE)
 samples <- monty_samples_thin(samples, thinning_factor = 2, burnin = 500)
 
 y <- dust_unpack_state(filter, samples$observations$trajectories)
-incidence <- array(y$incidence, c(50, 1000))
-matplot(data$time, incidence, type = "l", lty = 1,
+matplot(data$time, y$incidence, type = "l", lty = 1,
         col = "#00000044", xlab = "Time", ylab = "Infection incidence")
 points(data, pch = 19, col = "red")
 
@@ -498,19 +512,19 @@ posterior <- likelihood + prior
 vcv <- matrix(c(0.01, 0.005, 0.005, 0.005), 2, 2)
 sampler <- monty_sampler_random_walk(vcv)
 samples <- monty_sample(posterior, sampler, 500, 
-                        initial = c(0.3, 0.1), n_chains = 4)
+                        initial = c(0.3, 0.1), n_chains = 4,
+                        flatten_chains = TRUE)
 
 
 y <- dust_unpack_state(filter, samples$observations$trajectories)
-incidence <- array(y$incidence, c(2, 100, 2000))
 
-matplot(data_age$time, incidence[1, , ], type = "l", col = "#00000044", lty = 1,
-        xlab = "Time", ylab = "Incidence (children)")
+matplot(data_age$time, y$incidence[1, , ], type = "l", col = "#00000044", 
+        lty = 1, xlab = "Time", ylab = "Incidence (children)")
 cases_children <- vapply(data_age$cases, "[[", numeric(1), "cases_children")
 points(data_age$time, cases_children, pch = 19, col = "red")
 
-matplot(data_age$time, incidence[2, , ], type = "l", col = "#00000044", lty = 1,
-        xlab = "Time", ylab = "Incidence (adults)")
+matplot(data_age$time, y$incidence[2, , ], type = "l", col = "#00000044",
+        lty = 1, xlab = "Time", ylab = "Incidence (adults)")
 cases_adult <- vapply(data_age$cases, "[[", numeric(1), "cases_adult")
 points(data_age$time, cases_adult, pch = 19, col = "red")
 
@@ -583,16 +597,15 @@ likelihood <- dust_likelihood_monty(filter, packer, save_trajectories = TRUE,
 posterior <- likelihood + prior
 
 samples <- monty_sample(posterior, sampler, 500, initial = c(0.3, 0.1, 0.5),
-                        n_chains = 4)
+                        n_chains = 4, flatten_chains = TRUE)
 samples <- monty_samples_thin(samples, burnin = 100, thinning_factor = 8)
 
 
 
 ## Fit to data
 
-y <- dust_unpack_state(filter, samples$observations$trajectories)
-incidence <- array(y$incidence, c(150, 200))
-matplot(data$time, incidence, type = "l", col = "#00000044", lty = 1,
+y_fit <- dust_unpack_state(filter, samples$observations$trajectories)
+matplot(data$time, y_fit$incidence, type = "l", col = "#00000044", lty = 1,
         xlab = "Time", ylab = "Incidence")
 points(data, pch = 19, col = "red")
 
@@ -600,30 +613,28 @@ points(data, pch = 19, col = "red")
 
 ## Running projection using the end state
 
-state <- array(samples$observations$state, c(3, 200))
-pars <- array(samples$pars, c(3, 200))
-pars <- lapply(seq_len(200), function(i) packer$unpack(pars[, i]))
+state <- samples$observations$state
+pars <- lapply(seq_len(200), function(i) packer$unpack(samples$pars[, i]))
 
 sys <- dust_system_create(sis, pars, n_groups = length(pars), dt = 1)
 
 dust_system_set_state(sys, state)
 t <- seq(150, 200)
-y <- dust_system_simulate(sys, t)
-y <- dust_unpack_state(sys, y)
+y_proj <- dust_system_simulate(sys, t)
+y_proj <- dust_unpack_state(sys, y_proj)
 
-matplot(data$time, incidence, type = "l", col = "#00000044", lty = 1,
+matplot(data$time, y_fit$incidence, type = "l", col = "#00000044", lty = 1,
         xlab = "Time", ylab = "Incidence", xlim = c(0, 200))
-matlines(t, t(y$incidence), col = "blue")
+matlines(t, t(y_proj$incidence), col = "blue")
 points(data, pch = 19, col = "red")
 
 
 
 ## Running counterfactual using the snapshot
 
-snapshot <- array(samples$observations$snapshots, c(3, 200))
-pars <- array(samples$pars, c(3, 200))
+snapshot <- samples$observations$snapshots[, 1, ]
 f <- function(i) {
-  p <- packer$unpack(pars[, i])
+  p <- packer$unpack(samples$pars[, i])
   p$schools_time <- c(0, 50, 130, 170, 180)
   p$schools_open <- c(1, 0, 1, 0, 1)
   p
@@ -633,10 +644,10 @@ sys <- dust_system_create(sis, pars, n_groups = length(pars), dt = 1)
 
 dust_system_set_state(sys, snapshot)
 t <- seq(60, 150)
-y <- dust_system_simulate(sys, t)
-y <- dust_unpack_state(sys, y)
+y_cf <- dust_system_simulate(sys, t)
+y_cf <- dust_unpack_state(sys, y_cf)
 
-matplot(data$time, incidence, type = "l", col = "#00000044", lty = 1,
+matplot(data$time, y_fit$incidence, type = "l", col = "#00000044", lty = 1,
         xlab = "Time", ylab = "Incidence")
-matlines(t, t(y$incidence), col = "blue")
+matlines(t, t(y_cf$incidence), col = "blue")
 points(data, pch = 19, col = "red")
